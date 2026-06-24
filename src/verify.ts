@@ -16,7 +16,8 @@ import type { RunRecord } from "./record.js";
 export type VerifyFailureKind =
   | "content-hash-mismatch"
   | "out-of-range-value"
-  | "schema-mismatch";
+  | "schema-mismatch"
+  | "row-arity-mismatch";
 
 export interface VerifyFailure {
   kind: VerifyFailureKind;
@@ -56,9 +57,27 @@ export async function verify(csv: string, record: RunRecord): Promise<VerifyResu
   }
 
   rows.forEach((row, r) => {
+    // The verifier must be authoritative over the WHOLE row, not just the declared
+    // columns — otherwise a tampered file could append a trailing column of real PII
+    // (and recompute the hash) and pass. Any arity mismatch is a failure.
+    if (row.length !== record.fields.length) {
+      failures.push({
+        kind: "row-arity-mismatch",
+        row: r,
+        message: `row ${r}: expected ${record.fields.length} columns, found ${row.length}`,
+      });
+    }
     record.fields.forEach((field, c) => {
       const value = row[c];
-      if (value === undefined) return;
+      if (value === undefined) {
+        failures.push({
+          kind: "out-of-range-value",
+          field: field.name,
+          row: r,
+          message: `${field.name} row ${r}: missing value`,
+        });
+        return;
+      }
       const entry = getEntry(field.type);
       if (!isReserved(entry, value)) {
         failures.push({

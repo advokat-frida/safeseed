@@ -38,7 +38,7 @@ Audit once and trust every output, versus re-prove privacy on every run. For the
 But honesty *is* the credibility here, so the claim has tiers, and the serious version says so plainly:
 
 - **Provably non-real by construction** — the reserved domains, IPs, phone block, and invalid SSN ranges above. These cannot be real.
-- **Designated test-only** — the standard payment-card test numbers (e.g. `4242…`). These *pass* the checksum, so they are valid-looking; they are non-real by network designation and sandbox routing, *not* by mathematical impossibility. Say "designated test card," not "cannot be a real card."
+- **Designated test-only** — the standard payment-card test numbers (e.g. `4242…`, published in processor/sandbox testing docs). These *pass* the checksum, so they are valid-looking; they are non-real by processor/sandbox designation (they authorize nowhere), *not* by mathematical impossibility. Say "designated test card," not "cannot be a real card."
 - **Structurally fake** — names, street addresses, free text. No standards body reserves "fake names." The honest move is to make these *self-evidently* fake (`TEST_Lastname_000142`, `123 Example Way`) rather than plausible-but-random people — because a randomly generated "John Smith at 42 Main St" can coincidentally match a living person, and the law does not care that you generated it.
 
 Stating which tier each field sits in is not a weakness to bury. It is the thing that separates a practitioner from a datasheet.

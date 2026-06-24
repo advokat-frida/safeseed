@@ -97,3 +97,24 @@ describe("generate.structurallyFakeFieldsAreSelfEvidentlyFake", () => {
     ds.rows.flat().forEach((v) => expect(isSelfEvidentlyFake(v), v).toBe(true));
   });
 });
+
+describe("generate.staysInRangeAtScale", () => {
+  it("ipv6 and structurally-fake tokens stay in range past the single-hextet (65,535) boundary", () => {
+    const ds = generate({
+      schema: [
+        { name: "ip6", type: "ipv6" },
+        { name: "last", type: "lastName" },
+      ],
+      rows: 70000,
+      seed: 1,
+    });
+    const ip6 = getEntry("ipv6");
+    const last = getEntry("lastName");
+    // spot-check the rows straddling the 0x10000 boundary plus the tail
+    for (const r of [0, 65534, 65535, 65536, 69999]) {
+      const row = ds.rows[r]!;
+      expect(isReserved(ip6, row[0]!), `ipv6 row ${r} = ${row[0]}`).toBe(true);
+      expect(isReserved(last, row[1]!), `lastName row ${r} = ${row[1]}`).toBe(true);
+    }
+  });
+});

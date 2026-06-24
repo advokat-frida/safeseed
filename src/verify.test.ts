@@ -67,3 +67,30 @@ describe("verify.exitsNonZeroOnDrift", () => {
     expect(exitCode(drifted)).not.toBe(0);
   });
 });
+
+describe("verify.failsOnAppendedTrailingColumn", () => {
+  it("rejects an appended real-PII column even when the hash is recomputed to match", async () => {
+    const { csv, record } = await build();
+    // Attacker appends a trailing column of real emails to each data row and
+    // recomputes the content hash so the tamper-evidence check passes.
+    const lines = csv.split("\n");
+    const tampered = lines
+      .map((line, i) => (i === 0 || line === "" ? line : `${line},victim.real@gmail.com`))
+      .join("\n");
+    expect(tampered).not.toBe(csv);
+    record.contentSha256 = await sha256Hex(tampered);
+
+    const result = await verify(tampered, record);
+    expect(result.ok).toBe(false);
+    expect(result.failures.some((f) => f.kind === "row-arity-mismatch")).toBe(true);
+  });
+
+  it("rejects a short row (missing value)", async () => {
+    const { ds, record } = await build();
+    const shortRows = ds.rows.map((r, i) => (i === 0 ? r.slice(0, -1) : r));
+    const tampered = toCsv(ds.columns, shortRows);
+    record.contentSha256 = await sha256Hex(tampered);
+    const result = await verify(tampered, record);
+    expect(result.ok).toBe(false);
+  });
+});

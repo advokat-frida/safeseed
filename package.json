@@ -35,7 +35,7 @@
     "data-minimization",
     "fixtures",
     "ci",
-    "anonymization"
+    "non-production"
   ],
   "engines": {
     "node": ">=18"

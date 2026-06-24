@@ -14,7 +14,7 @@ The breaches teams plan for involve production. The ones that actually happen of
 
 Most synthetic-data tools **learn the shape of your real data from your real data**, so the output can memorize and re-emit real records, and privacy becomes something you defend *after the fact* (membership-inference tests, differential-privacy noise, a privacy report) on every dataset, forever.
 
-SafeSeed takes the other path: **never let real data into the process at all.** Each field is drawn from values a standard reserves as non-real. If the source data never touches the generator, there is nothing to memorize and nothing to leak — not because you defended it, but because the leak surface does not exist. You audit a few hundred cited lines once, and every output inherits the guarantee.
+SafeSeed takes the other path: **never let real data into the process at all.** Each field is drawn from values a standard reserves as non-real. If the source data never touches the generator, there is no real record for it to memorize or re-emit — not because you defended it after the fact, but because the input was never there. You audit a few hundred cited lines once, and every output inherits the guarantee. (This is the argument against model memorization; the structurally-fake tier still carries the coincidence caveat below.)
 
 ## What it does
 
@@ -83,7 +83,7 @@ Honesty is the credibility here, so the claim has tiers, and every field is labe
 | Tier | What it means | Examples | The claim |
 |---|---|---|---|
 | **provably-non-real** | Reserved by a published standard; cannot belong to a real person or system. | RFC 2606 email domains, RFC 5737 / 3849 IPs, NANPA `555-01xx` phones, unassigned SSN ranges | "Cannot correspond to a real person or system." |
-| **designated-test-only** | A valid-looking value the networks *designate* for testing. It passes validation. | Card test PANs (`4242…`) | "Non-real by designation, **not** by impossibility." |
+| **designated-test-only** | A valid-looking value processors/sandboxes *designate* for testing. It passes validation. | Card test PANs (`4242…`) | "Non-real by designation, **not** by impossibility." |
 | **structurally-fake** | No standard reserves it, so it is made *self-evidently* fake instead of plausible. | `TEST_Lastname_000142`, `123 Example Way` | "Synthetic token; not derived from any real record." |
 
 Stating which tier each field sits in is not a weakness to bury. It is the thing that separates a practitioner from a datasheet.
@@ -109,8 +109,8 @@ Off-the-shelf fake-data libraries already emit reserved-range values. What is mi
 - **RFC 5737** — IPv4 documentation blocks (`192.0.2.0/24`, `198.51.100.0/24`, `203.0.113.0/24`).
 - **RFC 3849** — IPv6 documentation prefix (`2001:db8::/32`).
 - **NANPA / ATIS** — fictitious telephone numbers (`555-0100` through `555-0199`).
-- **SSA SSN assignment rules** — unassigned ranges (area `000`/`666`/`900-999`, group `00`, serial `0000`). *These rest on secondary sources and are flagged in-code for re-verification against ssa.gov before any public release.*
-- Card numbers are **published network test PANs**, in the `designated-test-only` tier (they pass Luhn).
+- **SSA SSN randomization** (effective 2011-06-25) — never-assigned ranges (area `000`/`666`/`900-999`, group `00`, serial `0000`), confirmed against the [SSA randomization rules](https://www.ssa.gov/employer/randomization.html).
+- Card numbers are **published processor/sandbox test PANs** (e.g. Stripe testing docs), in the `designated-test-only` tier (they pass Luhn, authorize nowhere).
 
 ## Development
 

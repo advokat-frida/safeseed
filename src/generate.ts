@@ -75,8 +75,13 @@ function generateValue(type: FieldType, rng: () => number, row: number, formatVa
       const block = pick(rng, IPV4_BLOCKS);
       return `${block[0]}.${block[1]}.${block[2]}.${intBetween(rng, 1, 254)}`;
     }
-    case "ipv6":
-      return `2001:db8::${row.toString(16)}`;
+    case "ipv6": {
+      // Split the counter across two hextets so it never overflows a single hextet
+      // (>0xffff) and always stays inside the RFC 3849 2001:db8::/32 documentation prefix.
+      const hi = (row >>> 16) & 0xffff;
+      const lo = row & 0xffff;
+      return hi ? `2001:db8::${hi.toString(16)}:${lo.toString(16)}` : `2001:db8::${lo.toString(16)}`;
+    }
     case "phone": {
       const line = pad(intBetween(rng, 100, 199), 4);
       if (formatValid) {

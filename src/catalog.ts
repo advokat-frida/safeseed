@@ -7,9 +7,10 @@
  * this one table, which is what makes the promise auditable: review these few
  * hundred cited lines once, and every output inherits the guarantee.
  *
- * NOTE (pre-publication): the SSN unassigned-range claims below rest on secondary
- * sources; re-verify against ssa.gov before any public release. The RFC and NANPA
- * citations are primary-confirmed.
+ * Sourcing: the RFC 2606 / 5737 / 3849 reservations and the SSA SSN randomization
+ * exclusions (area 000/666/900-999, group 00, serial 0000) are confirmed against
+ * primary sources. The NANPA 555-0100..0199 fictitious block is well-established;
+ * its shipped citation link is the NANPA homepage rather than a deep rule page.
  */
 import type { FieldType, Tier } from "./types.js";
 import { ipv4InCidr, ipv6InPrefix } from "./net.js";
@@ -52,7 +53,7 @@ export interface CatalogEntry {
 const CLAIM_PROVABLE =
   "Reserved by published standard; values in this range cannot correspond to a real person or system.";
 const CLAIM_DESIGNATED =
-  "Designated test value that passes validation; non-real by network and sandbox designation, not by construction. Valid-looking, but reserved for testing.";
+  "Designated test value that passes validation; non-real by processor/sandbox designation, not by construction. Valid-looking, but reserved for testing.";
 const CLAIM_FAKE =
   "Self-evidently synthetic token; not derived from any real record. This field type is not reserved by any standard, so realism is deliberately avoided.";
 
@@ -61,7 +62,7 @@ const RFC2606_TLDS = ["test", "example", "invalid", "localhost"] as const;
 const RFC5737_BLOCKS = ["192.0.2.0/24", "198.51.100.0/24", "203.0.113.0/24"] as const;
 const RFC3849_BLOCKS = ["2001:db8::/32"] as const;
 
-/** Network-published card test PANs (all Luhn-valid by design). */
+/** Payment-processor / sandbox test PANs (all Luhn-valid by design; authorize nowhere). */
 const CARD_TEST_NUMBERS = [
   "4242424242424242", // Visa (widely used sandbox)
   "4111111111111111", // Visa
@@ -119,7 +120,7 @@ export const CATALOG: readonly CatalogEntry[] = [
   {
     field: "ssn",
     tier: "provably-non-real",
-    citation: "SSA assignment rules — unassigned ranges (area 000/666/900-999, group 00, serial 0000). Verify vs ssa.gov before public release.",
+    citation: "SSA SSN randomization (effective 2011-06-25): never-assigned area numbers 000 / 666 / 900-999, plus group 00 and serial 0000 (ssa.gov/employer/randomization.html)",
     description: "US SSNs whose area, group, or serial falls in a range the SSA never issues.",
     claim: CLAIM_PROVABLE,
     reserved: {
@@ -145,7 +146,7 @@ export const CATALOG: readonly CatalogEntry[] = [
     citation: "No standard reserves names; self-evidently-fake token convention",
     description: "Given names rendered as obvious TEST_ tokens rather than plausible names.",
     claim: CLAIM_FAKE,
-    reserved: { kind: "fakeToken", pattern: "^TEST_Firstname_\\d{6}$" },
+    reserved: { kind: "fakeToken", pattern: "^TEST_Firstname_\\d{6,}$" },
   },
   {
     field: "lastName",
@@ -153,7 +154,7 @@ export const CATALOG: readonly CatalogEntry[] = [
     citation: "No standard reserves names; self-evidently-fake token convention",
     description: "Family names rendered as obvious TEST_ tokens.",
     claim: CLAIM_FAKE,
-    reserved: { kind: "fakeToken", pattern: "^TEST_Lastname_\\d{6}$" },
+    reserved: { kind: "fakeToken", pattern: "^TEST_Lastname_\\d{6,}$" },
   },
   {
     field: "fullName",
@@ -161,7 +162,7 @@ export const CATALOG: readonly CatalogEntry[] = [
     citation: "No standard reserves names; self-evidently-fake token convention",
     description: "Full names rendered as obvious TEST_ tokens.",
     claim: CLAIM_FAKE,
-    reserved: { kind: "fakeToken", pattern: "^TEST_Person_\\d{6}$" },
+    reserved: { kind: "fakeToken", pattern: "^TEST_Person_\\d{6,}$" },
   },
   {
     field: "streetAddress",
@@ -177,7 +178,7 @@ export const CATALOG: readonly CatalogEntry[] = [
     citation: "No standard reserves free text; self-evidently-fake token convention",
     description: "Free-text fields rendered as obvious TEST_ tokens.",
     claim: CLAIM_FAKE,
-    reserved: { kind: "fakeToken", pattern: "^TEST_Text_\\d{6}$" },
+    reserved: { kind: "fakeToken", pattern: "^TEST_Text_\\d{6,}$" },
   },
 ];
 
@@ -192,7 +193,9 @@ export function getEntry(field: FieldType): CatalogEntry {
 
 function domainIsReserved(domain: string, domains: readonly string[], tlds: readonly string[]): boolean {
   const d = domain.toLowerCase();
-  if (domains.includes(d)) return true;
+  // RFC 2606 reserves the whole zone of a reserved second-level domain, so a
+  // subdomain (mail.example.com) is reserved too — not just the bare domain.
+  if (domains.some((rd) => d === rd || d.endsWith(`.${rd}`))) return true;
   return tlds.some((t) => d === t || d.endsWith(`.${t}`));
 }
 

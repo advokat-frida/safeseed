@@ -1,0 +1,28 @@
+interface Props {
+  size?: number;
+  className?: string;
+  title?: string;
+}
+
+export default function FoxMark({ size = 40, className, title = "Advokat Frida" }: Props) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 64 64"
+      className={className}
+      role="img"
+      aria-label={title}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <polygon points="14,4 8,28 26,28" fill="#12666a" />
+      <polygon points="50,4 56,28 38,28" fill="#12666a" />
+      <polygon points="8,25 56,25 32,58" fill="#12666a" />
+      <polygon points="14,11 13,26 21,26" fill="#171717" />
+      <polygon points="50,11 51,26 43,26" fill="#171717" />
+      <polygon points="20,33 28,33 24,41" fill="#171717" />
+      <polygon points="36,33 44,33 40,41" fill="#171717" />
+      <polygon points="29,48 35,48 32,56" fill="#171717" />
+    </svg>
+  );
+}

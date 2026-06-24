@@ -45,7 +45,7 @@
       "name": "card",
       "type": "creditCard",
       "tier": "designated-test-only",
-      "citation": "Card-network published test PANs (Visa/Mastercard/Amex/Discover/JCB sandboxes)",
+      "citation": "Payment-processor / sandbox test PANs (e.g. Stripe testing docs); pass Luhn, authorize nowhere",
       "claim": "Designated test value that passes validation; non-real by network and sandbox designation, not by construction. Valid-looking, but reserved for testing."
     },
     {

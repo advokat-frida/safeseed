@@ -134,8 +134,8 @@ export const CATALOG: readonly CatalogEntry[] = [
   {
     field: "creditCard",
     tier: "designated-test-only",
-    citation: "Card-network published test PANs (Visa/Mastercard/Amex/Discover/JCB sandboxes)",
-    description: "Payment card numbers the networks publish for testing. They pass Luhn, so they are non-real by designation, not impossibility.",
+    citation: "Payment-processor / sandbox test PANs (e.g. Stripe testing docs); pass Luhn, authorize nowhere",
+    description: "Card numbers processors and sandboxes publish for testing. They pass the Luhn checksum but authorize nowhere, so they are non-real by designation, not by impossibility.",
     claim: CLAIM_DESIGNATED,
     reserved: { kind: "cardTestNumbers", numbers: CARD_TEST_NUMBERS },
   },

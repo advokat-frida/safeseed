@@ -555,6 +555,15 @@ h4 {
   color: var(--ink);
   line-height: 1.5;
 }
+.airgap-probe {
+  align-self: flex-start;
+  font-size: 12.5px;
+  padding: 6px 12px;
+}
+.airgap-probe:hover {
+  border-color: var(--terracotta);
+  color: var(--terracotta);
+}
 .airgap-fine {
   margin: 0;
   font-size: 12px;
@@ -1353,7 +1362,7 @@ td.scan-flag {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 28px;
-  margin-bottom: 20px;
+  margin-bottom: 34px;
 }
 .boundary-col h3 {
   font-family: var(--serif);

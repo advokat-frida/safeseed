@@ -66,11 +66,18 @@ const FAQS = [
     q: 'Is "Designated for testing" an actual standard?',
     a: (
       <>
-        It is official, but not a neutral standards-body reservation like the provable values. Card issuers and payment
-        sandboxes (Stripe, Visa, and the like) publish these as their designated test numbers, so they are
-        authoritative — but the safety is by agreement: real processors are configured to reject them. That is why they
-        sit in their own tier, one notch below "provably non-real," which is safe by impossibility rather than by
-        agreement.
+        It is official, but not a neutral standards-body reservation like the provable values. Payment platforms publish
+        these as their designated test numbers — see Stripe's{" "}
+        <a href="https://docs.stripe.com/testing" target="_blank" rel="noreferrer">
+          testing docs
+        </a>{" "}
+        and Adyen's{" "}
+        <a href="https://docs.adyen.com/development-resources/testing/test-card-numbers/" target="_blank" rel="noreferrer">
+          test card numbers
+        </a>
+        . So they are authoritative, but the safety is by agreement: real processors are configured to reject them. That
+        is why they sit in their own tier, one notch below "provably non-real," which is safe by impossibility rather
+        than by agreement.
       </>
     ),
   },
@@ -78,12 +85,16 @@ const FAQS = [
     q: "Could a structurally-fake value coincidentally match a real person? Isn't that the risk with AI synthetic data?",
     a: (
       <>
-        It is the same class of risk, and SafeSeed drives it to effectively zero by making every value unmistakably
-        fake. Names and addresses are rendered as plain tokens like <code>TEST_Person_000142</code> and{" "}
-        <code>123 Example Way</code>,
-        never realistic ones, so no living person carries those values — alone or combined with other columns. AI
-        synthesizers generate realistic names learned from real data, which can coincidentally (or by memorization)
-        match real people. Refusing to look realistic is exactly what removes that risk.
+        Honest answer: this tier does not claim impossibility — that is the provable tier, and the difference matters.
+        The values are built to be unmistakably synthetic: <code>TEST_Person_000142</code> has a TEST_ prefix, an
+        underscore, and a zero-padded counter, and addresses use the placeholder word "Example", so neither resembles
+        anything a real registry would issue. A real match is therefore <strong>vanishingly unlikely</strong>, not
+        merely "low" — but for names and addresses it is vanishingly unlikely, not impossible, and that honesty is
+        exactly why this is the lowest tier. The decisive safeguard is that <strong>no real data ever enters the
+        generator</strong>, so even if a string coincidentally matched a real name, it carries no information about and
+        no link to that person — the coincidence is inert. AI synthesizers are the opposite: they emit realistic values,
+        and a "coincidence" there can be the model regurgitating a real record it memorized. So: provable tier =
+        impossible; structurally-fake tier = vanishingly unlikely and informationally inert, by design.
       </>
     ),
   },
@@ -103,9 +114,11 @@ const FAQS = [
     a: (
       <>
         Whole-file verify will correctly flag it, because the file is no longer byte-for-byte what was generated — that
-        is the point of tamper-evidence. For the "add your own non-PII columns" workflow, use <strong>scan</strong>{" "}
-        instead: it checks the typed columns for real PII without depending on the original file. A column-scoped verify
-        mode (attest the synthetic columns, allow extra ones) is on the roadmap to make that a first-class flow.
+        is the point of tamper-evidence. For the "add your own non-PII columns" workflow, use <strong>Scan</strong> (the
+        Scan step in the demo above). Scan reads any file you already have and flags every value that is not in a
+        reserved range as candidate real PII; it does not need the original run record, so it works fine after you have
+        edited or extended the file. A column-scoped verify mode (attest the synthetic columns, allow extra ones) is on
+        the roadmap to make this a first-class flow.
       </>
     ),
   },
@@ -164,8 +177,9 @@ const FAQS = [
     a: (
       <>
         It does not prove your environment is clean (real data sitting beside the file, or a join to a production
-        snapshot), it is not a lawful-basis or DSAR answer, and it is not statistically realistic — the data is
-        low-fidelity on purpose. See <a href="#boundary">what this proves, and what it does not</a> above.
+        snapshot), it is not a lawful-basis or DSAR answer, and it does not look like your real data — the values are
+        deliberately fake and uniform, so they are wrong for anything that needs lifelike data (training a model,
+        analytics, realistic load tests). See <a href="#boundary">what this proves, and what it does not</a> above.
       </>
     ),
   },
@@ -173,6 +187,13 @@ const FAQS = [
 
 export default function App() {
   const netCount = useNetworkCount();
+
+  // Deliberately attempt an outbound request to prove the guard. netGuard counts it the
+  // instant it fires; the shipped build's CSP (connect-src 'none') then refuses the
+  // connection. example.com is RFC 2606's reserved demo domain, so nothing meaningful is hit.
+  const tryEgress = () => {
+    window.fetch("https://example.com/safeseed-egress-test", { mode: "no-cors" }).catch(() => {});
+  };
 
   return (
     <div className="site">
@@ -224,9 +245,13 @@ export default function App() {
               </span>
             </div>
             <p className="airgap-cap">
-              This page cannot contact any server. Nothing you type, generate, or scan ever leaves your browser, so
-              the count above stays at zero. Open your browser's network tab and watch.
+              {netCount === 0
+                ? "This page cannot contact any server. Nothing you type, generate, or scan ever leaves your browser. Don't take my word for it — try to force a request:"
+                : "Caught. The attempt was counted the instant it fired, and in the shipped build the Content-Security-Policy refuses the connection outright. Check the failed request in your network tab."}
             </p>
+            <button type="button" className="btn airgap-probe" onClick={tryEgress}>
+              {netCount === 0 ? "Try to make it phone home" : "Try again"}
+            </button>
             <p className="airgap-fine">
               Enforced in the shipped build by a Content-Security-Policy (<code>connect-src 'none'</code>) — the
               browser's own hard block on outbound connections.
@@ -367,7 +392,10 @@ export default function App() {
                   production snapshot.
                 </li>
                 <li>That your wider processing has a lawful basis. This is a control, not a program-wide scope-out.</li>
-                <li>Statistical realism — the data is deliberately low-fidelity, not representative.</li>
+                <li>
+                  Resemble your real data — the values are deliberately fake and uniform, so they're wrong for anything
+                  that needs lifelike data (model training, analytics, realistic load tests).
+                </li>
                 <li>
                   That a file edited <em>after</em> generation is still safe — re-run verify or scan to confirm.
                 </li>

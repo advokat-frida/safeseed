@@ -87,6 +87,22 @@ h4 {
 }
 
 
+.demo-banner {
+  margin: 10px 0 0;
+  padding: 7px 14px;
+  border-radius: 6px;
+  background: rgba(181, 83, 46, 0.09);
+  border: 1px solid rgba(181, 83, 46, 0.3);
+  font-size: 12px;
+  letter-spacing: 0.01em;
+  color: #8a3c1e;
+  text-align: center;
+}
+.demo-banner strong {
+  color: #6f2f17;
+  font-weight: 700;
+}
+
 .site-main {
   flex: 1;
   padding: 32px 0;
@@ -259,13 +275,13 @@ h4 {
   border-top: 1px solid var(--rule);
   padding: 28px 0 40px;
   margin-top: 24px;
-  text-align: center;
+  text-align: left;
 }
 .footer-note {
   font-size: 13.5px;
   color: var(--muted);
   max-width: 68ch;
-  margin: 0 auto 20px;
+  margin: 0 0 20px;
 }
 .footer-note strong {
   color: var(--ink);
@@ -287,11 +303,18 @@ h4 {
   gap: 2px;
 }
 .footer-sig-lines a {
-  font-size: 13.5px;
+  font-size: 12.5px;
   font-weight: 600;
 }
 .footer-sig-sub {
-  font-size: 12px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.footer-demo-note {
+  margin: 18px 0 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   color: var(--muted);
 }
 
@@ -425,12 +448,10 @@ h4 {
   border: 1px solid var(--rule);
   color: var(--muted);
 }
-.verb-chip::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--teal);
+.verb-chip .verb-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--teal);
 }
 .hero-cta {
   display: inline-flex;
@@ -478,7 +499,7 @@ h4 {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--teal);
+  background: var(--green);
   animation: led-pulse 2.4s ease-out infinite;
 }
 .airgap.tripped .airgap-led {
@@ -496,13 +517,13 @@ h4 {
 }
 @keyframes led-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(18, 102, 106, 0.45);
+    box-shadow: 0 0 0 0 rgba(47, 125, 79, 0.5);
   }
   70% {
-    box-shadow: 0 0 0 7px rgba(18, 102, 106, 0);
+    box-shadow: 0 0 0 7px rgba(47, 125, 79, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(18, 102, 106, 0);
+    box-shadow: 0 0 0 0 rgba(47, 125, 79, 0);
   }
 }
 @keyframes led-pulse-warn {
@@ -654,6 +675,15 @@ h4 {
 .op h3 {
   font-size: 17px;
   margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.op-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--teal);
+  flex-shrink: 0;
 }
 .op p {
   margin: 0;
@@ -930,6 +960,19 @@ pre.code + pre.code {
 }
 
 /* verify */
+.verify-checks {
+  margin: 0 0 14px;
+  padding-left: 20px;
+}
+.verify-checks li {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.verify-checks strong {
+  color: var(--ink);
+}
 .tamper-ctl {
   display: flex;
   align-items: center;
@@ -994,6 +1037,25 @@ pre.code + pre.code {
   color: var(--muted);
   line-height: 1.55;
   margin: 0 0 12px;
+}
+.scan-formats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.scan-formats-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.seg-btn:disabled {
+  cursor: not-allowed;
+  color: var(--muted);
+  opacity: 0.5;
+  background: var(--recessed);
 }
 .scan-actions {
   display: flex;

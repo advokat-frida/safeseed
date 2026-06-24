@@ -43,6 +43,19 @@ const TIER_LABEL: Record<Tier, string> = {
 const SEED_HELP =
   "A seed is just a starting number. The same seed always produces the exact same rows, so the data is repeatable — save it as a test fixture and it regenerates identically, character for character, every time.";
 
+// Field-name acronyms that should render fully uppercased when a verify-failure
+// message leads with them, so "ip row 1…" reads "IP row 1…", not "Ip row 1…".
+const MESSAGE_ACRONYMS = new Set(["ip", "ipv4", "ipv6", "ssn", "id", "url", "pii"]);
+
+/** Capitalize a failure message for display: uppercase a leading acronym, else title-case the first letter. */
+function capitalizeMessage(msg: string): string {
+  const space = msg.indexOf(" ");
+  const head = space === -1 ? msg : msg.slice(0, space);
+  const tail = space === -1 ? "" : msg.slice(space);
+  if (MESSAGE_ACRONYMS.has(head.toLowerCase())) return head.toUpperCase() + tail;
+  return head.charAt(0).toUpperCase() + head.slice(1) + tail;
+}
+
 /** A small "?" affordance that reveals an explanatory bubble on hover/focus. */
 function HelpTip({ text }: { text: string }) {
   return (
@@ -157,9 +170,8 @@ export default function ProofPanel() {
       <div className="proof-head">
         <h2>See it for yourself</h2>
         <p>
-          Every step below runs locally and instantly. Nothing is sent anywhere: generate synthetic data, fingerprint
-          it, prove the file was never altered, and audit the columns you name in an existing file for any value outside
-          its reserved range.
+          Generate synthetic data, fingerprint it, prove the file was never altered, and audit the columns you name in
+          an existing file for any value outside its reserved range.
         </p>
         <div className="tier-legend" aria-hidden="true">
           <span className="tier-legend-item">
@@ -261,10 +273,12 @@ export default function ProofPanel() {
           <h3>Run record</h3>
         </div>
         <p className="step-help">
-          This tamper-evident receipt contains a <code>contentSha256</code> key, the fingerprint of the data — a code
-          that changes completely if even one character is altered. Anyone can recompute it from the file and compare:
-          the same fingerprint means the file is untouched, a different one means it was changed. That is how the next
-          step catches tampering.
+          This tamper-evident receipt contains a <code>contentSha256</code> key — the fingerprint, or unique hash, of
+          the data. It is a hash, not an encryption key: it keeps nothing secret and protects nothing, it only changes
+          completely if even one character is altered. Anyone can recompute it from the file and compare — the same
+          fingerprint means the file is untouched, a different one means it was changed. In practice you save this
+          receipt as a small JSON file beside your data and commit both; nothing is ever sent anywhere. That is how the
+          next step catches tampering.
         </p>
         <pre className="record">
 {record
@@ -291,9 +305,20 @@ export default function ProofPanel() {
           <h3>Verify</h3>
         </div>
         <p className="step-help">
-          Verify proves a file is exactly the synthetic data you generated, unaltered. It runs two independent
-          re-checks: a <strong>fingerprint</strong> (has the file changed at all?) and a <strong>range check</strong>{" "}
-          (is every value still synthetic?). It passes only if both do — try either edit:
+          The verification step proves a file hasn't changed since you generated it — that it still matches its run
+          record exactly. It runs two independent re-checks:
+        </p>
+        <ol className="verify-checks">
+          <li>
+            <strong>Fingerprint</strong> — has the file changed at all?
+          </li>
+          <li>
+            <strong>Range check</strong> — is every value still synthetic?
+          </li>
+        </ol>
+        <p className="step-help">
+          It passes only if both do. Try either edit — one stays valid but still fails (the fingerprint catches it), the
+          other slips in a real value (the range check catches it):
         </p>
         <div className="tamper-ctl">
           <span id="tamper-label">Edit the file:</span>
@@ -388,14 +413,14 @@ export default function ProofPanel() {
             </div>
             {verifyResult.ok ? (
               <ul>
-                <li>content hash matches the recorded hash ✓</li>
-                <li>every value is still in its cited reserved range, so still synthetic ✓</li>
+                <li>Content hash matches the recorded hash ✓</li>
+                <li>Every value is still in its cited reserved range, so still synthetic ✓</li>
               </ul>
             ) : (
               <ul>
                 {verifyResult.failures.map((f, i) => (
                   <li key={i}>
-                    <span className="fail-kind">[{f.kind}]</span> {f.message}
+                    <span className="fail-kind">[{f.kind}]</span> {capitalizeMessage(f.message)}
                   </li>
                 ))}
               </ul>
@@ -445,8 +470,29 @@ function ScanStep() {
         reserved range — anything that isn't provably synthetic, so you can review it. It checks only the columns you
         type, and needs no run record.
       </p>
+      <div className="scan-formats">
+        <span className="scan-formats-label">Input format</span>
+        <div className="seg" role="group" aria-label="Input format">
+          <button type="button" className="seg-btn active" aria-pressed="true">
+            CSV
+          </button>
+          <button type="button" className="seg-btn" disabled title="Planned">
+            JSON · soon
+          </button>
+          <button type="button" className="seg-btn" disabled title="Planned">
+            SQL · soon
+          </button>
+        </div>
+      </div>
       <div className="field">
-        <textarea rows={5} value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} />
+        <label htmlFor="scan-input">Paste CSV — a header row, then comma-separated values</label>
+        <textarea
+          id="scan-input"
+          rows={5}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          spellCheck={false}
+        />
       </div>
       <div className="scan-actions">
         <button className="btn btn-primary" onClick={() => setResult(scan({ csv: text, columns: SCAN_COLUMNS }))}>

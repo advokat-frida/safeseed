@@ -68,6 +68,10 @@ export default defineConfig(({ mode }) => {
     ],
     resolve: {
       alias: { safeseed: safeseedEntry },
+      // lucide-react (and any future React dep) must share the demo's single React
+      // copy — otherwise icons render against a second instance and throw the
+      // "Invalid hook call" duplicate-React error.
+      dedupe: ["react", "react-dom"],
     },
     build: {
       // Inline the fox PNG (~160KB) so even the logo is a zero-request data URI —

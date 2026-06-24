@@ -82,6 +82,31 @@ export default function ProofPanel() {
     return toCsv(ds.columns, rows);
   }, [tamper, ds, csv]);
 
+  // The concrete edit being made, surfaced so this step reads as "edit the file → re-verify",
+  // not "pick a toggle → see an output".
+  const tamperEdit = useMemo(() => {
+    if (tamper === "none") return null;
+    const row = ds.rows[1];
+    if (!row) return null;
+    const ipIdx = SCHEMA.findIndex((f) => f.type === "ipv4");
+    const cardIdx = SCHEMA.findIndex((f) => f.type === "creditCard");
+    if (tamper === "outrange") {
+      return {
+        field: "ip",
+        before: row[ipIdx]!,
+        after: "8.8.8.8",
+        note: "A real, routable IP address — outside every reserved range.",
+      };
+    }
+    const cur = row[cardIdx]!;
+    return {
+      field: "card",
+      before: cur,
+      after: cur === "4242424242424242" ? "4111111111111111" : "4242424242424242",
+      note: "Still a valid test card — but not the one the receipt fingerprinted.",
+    };
+  }, [tamper, ds]);
+
   useEffect(() => {
     if (!record) return;
     let live = true;
@@ -94,13 +119,24 @@ export default function ProofPanel() {
   }, [tamperedCsv, record]);
 
   return (
-    <section className="proof" aria-label="Interactive proof">
+    <section className="proof" id="proof" aria-label="Interactive proof">
       <div className="proof-head">
         <h2>See it for yourself</h2>
         <p>
           Every step below runs locally and instantly. Nothing is sent anywhere — generate the data, read its receipt,
           try to slip something real past the verifier, then scan a file that looks clean.
         </p>
+        <div className="tier-legend" aria-hidden="true">
+          <span className="tier-legend-item">
+            <span className="cite-dot tier-provable" /> provably non-real
+          </span>
+          <span className="tier-legend-item">
+            <span className="cite-dot tier-designated" /> designated test-only
+          </span>
+          <span className="tier-legend-item">
+            <span className="cite-dot tier-fake" /> structurally fake
+          </span>
+        </div>
       </div>
 
       {/* STEP 1 — GENERATE */}
@@ -116,6 +152,7 @@ export default function ProofPanel() {
               min={0}
               step={1}
               inputMode="numeric"
+              title="A starting number. The same seed always generates the exact same data."
               value={seed}
               onChange={(e) => {
                 setTamper("none");
@@ -176,10 +213,15 @@ export default function ProofPanel() {
               </tbody>
             </table>
           </div>
-          <p className="determinism">
-            Same seed always produces the same rows, so a generated fixture is committable and reviewable. Change the
-            seed and the data changes; set it back and it returns byte-for-byte.
-          </p>
+          <div className="determinism">
+            <p>
+              A <strong>seed</strong> is just a starting number: the same seed always produces the exact same rows.
+            </p>
+            <p>
+              That makes the data repeatable — save it as a test fixture and it regenerates identically, character for
+              character, every time.
+            </p>
+          </div>
         </div>
 
         {activeCite && (
@@ -210,6 +252,12 @@ export default function ProofPanel() {
           <h3>Run record</h3>
           <span className="step-sub">the tamper-evident receipt</span>
         </div>
+        <p className="step-help">
+          This receipt belongs to that exact file. The <code>contentSha256</code> is a <strong>fingerprint</strong> of
+          the data — a code that changes completely if even one character is altered. Anyone can recompute it from the
+          file and compare: the same fingerprint means the file is untouched, a different one means it was changed. That
+          is how the next step catches tampering.
+        </p>
         <pre className="record">
 {record
   ? JSON.stringify(
@@ -233,37 +281,59 @@ export default function ProofPanel() {
         <div className="step-head">
           <span className="step-n">3</span>
           <h3>Verify</h3>
-          <span className="step-sub">two independent checks, fails closed</span>
+          <span className="step-sub">edit the file, then watch it get caught</span>
         </div>
+        <p className="step-help">
+          Make an edit to the file you generated above, and SafeSeed re-checks it. Two independent checks run — it
+          passes only if both do.
+        </p>
         <div className="tamper-ctl">
-          <span id="tamper-label">Try to slip something past it:</span>
+          <span id="tamper-label">Edit the file:</span>
           <div className="seg" role="group" aria-labelledby="tamper-label">
             <button
               className={`seg-btn ${tamper === "none" ? "active" : ""}`}
               aria-pressed={tamper === "none"}
               onClick={() => setTamper("none")}
             >
-              Untouched
+              Leave it untouched
             </button>
             <button
               className={`seg-btn ${tamper === "inrange" ? "active" : ""}`}
               aria-pressed={tamper === "inrange"}
               onClick={() => setTamper("inrange")}
             >
-              Edit one cell (still in range)
+              Swap a card for another test card
             </button>
             <button
               className={`seg-btn ${tamper === "outrange" ? "active" : ""}`}
               aria-pressed={tamper === "outrange"}
               onClick={() => setTamper("outrange")}
             >
-              Slip in a real IP (8.8.8.8)
+              Paste in a real IP
             </button>
           </div>
         </div>
+        {tamperEdit && (
+          <div className="tamper-diff">
+            <span className="tamper-diff-loc">
+              Edited <code>customers.synthetic.csv</code> · row 2 · {tamperEdit.field}
+            </span>
+            <span className="tamper-diff-change">
+              <span className="tamper-before">{tamperEdit.before}</span>
+              <span className="tamper-arrow" aria-hidden="true">
+                →
+              </span>
+              <span className="tamper-after">{tamperEdit.after}</span>
+            </span>
+            <span className="tamper-diff-note">{tamperEdit.note}</span>
+          </div>
+        )}
         {verifyResult && (
           <div className={`verify-result ${verifyResult.ok ? "pass" : "fail"}`} role="status" aria-live="polite">
-            <div className="verify-status">{verifyResult.ok ? "VERIFY: PASS" : "VERIFY: FAIL"}</div>
+            <div className="verify-status">
+              <span className="verify-icon" aria-hidden="true">{verifyResult.ok ? "✓" : "✗"}</span>
+              {verifyResult.ok ? "VERIFY: PASS" : "VERIFY: FAIL"}
+            </div>
             {verifyResult.ok ? (
               <ul>
                 <li>content hash matches the recorded hash ✓</li>

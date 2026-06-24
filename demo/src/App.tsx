@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import ProofPanel from "./components/ProofPanel";
 import { getNetworkCount, subscribeNetworkCount } from "./netGuard";
 import foxLogo from "./assets/fox-logo.png";
@@ -7,6 +7,60 @@ function useNetworkCount() {
   return useSyncExternalStore(subscribeNetworkCount, getNetworkCount);
 }
 
+/** Copy-to-clipboard with a graceful fallback for insecure / file:// contexts. */
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const onCopy = async () => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      /* clipboard unavailable — no-op rather than throw */
+    }
+  };
+  return (
+    <button type="button" className={`copy-btn ${copied ? "copied" : ""}`} onClick={onCopy}>
+      {copied ? "Copied ✓" : "Copy"}
+    </button>
+  );
+}
+
+function CodeBlock({ code }: { code: string }) {
+  return (
+    <div className="code-block">
+      <CopyButton text={code} />
+      <pre className="code">{code}</pre>
+    </div>
+  );
+}
+
+const CI_GENERATE = `# generate a committable fixture, offline and deterministic
+npx safeseed generate \\
+  --fields email:email,phone:phone,ssn:ssn,card:creditCard \\
+  --rows 1000 --seed 1337 \\
+  --out fixtures/seed.csv --record fixtures/seed.record.json
+
+# fail the build if it ever drifts out of range or is tampered with
+npx safeseed verify --in fixtures/seed.csv --record fixtures/seed.record.json`;
+
+const CI_ACTION = `# .github/workflows/ci.yml  — as a required check
+- uses: tanjaminben/safeseed@v0
+  with:
+    data: fixtures/seed.csv
+    record: fixtures/seed.record.json`;
+
 export default function App() {
   const netCount = useNetworkCount();
 
@@ -14,8 +68,14 @@ export default function App() {
     <div className="site">
       {/* MASTHEAD */}
       <header className="masthead">
-        <span className="masthead-mark">SAFESEED</span>
-        <span className="masthead-dateline">No. 01 · client-side · MIT · zero network</span>
+        <span className="masthead-brand">
+          <img className="fox-neon masthead-fox" src={foxLogo} alt="Advokat Frida" width={40} height={40} />
+          <span className="masthead-lockup">
+            <span className="masthead-mark">SAFESEED</span>
+            <span className="masthead-kicker">Frida's Toolkit · No. 01</span>
+          </span>
+        </span>
+        <span className="masthead-dateline">client-side · MIT · zero network</span>
       </header>
 
       <main className="site-main">
@@ -23,36 +83,46 @@ export default function App() {
         <section className="hero">
           <div className="hero-lead">
             <h1 className="hero-headline">
-              Test data with <span className="hl">no real person</span> inside it.
+              Trusted <span className="hl">synthetic</span> PII
             </h1>
             <p className="hero-sub">
-              Not scrubbed after the fact — drawn by construction from ranges the standards bodies reserve as
-              permanently not-real. If real data never enters the generator, there is no real record for it to
-              memorize or re-emit. Confirmably synthetic by construction, not by promise.
+              Anonymous from the start, not scrubbed after the fact. Every value is drawn from official lists of
+              never-real data, so by construction it cannot relate to a real person.
             </p>
             <div className="verb-chips">
               <span className="verb-chip on">Generate</span>
               <span className="verb-chip">Verify</span>
               <span className="verb-chip">Scan</span>
             </div>
+            <a className="hero-cta" href="#proof">
+              Run it yourself <span aria-hidden="true">↓</span>
+            </a>
           </div>
 
-          <aside className="airgap">
-            <span className="airgap-medallion">
-              <img className="fox-neon" src={foxLogo} alt="Advokat Frida" width={72} height={72} />
-            </span>
-            <code className="airgap-csp">connect-src 'none'</code>
-            <div className="airgap-counter">
+          <aside className={`airgap ${netCount === 0 ? "quiet" : "tripped"}`} aria-label="Live network monitor">
+            <div className="airgap-head">
+              <span className="airgap-led" aria-hidden="true" />
+              <span className="airgap-head-l">Live · network monitor</span>
+              <span className="airgap-head-state">{netCount === 0 ? "nothing sent" : "call detected"}</span>
+            </div>
+            <div className="airgap-readout">
               <span className="airgap-n">{netCount}</span>
-              <span className="airgap-l">fetch / XHR / beacon calls this session</span>
+              <span className="airgap-l">
+                network requests
+                <br />
+                this page has made
+              </span>
             </div>
             <p className="airgap-cap">
-              The shipped build enforces it with CSP <code>connect-src 'none'</code>; this counter catches any
-              attempt live. Confirm in your network tab.
+              This page cannot contact any server. Nothing you type, generate, or scan ever leaves your browser, so
+              the count above stays at zero. Open your browser's network tab and watch.
+            </p>
+            <p className="airgap-fine">
+              Enforced in the shipped build by a Content-Security-Policy (<code>connect-src 'none'</code>) — the
+              browser's own hard block on outbound connections.
             </p>
             <p className="airgap-teaser">
-              It attests the generator, not your environment — and "not derived from production data" is not "not
-              personal data." <a href="#boundary">Read the full note ↓</a>
+              <a href="#boundary">What this does, and doesn't, prove ↓</a>
             </p>
           </aside>
         </section>
@@ -61,31 +131,53 @@ export default function App() {
         <section className="tiers">
           <h2 className="section-h">Three honesty tiers</h2>
           <p className="section-lead">
-            Color encodes the strength of the claim, never decoration. Every value on this page carries its tier.
+            Not every kind of fake data is fake in the same way, so each carries a different strength of guarantee. The
+            color shows which, and every value on this page is tagged with its tier.
           </p>
           <div className="tier-cards">
             <div className="tier-card tier-provable">
               <span className="tier-dot" />
               <h3>Provably non-real</h3>
               <p>
-                Reserved by a published standard — it cannot belong to a real person or system. RFC 2606 domains, RFC
-                5737 / 3849 IPs, NANPA 555-01xx phones, never-assigned SSN ranges.
+                Set aside by a published standard, so it can never belong to a real person or system. Every source is
+                public and checkable:{" "}
+                <a href="https://datatracker.ietf.org/doc/html/rfc2606" target="_blank" rel="noreferrer">
+                  RFC 2606
+                </a>{" "}
+                email domains,{" "}
+                <a href="https://www.rfc-editor.org/rfc/rfc5737.html" target="_blank" rel="noreferrer">
+                  RFC 5737
+                </a>{" "}
+                /{" "}
+                <a href="https://www.rfc-editor.org/rfc/rfc3849.html" target="_blank" rel="noreferrer">
+                  RFC 3849
+                </a>{" "}
+                IP addresses,{" "}
+                <a href="https://www.nationalnanpa.com/" target="_blank" rel="noreferrer">
+                  NANPA
+                </a>{" "}
+                555-01xx phone numbers, and{" "}
+                <a href="https://www.ssa.gov/employer/randomization.html" target="_blank" rel="noreferrer">
+                  never-issued SSN
+                </a>{" "}
+                ranges.
               </p>
             </div>
             <div className="tier-card tier-designated">
               <span className="tier-dot" />
               <h3>Designated test-only</h3>
               <p>
-                A valid-looking value designated for testing — e.g. a processor test card that passes Luhn but authorizes
-                nowhere. Non-real by designation, <em>not</em> by impossibility.
+                A real-looking value that banks and payment systems publish on purpose for testing, like a test credit
+                card number. It looks valid everywhere, but it can never charge a card or move real money.
               </p>
             </div>
             <div className="tier-card tier-fake">
               <span className="tier-dot" />
-              <h3>Structurally fake</h3>
+              <h3>Obviously fake on purpose</h3>
               <p>
-                No standard reserves names or addresses, so these are made self-evidently fake (TEST_ tokens, Example
-                streets) rather than plausible-but-random.
+                No standard reserves names or street addresses, so these are made plainly fake (like
+                <code> TEST_Person_000142</code> or <code>123 Example Way</code>) instead of realistic — a realistic
+                random name could accidentally match a real person.
               </p>
             </div>
           </div>
@@ -127,23 +219,8 @@ export default function App() {
         <section className="cigate">
           <h2 className="section-h">Wire it into CI</h2>
           <p className="section-lead">The verify step fails closed — exit 1 on a tampered or out-of-range file blocks the merge.</p>
-          <pre className="code">
-{`# generate a committable fixture, offline and deterministic
-npx safeseed generate \\
-  --fields email:email,phone:phone,ssn:ssn,card:creditCard \\
-  --rows 1000 --seed 1337 \\
-  --out fixtures/seed.csv --record fixtures/seed.record.json
-
-# fail the build if it ever drifts out of range or is tampered with
-npx safeseed verify --in fixtures/seed.csv --record fixtures/seed.record.json`}
-          </pre>
-          <pre className="code">
-{`# .github/workflows/ci.yml  — as a required check
-- uses: tanjaminben/safeseed@v0
-  with:
-    data: fixtures/seed.csv
-    record: fixtures/seed.record.json`}
-          </pre>
+          <CodeBlock code={CI_GENERATE} />
+          <CodeBlock code={CI_ACTION} />
         </section>
 
         {/* BOUNDARY */}
@@ -156,9 +233,11 @@ npx safeseed verify --in fixtures/seed.csv --record fixtures/seed.record.json`}
             environment is secure.
           </p>
           <p>
-            "Not derived from production data" is not the same as "not personal data." Treat output as a
-            data-minimization control for non-production use — evidence toward GDPR Art. 25 &amp; 32, SOC 2, and ISO
-            27001 — not as a determination that privacy law does not apply.
+            The output itself is anonymous: drawn from never-real values, it relates to no natural person, so it is
+            not personal data (GDPR Recital 26). That is a statement about the <strong>data</strong>, not a clean bill
+            of health for your <strong>program</strong> — you still process real data elsewhere, and that still needs
+            its lawful basis. Treat SafeSeed as a data-minimization and security control for non-production environments
+            (evidence toward GDPR Art. 25 &amp; 32, SOC 2, and ISO 27001), not as a scope-out for privacy law overall.
           </p>
           <p>
             This data is deliberately low-fidelity. It is built to be safe and self-evidently fake, not to be
@@ -169,18 +248,17 @@ npx safeseed verify --in fixtures/seed.csv --record fixtures/seed.record.json`}
 
       {/* FOOTER */}
       <footer className="site-footer">
-        <div className="footer-fox">
-          <img className="fox-neon" src="/fox-logo.png" alt="" width={32} height={32} />
-        </div>
         <p className="footer-note">
           <strong>No telemetry, no analytics, no network.</strong> Everything here runs in your browser — verify it in
           the network tab. Open source, MIT.
         </p>
-        <p className="footer-links">
-          <a href="https://github.com/tanjaminben/safeseed">github.com/tanjaminben/safeseed</a>
-          <span>·</span>
-          <span>Part of Advokat Frida</span>
-        </p>
+        <div className="footer-sig">
+          <img className="fox-neon footer-fox-img" src={foxLogo} alt="Advokat Frida" width={42} height={42} />
+          <span className="footer-sig-lines">
+            <a href="https://github.com/tanjaminben/safeseed">github.com/tanjaminben/safeseed</a>
+            <span className="footer-sig-sub">Part of Advokat Frida · Frida's Toolkit</span>
+          </span>
+        </div>
       </footer>
     </div>
   );

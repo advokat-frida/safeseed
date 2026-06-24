@@ -14,6 +14,17 @@ export function toCsv(columns: readonly string[], rows: readonly (readonly strin
   return `${header}\n${body}\n`;
 }
 
+/**
+ * Canonical serialization of one column's cell values, used for the per-column
+ * hash in a run record. JSON encoding is unambiguous — a comma, quote, or newline
+ * inside a cell can't collide with the delimiter — so two columns hash equal iff
+ * their ordered values are identical. Generation and column-scoped verify both go
+ * through this one function, so they can never disagree on what a column "is".
+ */
+export function canonicalColumn(values: readonly string[]): string {
+  return JSON.stringify(values);
+}
+
 /** Parse a CSV string into header columns and data rows. */
 export function parseCsv(text: string): { columns: string[]; rows: string[][] } {
   const records: string[][] = [];

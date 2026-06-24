@@ -114,12 +114,13 @@ const FAQS = [
     q: "My team wants to add their own columns (job title, industry) to the generated file. Won't that break verification?",
     a: (
       <>
-        Whole-file verify will correctly flag it, because the file is no longer byte-for-byte what was generated — that
-        is the point of tamper-evidence. For the "add your own non-PII columns" workflow, use <strong>Scan</strong> (the
-        Scan step in the demo above). Scan reads any file you already have and flags every value outside a reserved
-        range, in the columns you name; it does not need the original run record, so it works fine after you have edited
-        or extended the file. A column-scoped verify mode (attest the synthetic columns, allow extra ones) is on the
-        roadmap to make this a first-class flow.
+        Two honest options. Strict whole-file verify (the default) will flag the change, because the file is no longer
+        byte-for-byte what was generated — that is the point of tamper-evidence. When you do want to add your own
+        business columns, use <strong>column-scoped verify</strong>: <code>safeseed verify --allow-added-columns</code>
+        attests the synthetic columns SafeSeed generated (each by name, hash, and range) and reports the columns you
+        added as <em>unattested</em> rather than failing — it does not vouch for them, so point <strong>Scan</strong> at
+        those (Scan reads any file and flags values outside a reserved range, no run record needed). The{" "}
+        <a href="./generator.html">generator</a> downloads a run record ready for this flow.
       </>
     ),
   },
@@ -256,9 +257,14 @@ export default function App() {
                 <ScanSearch className="verb-icon" aria-hidden="true" /> Scan
               </span>
             </div>
-            <a className="hero-cta" href="#proof">
-              Run it yourself <span aria-hidden="true">↓</span>
-            </a>
+            <div className="hero-ctas">
+              <a className="hero-cta" href="#proof">
+                Run it yourself <span aria-hidden="true">↓</span>
+              </a>
+              <a className="hero-cta-alt" href="./generator.html">
+                Open the generator <span aria-hidden="true">→</span>
+              </a>
+            </div>
           </div>
 
           <aside className={`airgap ${netCount === 0 ? "quiet" : "tripped"}`} aria-label="Network activity monitor">

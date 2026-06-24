@@ -39,6 +39,7 @@ export {
   type VerifyResult,
   type VerifyFailure,
   type VerifyFailureKind,
+  type VerifyOptions,
 } from "./verify.js";
 
 export {
@@ -49,6 +50,6 @@ export {
   type ScanFinding,
 } from "./scan.js";
 
-export { toCsv, parseCsv } from "./csv.js";
+export { toCsv, parseCsv, canonicalColumn } from "./csv.js";
 export { sha256Hex } from "./hash.js";
 export { luhnValid } from "./luhn.js";

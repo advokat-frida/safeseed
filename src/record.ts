@@ -9,10 +9,14 @@
  */
 import { CATALOG_VERSION, getEntry } from "./catalog.js";
 import { sha256Hex } from "./hash.js";
+import { canonicalColumn } from "./csv.js";
 import type { GeneratedDataset } from "./generate.js";
 import type { FieldType, Tier } from "./types.js";
 
-export const SAFESEED_VERSION = "0.1.0";
+// 0.2.0 adds a per-column `sha256` to every FieldRecord (the basis for opt-in
+// column-scoped verify). It is purely additive — strict whole-file verify is
+// unchanged, and a 0.1.0 record without per-column hashes still verifies strictly.
+export const SAFESEED_VERSION = "0.2.0";
 
 export interface FieldRecord {
   name: string;
@@ -20,6 +24,13 @@ export interface FieldRecord {
   tier: Tier;
   citation: string;
   claim: string;
+  /**
+   * SHA-256 over a canonical serialization of this column's values (see
+   * `canonicalColumn`). Lets column-scoped verify re-check one declared column
+   * independently of the rest of the file. Optional only for backward compat with
+   * 0.1.0 records that predate it; `makeRunRecord` always emits it.
+   */
+  sha256?: string;
 }
 
 export interface RunRecord {
@@ -54,16 +65,20 @@ export async function makeRunRecord(
   opts?: { generatedAt?: string },
 ): Promise<RunRecord> {
   const contentSha256 = await sha256Hex(csv);
-  const fields: FieldRecord[] = dataset.schema.map((f) => {
-    const entry = getEntry(f.type);
-    return {
-      name: f.name,
-      type: f.type,
-      tier: entry.tier,
-      citation: entry.citation,
-      claim: entry.claim,
-    };
-  });
+  const fields: FieldRecord[] = await Promise.all(
+    dataset.schema.map(async (f, c) => {
+      const entry = getEntry(f.type);
+      const column = dataset.rows.map((row) => row[c] ?? "");
+      return {
+        name: f.name,
+        type: f.type,
+        tier: entry.tier,
+        citation: entry.citation,
+        claim: entry.claim,
+        sha256: await sha256Hex(canonicalColumn(column)),
+      };
+    }),
+  );
   return {
     safeseedVersion: SAFESEED_VERSION,
     catalogVersion: dataset.catalogVersion ?? CATALOG_VERSION,

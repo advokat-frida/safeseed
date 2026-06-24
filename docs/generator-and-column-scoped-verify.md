@@ -1,6 +1,17 @@
 # Spec: Self-serve generator + column-scoped verify
 
-Status: proposed (awaiting go). Owner: Ben. Scope: SafeSeed v2 feature.
+Status: **built** (2026-06-24). Owner: Ben. Scope: SafeSeed v2 feature.
+
+As built, matching this spec: per-column `sha256` in the run record (SafeSeed 0.2.0,
+additive — 0.1.0 records still verify strictly); opt-in column-scoped verify
+(`verify --allow-added-columns`, also an `allow-added-columns` Action input) that
+attests declared columns by name + per-column hash + range and reports added columns
+as `unattestedColumns`; new failure kinds `missing-column` and `column-hash-mismatch`;
+strict whole-file verify unchanged and still the default. Self-serve generator page
+(`demo/generator.html` + `demo/src/generator/`) with a field picker, row count, seed,
+live tier-colored preview, and CSV + run-record download; builds hosted (multi-page)
+and as a standalone single file (`demo/safeseed-generator.html`). CI dogfoods both
+modes against `examples/customers-extended.csv`.
 
 ## Goal
 

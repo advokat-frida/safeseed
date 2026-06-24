@@ -1,6 +1,7 @@
 node_modules/
 dist/
 standalone/
+standalone-generator/
 coverage/
 *.log
 .DS_Store

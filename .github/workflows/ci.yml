@@ -53,10 +53,39 @@ jobs:
             echo "verify correctly failed on tampered data"
           fi
 
+      # Column-scoped verify: a team-added business column is allowed (reported, not failed)...
+      - name: Column-scoped verify allows an added column (must pass)
+        run: node dist/cli.js verify --in examples/customers-extended.csv --record examples/customers.record.json --allow-added-columns=true
+
+      # ...the same added column still fails STRICT verify, so the relaxation is never silent...
+      - name: Strict verify still rejects the added column (must fail)
+        run: |
+          if node dist/cli.js verify --in examples/customers-extended.csv --record examples/customers.record.json; then
+            echo "::error::strict verify should have failed on an added column but passed"
+            exit 1
+          else
+            echo "strict verify correctly rejected the added column"
+          fi
+
+      # ...and column-scoped still catches an IN-RANGE edit to a synthetic column (the per-column-hash payoff).
+      - name: Column-scoped verify catches an in-range edit (must fail)
+        run: |
+          sed 's/TEST_Person_000001/TEST_Person_000099/' examples/customers-extended.csv > tampered-col.csv
+          if node dist/cli.js verify --in tampered-col.csv --record examples/customers.record.json --allow-added-columns=true; then
+            echo "::error::column-scoped verify should have caught the in-range edit but passed"
+            exit 1
+          else
+            echo "column-scoped verify correctly caught the in-range edit"
+          fi
+
       # The browser demo consumes the built core (dist/) — typecheck + build it too.
+      # Build all three modes so both single-file inlining paths (showcase + generator)
+      # are exercised; a break in the generator's standalone build fails CI, not silently
+      # ships a broken committed safeseed-generator.html.
       - name: Build the browser demo
         working-directory: demo
         run: |
           npm ci
           npm run build
           npm run build:standalone
+          npm run build:standalone:generator

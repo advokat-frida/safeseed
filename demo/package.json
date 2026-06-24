@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "build:standalone": "tsc --noEmit && vite build --mode standalone",
+    "build:standalone:generator": "tsc --noEmit && vite build --mode standalone-generator",
+    "build:standalone:all": "npm run build:standalone && npm run build:standalone:generator && node -e \"const fs=require('fs');fs.copyFileSync('standalone/index.html','safeseed-demo.html');fs.copyFileSync('standalone-generator/generator.html','safeseed-generator.html');console.log('updated committed single-files: safeseed-demo.html, safeseed-generator.html')\"",
     "preview": "vite preview"
   },
   "dependencies": {

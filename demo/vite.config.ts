@@ -57,8 +57,18 @@ function strictCspOnBuild(csp: string) {
   };
 }
 
+// Two pages now: the showcase (index.html) and the self-serve generator
+// (generator.html). The hosted build emits both as a normal multi-page site. Each
+// standalone single-file build targets ONE page, because vite-plugin-singlefile
+// inlines per build — so there's a mode per page (`standalone` = showcase,
+// `standalone-generator` = generator), each a single rollup input.
+const indexEntry = fileURLToPath(new URL("./index.html", import.meta.url));
+const generatorEntry = fileURLToPath(new URL("./generator.html", import.meta.url));
+
 export default defineConfig(({ mode }) => {
-  const standalone = mode === "standalone";
+  const standaloneShowcase = mode === "standalone";
+  const standaloneGenerator = mode === "standalone-generator";
+  const standalone = standaloneShowcase || standaloneGenerator;
   return {
     plugins: [
       react(),
@@ -77,8 +87,11 @@ export default defineConfig(({ mode }) => {
       // Inline the fox PNG (~160KB) so even the logo is a zero-request data URI —
       // on-brand for the zero-network claim, and required for the single-file build.
       assetsInlineLimit: 200000,
-      outDir: standalone ? "standalone" : "dist",
+      outDir: standaloneGenerator ? "standalone-generator" : standaloneShowcase ? "standalone" : "dist",
       emptyOutDir: true,
+      rollupOptions: standalone
+        ? { input: standaloneGenerator ? generatorEntry : indexEntry }
+        : { input: { main: indexEntry, generator: generatorEntry } },
     },
     server: { port: 5192, strictPort: true },
     preview: { port: 5192, strictPort: true },

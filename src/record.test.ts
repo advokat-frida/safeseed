@@ -35,6 +35,42 @@ describe("record.bindsToOutputFileHash", () => {
   });
 });
 
+describe("record.includesPerColumnHashes", () => {
+  it("every field carries a stable sha256 over its column", async () => {
+    const { record } = await build();
+    for (const f of record.fields) {
+      expect(f.sha256, `${f.name} missing per-column hash`).toMatch(/^[0-9a-f]{64}$/);
+    }
+  });
+
+  it("per-column hashes are deterministic for the same seed", async () => {
+    const a = await build();
+    const b = await build();
+    expect(a.record.fields.map((f) => f.sha256)).toEqual(b.record.fields.map((f) => f.sha256));
+  });
+
+  it("a per-column hash changes when that column changes; untouched columns hold", async () => {
+    const ds = generate({ schema: SCHEMA, rows: 12, seed: 5 });
+    const baseRec = await makeRunRecord(ds, toCsv(ds.columns, ds.rows));
+    const cardIdx = ds.columns.indexOf("card");
+    // Swap one card cell for a different reserved test PAN — only the card column moves.
+    const mutated = {
+      ...ds,
+      rows: ds.rows.map((r, i) =>
+        i === 0
+          ? r.map((v, c) =>
+              c === cardIdx ? (v === "4242424242424242" ? "4111111111111111" : "4242424242424242") : v,
+            )
+          : r,
+      ),
+    };
+    const mutRec = await makeRunRecord(mutated, toCsv(mutated.columns, mutated.rows));
+    const hashOf = (rec: typeof baseRec, name: string) => rec.fields.find((f) => f.name === name)!.sha256;
+    expect(hashOf(mutRec, "card")).not.toBe(hashOf(baseRec, "card"));
+    expect(hashOf(mutRec, "last")).toBe(hashOf(baseRec, "last"));
+  });
+});
+
 describe("record.statesTierPerField", () => {
   it("every field carries its tier, citation, and claim", async () => {
     const { record } = await build();

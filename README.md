@@ -20,10 +20,12 @@ SafeSeed takes the other path: **never let real data into the process at all.** 
 
 1. **Generate** safe-by-construction test data from the cited reserved ranges (deterministic from a seed, so the output is a committable fixture).
 2. **Attest** with a tamper-evident run record that binds to the file's content hash and states the honesty tier of every field.
-3. **Verify** that a file is still byte-for-byte the generated one *and* that every value is still in range — wire it into CI to fail the build on drift.
-4. **Scan** an *existing* CSV / seed file and flag values that are not in reserved ranges as candidate real PII.
+3. **Verify** that a file is still byte-for-byte the generated one *and* that every value is still in range — wire it into CI to fail the build on drift. Strict by default; opt into **column-scoped verify** (`--allow-added-columns`) to attest only the synthetic columns you generated, so a team can add its own business columns (job title, industry) without breaking attestation — added columns are reported as *unattested*, never a silent pass.
+4. **Scan** an *existing* CSV / seed file and flag values that are not in reserved ranges as candidate real PII. Column-scoped verify pairs with scan: verify vouches for the synthetic columns, scan checks the columns you added.
 
 `verify` and `scan` are **generator-agnostic**: they work on any data file, however it was produced, so you can keep the generator you already use and wrap it.
+
+There is also a self-serve **generator page** (browser, zero network): pick fields and types, set rows and seed, preview the tier-colored output, and download the CSV plus its run record. It ships as a committed offline single file at [`demo/safeseed-generator.html`](demo/safeseed-generator.html).
 
 ## Quickstart
 
@@ -39,6 +41,9 @@ safeseed generate \
 # Fail the build if the file drifts out of range or was tampered with
 safeseed verify --in data.csv --record record.json     # exit 0 clean, 1 on drift
 
+# Column-scoped: attest the synthetic columns, allow + report added business columns
+safeseed verify --in data.csv --record record.json --allow-added-columns
+
 # Scan a legacy file for real PII that slipped in
 safeseed scan --in legacy.csv --fields email:email,phone:phone,ssn:ssn
 
@@ -53,6 +58,8 @@ safeseed catalog
   with:
     data: fixtures/seed.csv
     record: fixtures/seed.record.json
+    # allow-added-columns: true   # optional: column-scoped verify (attest synthetic columns,
+    #                             # report added business columns instead of failing)
 ```
 
 ### As a library
@@ -71,7 +78,11 @@ const ds = generate({
 const csv = toCsv(ds.columns, ds.rows);
 const record = await makeRunRecord(ds, csv);
 
-const result = await verify(csv, record); // { ok, failures, checked }
+const result = await verify(csv, record); // { ok, failures, checked, unattestedColumns, warnings }
+
+// Column-scoped: attest the synthetic columns only; added columns are reported, not failed.
+const scoped = await verify(extendedCsv, record, { allowAddedColumns: true });
+// scoped.unattestedColumns lists the business columns the team added — scan those.
 ```
 
 The library is isomorphic — the same core runs in Node (>=18) and in the browser, using the platform's Web Crypto for hashing.
@@ -125,7 +136,7 @@ The catalog in [`src/catalog.ts`](src/catalog.ts) is the reusable core: it maps 
 
 ## Status
 
-Core library, CLI, the `verify` Action, and an interactive browser demo are built and tested (48 tests; CI green). The demo lives in [`demo/`](demo/); a single self-contained, offline copy is committed at [`demo/safeseed-demo.html`](demo/safeseed-demo.html). npm publication is the remaining step. The design record is in [SPEC.md](SPEC.md).
+Core library, CLI, the `verify` Action, and an interactive browser demo are built and tested (59 tests; CI green). SafeSeed 0.2.0 adds per-column hashes and opt-in **column-scoped verify**, plus a self-serve **generator page**. The demo lives in [`demo/`](demo/); both the showcase and the generator ship as committed, offline single files at [`demo/safeseed-demo.html`](demo/safeseed-demo.html) and [`demo/safeseed-generator.html`](demo/safeseed-generator.html). npm publication is the remaining step. The design record is in [SPEC.md](SPEC.md); the v2 feature spec is in [docs/generator-and-column-scoped-verify.md](docs/generator-and-column-scoped-verify.md).
 
 ## License
 

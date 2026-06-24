@@ -12,6 +12,13 @@ inputs:
   record:
     description: "Path to the SafeSeed run record JSON for that file."
     required: true
+  allow-added-columns:
+    description: >-
+      Column-scoped verify: attest only the declared synthetic columns and report
+      (do not fail on) business columns the team added. Those added columns are NOT
+      vouched for — scan them separately. Default false = strict whole-file verify.
+    required: false
+    default: "false"
   version:
     description: "npm version/tag of safeseed to run."
     required: false
@@ -23,6 +30,11 @@ runs:
     - name: Verify test data is safe by construction
       shell: bash
       run: |
+        flag=""
+        if [ "${{ inputs.allow-added-columns }}" = "true" ]; then
+          flag="--allow-added-columns"
+        fi
         npx --yes "safeseed@${{ inputs.version }}" verify \
           --in "${{ inputs.data }}" \
-          --record "${{ inputs.record }}"
+          --record "${{ inputs.record }}" \
+          $flag

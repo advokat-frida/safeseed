@@ -5,6 +5,9 @@
  *   safeseed generate --fields email:email,phone:phone --rows 100 --seed 42 \
  *                     --out data.csv --record record.json
  *   safeseed verify   --in data.csv --record record.json     # exits non-zero on drift
+ *   safeseed verify   --in data.csv --record record.json --allow-added-columns
+ *                                                            # column-scoped: attest the
+ *                                                            # synthetic columns, report added ones
  *   safeseed scan     --in legacy.csv --fields email:email,phone:phone
  *   safeseed catalog                                          # print the reserved-range catalog
  *
@@ -133,22 +136,37 @@ function cmdGenerate(p: Parsed): Promise<void> {
   });
 }
 
+function boolFlag(p: Parsed, key: string): boolean {
+  const v = p.flags[key];
+  return v === true || v === "true";
+}
+
 async function cmdVerify(p: Parsed): Promise<void> {
   const csv = readFileSync(reqStr(p, "in"), "utf8");
   const record = JSON.parse(readFileSync(reqStr(p, "record"), "utf8")) as RunRecord;
-  const result = await verify(csv, record);
+  const allowAddedColumns = boolFlag(p, "allow-added-columns");
+  const result = await verify(csv, record, { allowAddedColumns });
+  const mode = allowAddedColumns ? " (column-scoped)" : "";
   if (result.ok) {
     process.stdout.write(
-      `safeseed verify: OK — ${result.checked.rows} rows, ${result.checked.fields} fields in range\n`,
+      `safeseed verify${mode}: OK — ${result.checked.rows} rows, ${result.checked.fields} fields in range\n`,
     );
   } else {
-    process.stdout.write(`safeseed verify: FAIL — ${result.failures.length} issue(s)\n`);
+    process.stdout.write(`safeseed verify${mode}: FAIL — ${result.failures.length} issue(s)\n`);
     for (const f of result.failures.slice(0, 50)) {
       process.stdout.write(`  [${f.kind}] ${f.message}\n`);
     }
     if (result.failures.length > 50) {
       process.stdout.write(`  ...and ${result.failures.length - 50} more\n`);
     }
+  }
+  if (result.unattestedColumns.length > 0) {
+    process.stdout.write(
+      `  unattested (added) columns, NOT vouched for — scan these: ${result.unattestedColumns.join(", ")}\n`,
+    );
+  }
+  for (const w of result.warnings) {
+    process.stdout.write(`  warning: ${w}\n`);
   }
   process.exit(exitCode(result));
 }
@@ -195,7 +213,7 @@ function printUsage(): void {
       "Usage:",
       "  safeseed generate --fields <name:type,...> --rows N --seed S [--out f.csv] [--record r.json] [--format-valid true|false]",
       "  safeseed generate --config gen.json [--out f.csv] [--record r.json]",
-      "  safeseed verify   --in f.csv --record r.json",
+      "  safeseed verify   --in f.csv --record r.json [--allow-added-columns]",
       "  safeseed scan     --in f.csv --fields <name:type,...>",
       "  safeseed catalog",
       "  safeseed version",

@@ -1,0 +1,336 @@
+/* Generator page — leans on the shared tokens and base classes from index.css
+   (:root vars, .site, .demo-banner, .btn*, .airgap-led, .tier-* colors) and adds
+   only the layout this page needs. */
+
+/* tier dots: color the same-element case too (index.css colors the descendant case). */
+.tier-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex: none;
+  background: var(--muted);
+}
+.tier-provable .tier-dot,
+.tier-dot.tier-provable {
+  background: var(--tier-provable);
+}
+.tier-designated .tier-dot,
+.tier-dot.tier-designated {
+  background: var(--tier-designated);
+}
+.tier-fake .tier-dot,
+.tier-dot.tier-fake {
+  background: var(--tier-fake);
+}
+
+/* top bar */
+.gen-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.gen-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.gen-back:hover {
+  color: var(--teal);
+}
+.gen-net {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+.gen-net.tripped {
+  color: var(--terracotta);
+}
+.gen-net.tripped .airgap-led {
+  background: var(--terracotta);
+}
+
+/* intro */
+.gen-main {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.gen-intro .eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--eyebrow);
+  margin: 0 0 6px;
+}
+.gen-intro h1 {
+  font-size: 30px;
+  margin: 0 0 10px;
+}
+.gen-lede {
+  margin: 0;
+  max-width: 70ch;
+  color: var(--muted);
+}
+
+/* panels */
+.gen-panel {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+}
+.gen-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.gen-panel-head h2 {
+  font-size: 18px;
+}
+.gen-hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* field rows */
+.field-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.field-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(150px, 220px) auto auto;
+  align-items: center;
+  gap: 10px;
+}
+.field-name,
+.field-type,
+.num-ctl input {
+  font-family: var(--sans);
+  font-size: 14px;
+  padding: 8px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.field-name {
+  font-family: var(--mono);
+  font-size: 13px;
+}
+.field-name.invalid {
+  border-color: var(--terracotta);
+  background: rgba(181, 83, 46, 0.05);
+}
+.field-name:focus-visible,
+.field-type:focus-visible,
+.num-ctl input:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 1px;
+}
+.tier-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.tier-chip.tier-provable {
+  border-color: var(--tier-provable);
+  color: var(--tier-provable);
+}
+.tier-chip.tier-designated {
+  border-color: var(--tier-designated);
+  color: #8a6f15;
+}
+.tier-chip.tier-fake {
+  border-color: var(--tier-fake);
+  color: var(--tier-fake);
+}
+.field-del {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.field-del:hover:not(:disabled) {
+  color: var(--terracotta);
+  border-color: var(--rule);
+}
+.field-del:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.gen-add {
+  margin-top: 12px;
+}
+
+/* numbers */
+.gen-nums {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+}
+.num-ctl {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.num-ctl input {
+  width: 120px;
+  font-family: var(--mono);
+}
+.seed-note {
+  margin-bottom: 6px;
+}
+.gen-error {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--terracotta);
+}
+
+/* preview table */
+.gen-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+.gen-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12.5px;
+}
+.gen-table th {
+  text-align: left;
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--recessed);
+  white-space: nowrap;
+}
+.gen-table th .tier-dot {
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.gen-table td {
+  font-family: var(--mono);
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--rule);
+  white-space: nowrap;
+  color: var(--ink);
+}
+.gen-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.tier-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* download */
+.download-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.gen-note {
+  margin-top: 18px;
+  padding: 14px 16px;
+  background: var(--recessed);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.gen-note p {
+  margin: 0 0 8px;
+}
+.gen-note p:last-child {
+  margin-bottom: 0;
+}
+.gen-note code {
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+/* footer */
+.gen-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 20px 0;
+  margin-top: 8px;
+  border-top: 1px solid var(--rule);
+  font-size: 12.5px;
+}
+.gen-foot-sub {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+@media (max-width: 620px) {
+  .field-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "name del"
+      "type type"
+      "tier tier";
+  }
+  .field-name {
+    grid-area: name;
+  }
+  .field-type {
+    grid-area: type;
+  }
+  .field-row .tier-chip {
+    grid-area: tier;
+  }
+  .field-del {
+    grid-area: del;
+  }
+}

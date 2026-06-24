@@ -1,5 +1,5 @@
 {
-  "safeseedVersion": "0.1.0",
+  "safeseedVersion": "0.2.0",
   "catalogVersion": "1.0.0",
   "seed": 1337,
   "rowCount": 50,
@@ -18,49 +18,56 @@
       "type": "email",
       "tier": "provably-non-real",
       "citation": "RFC 2606 §2–3 (reserved example.com/.net/.org and TLDs .test/.example/.invalid/.localhost)",
-      "claim": "Reserved by published standard; values in this range cannot correspond to a real person or system."
+      "claim": "Reserved by published standard; values in this range cannot correspond to a real person or system.",
+      "sha256": "7c6ef46cfe318152e969894a0703b7be46a37b2b9dd3b2952aa13292f9df1de8"
     },
     {
       "name": "name",
       "type": "fullName",
       "tier": "structurally-fake",
-      "citation": "No standard reserves names; self-evidently-fake token convention",
-      "claim": "Self-evidently synthetic token; not derived from any real record. This field type is not reserved by any standard, so realism is deliberately avoided."
+      "citation": "No standard reserves names; structurally-fake token convention",
+      "claim": "Structurally synthetic token; not derived from any real record. This field type is not reserved by any standard, so realism is deliberately avoided.",
+      "sha256": "ba148744f212a8c02c6b410cc664b5ce89b864b6da3b17e1ef79b84722c6626f"
     },
     {
       "name": "phone",
       "type": "phone",
       "tier": "provably-non-real",
       "citation": "NANPA / ATIS fictitious-number assignment (555-0100 through 555-0199)",
-      "claim": "Reserved by published standard; values in this range cannot correspond to a real person or system."
+      "claim": "Reserved by published standard; values in this range cannot correspond to a real person or system.",
+      "sha256": "dac1b7f4c72ad7e5d0e1759ce30d9d9f8c76fa1dea474c4d4d11ea3bfdd6b474"
     },
     {
       "name": "ssn",
       "type": "ssn",
       "tier": "provably-non-real",
       "citation": "SSA SSN randomization (effective 2011-06-25): never-assigned area numbers 000 / 666 / 900-999, plus group 00 and serial 0000 (ssa.gov/employer/randomization.html)",
-      "claim": "Reserved by published standard; values in this range cannot correspond to a real person or system."
+      "claim": "Reserved by published standard; values in this range cannot correspond to a real person or system.",
+      "sha256": "1ecfc6b217719ab581b2a11f454062848dbe7b726000d23e3cdeaab9c8acc733"
     },
     {
       "name": "card",
       "type": "creditCard",
       "tier": "designated-test-only",
       "citation": "Payment-processor / sandbox test PANs (e.g. Stripe testing docs); pass Luhn, authorize nowhere",
-      "claim": "Designated test value that passes validation; non-real by processor/sandbox designation, not by construction. Valid-looking, but reserved for testing."
+      "claim": "Designated test value that passes validation; non-real by processor/sandbox designation, not by construction. Valid-looking, but reserved for testing.",
+      "sha256": "d1276c2be4f5985deeda378f5fe8105fc592e476a2a3fb160ece0a044695d5db"
     },
     {
       "name": "ip",
       "type": "ipv4",
       "tier": "provably-non-real",
       "citation": "RFC 5737 (IPv4 documentation blocks TEST-NET-1/2/3)",
-      "claim": "Reserved by published standard; values in this range cannot correspond to a real person or system."
+      "claim": "Reserved by published standard; values in this range cannot correspond to a real person or system.",
+      "sha256": "3788f186f91b7e2f522201aa1560ba6e5f5f0c2339353f5c7107f5a877f062b3"
     },
     {
       "name": "address",
       "type": "streetAddress",
       "tier": "structurally-fake",
-      "citation": "No standard reserves addresses; self-evidently-fake 'Example' convention",
-      "claim": "Self-evidently synthetic token; not derived from any real record. This field type is not reserved by any standard, so realism is deliberately avoided."
+      "citation": "No standard reserves addresses; structurally-fake 'Example' convention",
+      "claim": "Structurally synthetic token; not derived from any real record. This field type is not reserved by any standard, so realism is deliberately avoided.",
+      "sha256": "2401240075cfc85da0850f54b54f8c842e478f68139f29f6f74c54a64e5104fa"
     }
   ],
   "contentSha256": "aed3bda2277b3c7b4371abcd7da7600a4118b2a7a885f010bafa2bfb74b51359",

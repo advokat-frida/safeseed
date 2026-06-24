@@ -1,6 +1,6 @@
 {
   "name": "safeseed",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Confirmably-synthetic test data by construction. Generate, attest, verify, and scan non-production data using standards-reserved \"never-real\" ranges. Zero backend, zero runtime dependencies, MIT.",
   "license": "MIT",
   "type": "module",

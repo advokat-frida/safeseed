@@ -1,0 +1,5 @@
+# The committed demo single-files (demo/safeseed-demo.html, demo/safeseed-generator.html)
+# are rebuilt and diffed by CI to catch staleness. Pin all HTML to LF so that rebuild
+# diffs cleanly across OSes (vite/esbuild emit LF; this stops a Windows checkout's CRLF
+# from showing as spurious drift).
+*.html text eol=lf

@@ -79,13 +79,21 @@ jobs:
           fi
 
       # The browser demo consumes the built core (dist/) — typecheck + build it too.
-      # Build all three modes so both single-file inlining paths (showcase + generator)
-      # are exercised; a break in the generator's standalone build fails CI, not silently
-      # ships a broken committed safeseed-generator.html.
-      - name: Build the browser demo
+      # `build` is the hosted multi-page build (typechecks both pages); `build:standalone:all`
+      # rebuilds BOTH single-file inlining paths (showcase + generator) and copies them to the
+      # committed names. Then assert the committed single-files are byte-fresh: if Generator.tsx
+      # (or anything they inline) changed without re-running the build, the diff fails CI rather
+      # than silently shipping a stale safeseed-demo.html / safeseed-generator.html.
+      - name: Build the browser demo + verify committed single-files are fresh
         working-directory: demo
         run: |
           npm ci
           npm run build
-          npm run build:standalone
-          npm run build:standalone:generator
+          npm run build:standalone:all
+          cd ..
+          if ! git diff --quiet -- demo/safeseed-demo.html demo/safeseed-generator.html; then
+            echo "::error::Committed demo single-files are stale. Run 'npm run build:standalone:all' in demo/ and commit the result."
+            git --no-pager diff --stat -- demo/safeseed-demo.html demo/safeseed-generator.html
+            exit 1
+          fi
+          echo "committed single-files are fresh"

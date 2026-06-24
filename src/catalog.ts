@@ -55,7 +55,7 @@ const CLAIM_PROVABLE =
 const CLAIM_DESIGNATED =
   "Designated test value that passes validation; non-real by processor/sandbox designation, not by construction. Valid-looking, but reserved for testing.";
 const CLAIM_FAKE =
-  "Self-evidently synthetic token; not derived from any real record. This field type is not reserved by any standard, so realism is deliberately avoided.";
+  "Structurally synthetic token; not derived from any real record. This field type is not reserved by any standard, so realism is deliberately avoided.";
 
 const RFC2606_DOMAINS = ["example.com", "example.net", "example.org"] as const;
 const RFC2606_TLDS = ["test", "example", "invalid", "localhost"] as const;
@@ -143,7 +143,7 @@ export const CATALOG: readonly CatalogEntry[] = [
   {
     field: "firstName",
     tier: "structurally-fake",
-    citation: "No standard reserves names; self-evidently-fake token convention",
+    citation: "No standard reserves names; structurally-fake token convention",
     description: "Given names rendered as obvious TEST_ tokens rather than plausible names.",
     claim: CLAIM_FAKE,
     reserved: { kind: "fakeToken", pattern: "^TEST_Firstname_\\d{6,}$" },
@@ -151,7 +151,7 @@ export const CATALOG: readonly CatalogEntry[] = [
   {
     field: "lastName",
     tier: "structurally-fake",
-    citation: "No standard reserves names; self-evidently-fake token convention",
+    citation: "No standard reserves names; structurally-fake token convention",
     description: "Family names rendered as obvious TEST_ tokens.",
     claim: CLAIM_FAKE,
     reserved: { kind: "fakeToken", pattern: "^TEST_Lastname_\\d{6,}$" },
@@ -159,7 +159,7 @@ export const CATALOG: readonly CatalogEntry[] = [
   {
     field: "fullName",
     tier: "structurally-fake",
-    citation: "No standard reserves names; self-evidently-fake token convention",
+    citation: "No standard reserves names; structurally-fake token convention",
     description: "Full names rendered as obvious TEST_ tokens.",
     claim: CLAIM_FAKE,
     reserved: { kind: "fakeToken", pattern: "^TEST_Person_\\d{6,}$" },
@@ -167,15 +167,15 @@ export const CATALOG: readonly CatalogEntry[] = [
   {
     field: "streetAddress",
     tier: "structurally-fake",
-    citation: "No standard reserves addresses; self-evidently-fake 'Example' convention",
-    description: "Street addresses built on the self-evident 'Example' street name.",
+    citation: "No standard reserves addresses; structurally-fake 'Example' convention",
+    description: "Street addresses built on the obvious 'Example' street name.",
     claim: CLAIM_FAKE,
     reserved: { kind: "fakeToken", pattern: "^\\d+ Example (Way|St|Ave|Rd|Blvd)$" },
   },
   {
     field: "freeText",
     tier: "structurally-fake",
-    citation: "No standard reserves free text; self-evidently-fake token convention",
+    citation: "No standard reserves free text; structurally-fake token convention",
     description: "Free-text fields rendered as obvious TEST_ tokens.",
     claim: CLAIM_FAKE,
     reserved: { kind: "fakeToken", pattern: "^TEST_Text_\\d{6,}$" },

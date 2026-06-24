@@ -61,6 +61,116 @@ const CI_ACTION = `# .github/workflows/ci.yml  — as a required check
     data: fixtures/seed.csv
     record: fixtures/seed.record.json`;
 
+const FAQS = [
+  {
+    q: 'Is "Designated for testing" an actual standard?',
+    a: (
+      <>
+        It is official, but not a neutral standards-body reservation like the provable values. Card issuers and payment
+        sandboxes (Stripe, Visa, and the like) publish these as their designated test numbers, so they are
+        authoritative — but the safety is by agreement: real processors are configured to reject them. That is why they
+        sit in their own tier, one notch below "provably non-real," which is safe by impossibility rather than by
+        agreement.
+      </>
+    ),
+  },
+  {
+    q: "Could a structurally-fake value coincidentally match a real person? Isn't that the risk with AI synthetic data?",
+    a: (
+      <>
+        It is the same class of risk, and SafeSeed drives it to effectively zero by making every value unmistakably
+        fake. Names and addresses are rendered as plain tokens like <code>TEST_Person_000142</code> and{" "}
+        <code>123 Example Way</code>,
+        never realistic ones, so no living person carries those values — alone or combined with other columns. AI
+        synthesizers generate realistic names learned from real data, which can coincidentally (or by memorization)
+        match real people. Refusing to look realistic is exactly what removes that risk.
+      </>
+    ),
+  },
+  {
+    q: "Is this anonymization? Is the output GDPR-anonymous?",
+    a: (
+      <>
+        No, and the distinction matters. Anonymization is a process you run on real data to strip identifiers, and it
+        always carries some re-identification risk. SafeSeed never touches real data — the values are invented from
+        never-real sources, so on their own they relate to no natural person (cf. GDPR Recital 26). That is a statement
+        about the values in isolation, not a blanket ruling that privacy law no longer applies to your program.
+      </>
+    ),
+  },
+  {
+    q: "My team wants to add their own columns (job title, industry) to the generated file. Won't that break verification?",
+    a: (
+      <>
+        Whole-file verify will correctly flag it, because the file is no longer byte-for-byte what was generated — that
+        is the point of tamper-evidence. For the "add your own non-PII columns" workflow, use <strong>scan</strong>{" "}
+        instead: it checks the typed columns for real PII without depending on the original file. A column-scoped verify
+        mode (attest the synthetic columns, allow extra ones) is on the roadmap to make that a first-class flow.
+      </>
+    ),
+  },
+  {
+    q: "Does it work with anything other than CSV?",
+    a: (
+      <>
+        CSV today, in the demo and the CLI. The core generates a format-agnostic table, so JSON, NDJSON, SQL inserts,
+        and others are straightforward to add — the generate, verify, and scan logic does not depend on the format.
+      </>
+    ),
+  },
+  {
+    q: "Does SafeSeed use encryption?",
+    a: (
+      <>
+        No. Verify uses a SHA-256 content fingerprint, which is a one-way cryptographic hash, not encryption. It proves
+        the file has not changed, not that it is secret. The run record is tamper-evidence, and the real assurance is
+        the open, auditable code — not a signature, which would only prove the tool ran, not that it is correct.
+      </>
+    ),
+  },
+  {
+    q: "How is this different from Faker or other fake-data libraries?",
+    a: (
+      <>
+        Off-the-shelf libraries already emit reserved-range values; what is missing is the discipline around them.
+        SafeSeed ties every PII field to a cited standard, enforces it (verify fails the build on drift), detects real
+        data that slipped in (scan), and states its honesty tiers plainly. You can even wrap Faker for realistic non-PII
+        fields and let the cited ranges own every PII-shaped one.
+      </>
+    ),
+  },
+  {
+    q: "Does any of my data leave my machine?",
+    a: (
+      <>
+        No. Everything runs in your browser — there is no backend, no telemetry, and no analytics. The shipped build
+        enforces it with a Content-Security-Policy that blocks every outbound connection, and the live counter at the
+        top of the page stays at zero. You can confirm it yourself in your browser's network tab.
+      </>
+    ),
+  },
+  {
+    q: "An address like user@example.com — couldn't that be someone's dormant identity?",
+    a: (
+      <>
+        No. RFC 2606 permanently reserves those names, so they can never be registered or owned by anyone. With no
+        possible registrant there is no account and no dormant identity — the domain itself is non-assignable, not
+        merely undeliverable.
+      </>
+    ),
+  },
+  {
+    q: "What does SafeSeed deliberately not do?",
+    a: (
+      <>
+        It does not prove your environment is clean (real data sitting beside the file, or a join to a production
+        snapshot), it is not a lawful-basis or DSAR answer, and it is not statistically realistic — the data is
+        low-fidelity on purpose. See <a href="#boundary">what this proves, and what it does not</a> above.
+      </>
+    ),
+  },
+];
+
 export default function App() {
   const netCount = useNetworkCount();
 
@@ -87,7 +197,7 @@ export default function App() {
             </h1>
             <p className="hero-sub">
               Anonymous from the start, not scrubbed after the fact. Every value is fake by design — reserved,
-              test-only, or self-evidently invented — so none of it relates to a real person.
+              test-only, or structurally fake — so none of it relates to a real person.
             </p>
             <div className="verb-chips">
               <span className="verb-chip">Generate</span>
@@ -99,10 +209,10 @@ export default function App() {
             </a>
           </div>
 
-          <aside className={`airgap ${netCount === 0 ? "quiet" : "tripped"}`} aria-label="Live network monitor">
+          <aside className={`airgap ${netCount === 0 ? "quiet" : "tripped"}`} aria-label="Network activity monitor">
             <div className="airgap-head">
               <span className="airgap-led" aria-hidden="true" />
-              <span className="airgap-head-l">Live · network monitor</span>
+              <span className="airgap-head-l">Network monitor</span>
               <span className="airgap-head-state">{netCount === 0 ? "nothing sent" : "call detected"}</span>
             </div>
             <div className="airgap-readout">
@@ -131,8 +241,8 @@ export default function App() {
         <section className="tiers">
           <h2 className="section-h">Three honesty tiers</h2>
           <p className="section-lead">
-            Not every kind of fake data is fake in the same way, so each carries a different strength of guarantee. The
-            color shows which, and every value on this page is tagged with its tier.
+            Not all synthetic data is created the same way. Each color below is a different tier of honesty that carries
+            a different strength of guarantee.
           </p>
           <div className="tier-cards">
             <div className="tier-card tier-provable">
@@ -165,7 +275,7 @@ export default function App() {
             </div>
             <div className="tier-card tier-designated">
               <span className="tier-dot" />
-              <h3>Designated test-only</h3>
+              <h3>Designated for testing</h3>
               <p>
                 A real-looking value that banks and payment systems publish on purpose for testing, like a test credit
                 card number. Real processors are set up to reject it, so it looks like an ordinary card but pays for
@@ -174,7 +284,7 @@ export default function App() {
             </div>
             <div className="tier-card tier-fake">
               <span className="tier-dot" />
-              <h3>Obviously fake on purpose</h3>
+              <h3>Structurally fake</h3>
               <p>
                 No standard reserves names or street addresses, so these are made plainly fake (like
                 <code> TEST_Person_000142</code> or <code>123 Example Way</code>) instead of realistic — a realistic
@@ -199,15 +309,17 @@ export default function App() {
             <div className="card op">
               <h3>Verify</h3>
               <p>
-                Re-check that a file is byte-identical to what was generated and every value is still in range. Wire it
-                into CI and it fails the build on drift.
+                Re-check a file against its run record. A SHA-256 content fingerprint (a cryptographic hash, not
+                encryption) confirms not one byte changed, and an independent range check confirms every value is still
+                reserved. Wire it into CI to fail the build the moment data drifts.
               </p>
             </div>
             <div className="card op">
               <h3>Scan</h3>
               <p>
                 Point it at an existing CSV and, for the fields you name, it flags any value outside the reserved ranges
-                as candidate real PII — a tripwire for real data that slipped into a test set.
+                as candidate real PII. No generator and no setup — it runs on files you already have, so it catches real
+                data that slipped into a test set.
               </p>
             </div>
           </div>
@@ -219,7 +331,7 @@ export default function App() {
         {/* CI GATE */}
         <section className="cigate">
           <h2 className="section-h">Wire it into CI</h2>
-          <p className="section-lead">The verify step fails closed — exit 1 on a tampered or out-of-range file blocks the merge.</p>
+          <p className="section-lead">The build fails if the data drifts out of range or is tampered with.</p>
           <CodeBlock code={CI_GENERATE} />
           <CodeBlock code={CI_ACTION} />
         </section>
@@ -227,23 +339,61 @@ export default function App() {
         {/* BOUNDARY */}
         <section className="boundary" id="boundary">
           <h2 className="boundary-h">What this proves — and what it does not</h2>
-          <p>
-            SafeSeed attests the <strong>generator</strong>, not your <strong>environment</strong>. It proves that the
-            data it produced was drawn entirely from standards-reserved, non-real ranges and has not been altered since.
-            It does not prove your pipeline is clean, that no real data sits beside this file, or that your test
-            environment is secure.
+          <div className="boundary-cols">
+            <div className="boundary-col boundary-proves">
+              <h3>
+                <span className="b-mark" aria-hidden="true">✓</span> What it proves
+              </h3>
+              <ul>
+                <li>
+                  Every value was drawn from a reserved, designated-test, or structurally-fake source, and the file
+                  hasn't changed since it was generated.
+                </li>
+                <li>
+                  The generated values are <strong>anonymous</strong> on their own — they relate to no natural person,
+                  so in isolation they are not personal data (cf. GDPR Recital 26).
+                </li>
+                <li>A tamper-evident record binds that exact file by its content fingerprint.</li>
+                <li>Zero network: nothing you do here ever leaves your browser.</li>
+              </ul>
+            </div>
+            <div className="boundary-col boundary-not">
+              <h3>
+                <span className="b-mark" aria-hidden="true">✗</span> What it does not
+              </h3>
+              <ul>
+                <li>
+                  That your <strong>environment</strong> is clean — no real data sitting beside this file, no join to a
+                  production snapshot.
+                </li>
+                <li>That your wider processing has a lawful basis. This is a control, not a program-wide scope-out.</li>
+                <li>Statistical realism — the data is deliberately low-fidelity, not representative.</li>
+                <li>
+                  That a file edited <em>after</em> generation is still safe — re-run verify or scan to confirm.
+                </li>
+              </ul>
+            </div>
+          </div>
+          <p className="boundary-close">
+            In short: SafeSeed makes "no production data crossed this line" a property you can check on every run, and it
+            states plainly where that guarantee ends. Use it as a data-minimization and security control for
+            non-production environments (evidence toward GDPR Art. 25 &amp; 32, SOC 2, and ISO 27001), not as a
+            substitute for your program's own privacy work.
           </p>
-          <p>
-            The output itself is anonymous: drawn from never-real values, it relates to no natural person, so it is
-            not personal data (GDPR Recital 26). That is a statement about the <strong>data</strong>, not a clean bill
-            of health for your <strong>program</strong> — you still process real data elsewhere, and that still needs
-            its lawful basis. Treat SafeSeed as a data-minimization and security control for non-production environments
-            (evidence toward GDPR Art. 25 &amp; 32, SOC 2, and ISO 27001), not as a scope-out for privacy law overall.
-          </p>
-          <p>
-            This data is deliberately low-fidelity. It is built to be safe and self-evidently fake, not to be
-            statistically representative. If you need distributional realism, this is the wrong tool, on purpose.
-          </p>
+        </section>
+
+        {/* FAQ */}
+        <section className="faq" id="faq">
+          <h2 className="section-h">Questions a skeptic asks first</h2>
+          <p className="section-lead">The honest answers — including where the guarantee stops.</p>
+          <div className="faq-list">
+            {FAQS.map((item, i) => (
+              <details className="faq-item" key={i}>
+                <summary>{item.q}</summary>
+                <div className="faq-a">{item.a}</div>
+              </details>
+            ))}
+          </div>
         </section>
       </main>
 

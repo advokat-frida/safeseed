@@ -20,7 +20,7 @@ export const CITATIONS: Record<FieldType, CitationDetail> = {
     short: "RFC 2606",
     standard: "RFC 2606 — Reserved Top Level DNS Names",
     reserves:
-      "example.com / .net / .org and the .test / .example / .invalid / .localhost TLDs. An address here can never route to a real mailbox.",
+      "example.com / .net / .org and the .test / .example / .invalid / .localhost TLDs. These names are permanently reserved and can never be registered by anyone, so no address under them can belong to a real party — active or dormant.",
     url: "https://datatracker.ietf.org/doc/html/rfc2606",
   },
   domain: {
@@ -66,10 +66,10 @@ export const CITATIONS: Record<FieldType, CitationDetail> = {
   lastName: SELF_EVIDENT(),
   fullName: SELF_EVIDENT(),
   streetAddress: {
-    short: "Self-evident",
+    short: "Structurally fake",
     standard: "No standard reserves addresses",
     reserves:
-      "No standards body reserves fake addresses, so these are built on the self-evident 'Example' street name rather than a plausible-but-random address.",
+      "No standards body reserves fake addresses, so these are built on the obvious 'Example' street name rather than a plausible-but-random address.",
     url: "",
   },
   freeText: SELF_EVIDENT(),
@@ -77,10 +77,10 @@ export const CITATIONS: Record<FieldType, CitationDetail> = {
 
 function SELF_EVIDENT(): CitationDetail {
   return {
-    short: "Self-evident",
+    short: "Structurally fake",
     standard: "No standard reserves names",
     reserves:
-      "No standards body reserves fake names, so these are made self-evidently fake (TEST_ tokens) rather than plausible — because a random 'real-looking' name can coincidentally match a living person.",
+      "No standards body reserves fake names, so these are made structurally fake (obvious TEST_ tokens) rather than plausible — because a random 'real-looking' name can coincidentally match a living person.",
     url: "",
   };
 }

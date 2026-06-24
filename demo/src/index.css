@@ -7,12 +7,13 @@
   --teal: #12666a;
   --teal-d: #0d4d50;
   --terracotta: #b5532e;
+  --green: #2f7d4f;
   --eyebrow: #c83232;
 
   /* honesty tiers — color encodes claim strength, not a traffic light */
   --tier-provable: #12666a; /* teal: strongest claim */
   --tier-designated: #c9a227; /* brass: valid-looking, read the basis */
-  --tier-fake: #b5532e; /* terracotta: human-shaped, self-evidently fake */
+  --tier-fake: #b5532e; /* terracotta: human-shaped, structurally fake */
   --flag: #b5532e;
   --recessed: #f0ebe0;
 
@@ -384,15 +385,15 @@ h4 {
 /* hero */
 .hero {
   display: grid;
-  grid-template-columns: 1.5fr 1fr;
-  gap: 40px;
+  grid-template-columns: 1.7fr 1fr;
+  gap: 36px;
   align-items: start;
   padding: 48px 0 40px;
   border-bottom: 1px solid var(--rule);
 }
 .hero-headline {
-  font-size: 38px;
-  line-height: 1.12;
+  font-size: 31px;
+  line-height: 1.15;
   letter-spacing: -0.015em;
 }
 .hero-headline .hl {
@@ -934,8 +935,8 @@ pre.code + pre.code {
   border: 1.5px solid;
 }
 .verify-result.pass {
-  border-color: var(--teal);
-  background: rgba(18, 102, 106, 0.06);
+  border-color: var(--green);
+  background: rgba(47, 125, 79, 0.08);
 }
 .verify-result.fail {
   border-color: var(--terracotta);
@@ -951,7 +952,7 @@ pre.code + pre.code {
   margin-bottom: 8px;
 }
 .verify-result.pass .verify-status {
-  color: var(--teal);
+  color: var(--green);
 }
 .verify-result.fail .verify-status {
   color: var(--terracotta);
@@ -1132,6 +1133,7 @@ td.scan-flag {
   line-height: 1.55;
   color: var(--muted);
   max-width: 90ch;
+  text-wrap: pretty;
 }
 .step-help strong {
   color: var(--ink);
@@ -1200,7 +1202,7 @@ td.scan-flag {
   flex-shrink: 0;
 }
 .verify-result.pass .verify-icon {
-  background: var(--teal);
+  background: var(--green);
 }
 .verify-result.fail .verify-icon {
   background: var(--terracotta);
@@ -1240,10 +1242,11 @@ td.scan-flag {
     gap: 28px;
   }
   .hero-headline {
-    font-size: 36px;
+    font-size: 30px;
   }
   .tier-cards,
-  .op-cards {
+  .op-cards,
+  .boundary-cols {
     grid-template-columns: 1fr;
   }
   .seed-ctl {
@@ -1256,7 +1259,7 @@ td.scan-flag {
     padding: 0 16px;
   }
   .hero-headline {
-    font-size: 30px;
+    font-size: 26px;
   }
   .airgap-n {
     font-size: 32px;
@@ -1277,4 +1280,187 @@ td.scan-flag {
   .seg-btn:last-child {
     border-bottom: none;
   }
+}
+
+/* ============================================================
+   round-4 additions
+   ============================================================ */
+
+/* static (non-interactive) reference tag — reuses cite-chip visuals */
+.cite-chip.is-static {
+  cursor: default;
+}
+
+/* citation card link matches the description size, and never overflows */
+.cite-card a {
+  font-size: 13.5px;
+  word-break: break-word;
+}
+
+/* "?" help affordance with a hover/focus bubble */
+.help-tip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: help;
+  flex-shrink: 0;
+}
+.help-tip:hover,
+.help-tip:focus-visible {
+  border-color: var(--teal);
+  color: var(--teal);
+  outline: none;
+}
+.help-bubble {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 260px;
+  max-width: 70vw;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease;
+  z-index: 20;
+  box-shadow: 0 8px 22px rgba(23, 23, 23, 0.22);
+}
+.help-tip:hover .help-bubble,
+.help-tip:focus-within .help-bubble {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* boundary — side-by-side comparison */
+.boundary-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  margin-bottom: 20px;
+}
+.boundary-col h3 {
+  font-family: var(--serif);
+  font-size: 16px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.boundary-proves h3 {
+  color: var(--green);
+}
+.boundary-not h3 {
+  color: var(--terracotta);
+}
+.b-mark {
+  font-weight: 700;
+}
+.boundary-col ul {
+  margin: 0;
+  padding-left: 20px;
+}
+.boundary-col li {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--muted);
+  margin-bottom: 9px;
+}
+.boundary-col li:last-child {
+  margin-bottom: 0;
+}
+.boundary-col li strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+.boundary-close {
+  margin: 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+/* FAQ — native <details> accordion, collapsed by default */
+.faq {
+  padding: 44px 0 8px;
+  border-top: 1px solid var(--rule);
+}
+.faq-list {
+  margin-top: 8px;
+  border-top: 1px solid var(--rule);
+}
+.faq-item {
+  border-bottom: 1px solid var(--rule);
+}
+.faq-item summary {
+  list-style: none;
+  cursor: pointer;
+  position: relative;
+  padding: 16px 30px 16px 0;
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+.faq-item summary::after {
+  content: "+";
+  position: absolute;
+  right: 0;
+  top: 16px;
+  font-family: var(--sans);
+  font-weight: 400;
+  font-size: 22px;
+  line-height: 1.2;
+  color: var(--teal);
+}
+.faq-item[open] summary::after {
+  content: "−";
+}
+.faq-item summary:hover {
+  color: var(--teal);
+}
+.faq-item summary:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+.faq-a {
+  padding: 0 0 18px;
+  max-width: 90ch;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+.faq-a a {
+  font-size: inherit;
+}
+.faq-a code {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--teal);
+  background: var(--parchment);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 1px 5px;
 }

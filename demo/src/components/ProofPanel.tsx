@@ -36,9 +36,21 @@ const TIER_CLASS: Record<Tier, string> = {
 
 const TIER_LABEL: Record<Tier, string> = {
   "provably-non-real": "Provably non-real",
-  "designated-test-only": "Designated test-only",
+  "designated-test-only": "Designated for testing",
   "structurally-fake": "Structurally fake",
 };
+
+const SEED_HELP =
+  "A seed is just a starting number. The same seed always produces the exact same rows, so the data is repeatable — save it as a test fixture and it regenerates identically, character for character, every time.";
+
+/** A small "?" affordance that reveals an explanatory bubble on hover/focus. */
+function HelpTip({ text }: { text: string }) {
+  return (
+    <span className="help-tip" tabIndex={0} role="note" aria-label={text}>
+      ?<span className="help-bubble" role="tooltip">{text}</span>
+    </span>
+  );
+}
 
 type Tamper = "none" | "inrange" | "outrange";
 
@@ -116,7 +128,7 @@ export default function ProofPanel() {
             <span className="cite-dot tier-provable" /> provably non-real
           </span>
           <span className="tier-legend-item">
-            <span className="cite-dot tier-designated" /> designated test-only
+            <span className="cite-dot tier-designated" /> designated for testing
           </span>
           <span className="tier-legend-item">
             <span className="cite-dot tier-fake" /> structurally fake
@@ -131,6 +143,7 @@ export default function ProofPanel() {
           <h3>Generate</h3>
           <div className="seed-ctl">
             <label htmlFor="seed">seed</label>
+            <HelpTip text={SEED_HELP} />
             <input
               id="seed"
               type="number"
@@ -198,15 +211,6 @@ export default function ProofPanel() {
               </tbody>
             </table>
           </div>
-          <div className="determinism">
-            <p>
-              A <strong>seed</strong> is just a starting number: the same seed always produces the exact same rows.
-            </p>
-            <p>
-              That makes the data repeatable — save it as a test fixture and it regenerates identically, character for
-              character, every time.
-            </p>
-          </div>
         </div>
 
         {activeCite && (
@@ -235,13 +239,12 @@ export default function ProofPanel() {
         <div className="step-head">
           <span className="step-n">2</span>
           <h3>Run record</h3>
-          <span className="step-sub">the tamper-evident receipt</span>
         </div>
         <p className="step-help">
-          This receipt belongs to that exact file. The <code>contentSha256</code> is a <strong>fingerprint</strong> of
-          the data — a code that changes completely if even one character is altered. Anyone can recompute it from the
-          file and compare: the same fingerprint means the file is untouched, a different one means it was changed. That
-          is how the next step catches tampering.
+          This tamper-evident receipt contains a <code>contentSha256</code> key, the fingerprint of the data — a code
+          that changes completely if even one character is altered. Anyone can recompute it from the file and compare:
+          the same fingerprint means the file is untouched, a different one means it was changed. That is how the next
+          step catches tampering.
         </p>
         <pre className="record">
 {record
@@ -266,11 +269,10 @@ export default function ProofPanel() {
         <div className="step-head">
           <span className="step-n">3</span>
           <h3>Verify</h3>
-          <span className="step-sub">edit the file, then watch it get caught</span>
         </div>
         <p className="step-help">
-          Make an edit to the file you generated above, and SafeSeed re-checks it. Two independent checks run — it
-          passes only if both do.
+          SafeSeed runs two independent re-checks whenever the generated file is edited, and the test only passes if
+          both do.
         </p>
         <div className="tamper-ctl">
           <span id="tamper-label">Edit the file:</span>
@@ -309,11 +311,19 @@ export default function ProofPanel() {
             <table className="data">
               <thead>
                 <tr>
-                  {SCHEMA.map((f) => (
-                    <th key={f.name}>
-                      <span className="col-name">{f.name}</span>
-                    </th>
-                  ))}
+                  {SCHEMA.map((f) => {
+                    const tier = getEntry(f.type).tier;
+                    const cite = CITATIONS[f.type];
+                    return (
+                      <th key={f.name}>
+                        <span className="col-name">{f.name}</span>
+                        <span className={`cite-chip is-static ${TIER_CLASS[tier]}`} title={TIER_LABEL[tier]}>
+                          <span className="cite-dot" aria-hidden="true" />
+                          {cite.short}
+                        </span>
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
@@ -365,10 +375,6 @@ export default function ProofPanel() {
                 ))}
               </ul>
             )}
-            <p className="verify-note">
-              Verification fails closed. The content hash and the range check are independent — an in-range edit still
-              breaks the hash; a recomputed hash still can't pass an out-of-range value.
-            </p>
           </div>
         )}
       </div>
@@ -408,12 +414,12 @@ function ScanStep() {
       <div className="step-head">
         <span className="step-n">4</span>
         <h3>Scan</h3>
-        <span className="step-sub">find real PII already sitting in a test file</span>
       </div>
       <p className="scan-intro">
-        Paste an existing CSV. For each typed column, Scan flags every value that is <em>not</em> in its reserved range
-        as candidate real PII. It is a tripwire for the field types you name — not a general PII discovery tool — and
-        unlike a generator, it works on data you already have.
+        Find real PII already sitting in a test file by pointing the scanner at a document. For each typed column, the
+        scan flags every value that is <em>not</em> in its reserved range as candidate real PII. It is a tripwire for
+        the field types you name — not a general PII discovery tool — and unlike a generator, it works on data you
+        already have.
       </p>
       <div className="field">
         <textarea rows={5} value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} />

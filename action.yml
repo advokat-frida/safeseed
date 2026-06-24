@@ -1,0 +1,28 @@
+name: "SafeSeed Verify"
+description: "Fail the build if test data drifts out of its standards-reserved ranges or its run record has been tampered with."
+author: "SafeSeed"
+branding:
+  icon: "shield"
+  color: "green"
+
+inputs:
+  data:
+    description: "Path to the CSV file to verify."
+    required: true
+  record:
+    description: "Path to the SafeSeed run record JSON for that file."
+    required: true
+  version:
+    description: "npm version/tag of safeseed to run."
+    required: false
+    default: "latest"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Verify test data is safe by construction
+      shell: bash
+      run: |
+        npx --yes "safeseed@${{ inputs.version }}" verify \
+          --in "${{ inputs.data }}" \
+          --record "${{ inputs.record }}"

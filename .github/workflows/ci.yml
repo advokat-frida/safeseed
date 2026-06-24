@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-prove:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # Dogfood the gate: SafeSeed must pass its own committed safe fixture...
+      - name: Verify a clean fixture (must pass)
+        run: node dist/cli.js verify --in examples/customers.csv --record examples/customers.record.json
+
+      # ...catch real PII planted in a legacy file...
+      - name: Scan a dirty legacy file (must flag)
+        run: |
+          if node dist/cli.js scan --in examples/dirty-legacy.csv --fields email:email,phone:phone,ssn:ssn; then
+            echo "::error::scan should have flagged real PII but exited clean"
+            exit 1
+          else
+            echo "scan correctly flagged candidate real PII"
+          fi
+
+      # ...and fail closed when a verified file is edited out of range.
+      - name: Verify a tampered fixture (must fail)
+        run: |
+          sed 's/TEST_Person_000001/Real Person/' examples/customers.csv > tampered.csv
+          if node dist/cli.js verify --in tampered.csv --record examples/customers.record.json; then
+            echo "::error::verify should have failed on a tampered file but passed"
+            exit 1
+          else
+            echo "verify correctly failed on tampered data"
+          fi

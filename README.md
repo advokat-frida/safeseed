@@ -125,7 +125,7 @@ The catalog in [`src/catalog.ts`](src/catalog.ts) is the reusable core: it maps 
 
 ## Status
 
-Core library, CLI, and the `verify` Action are built and tested. A browser demo and npm publication are next. The design record is in [SPEC.md](SPEC.md).
+Core library, CLI, the `verify` Action, and an interactive browser demo are built and tested (48 tests; CI green). The demo lives in [`demo/`](demo/); a single self-contained, offline copy is committed at [`demo/safeseed-demo.html`](demo/safeseed-demo.html). npm publication is the remaining step. The design record is in [SPEC.md](SPEC.md).
 
 ## License
 

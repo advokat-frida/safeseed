@@ -52,3 +52,11 @@ jobs:
           else
             echo "verify correctly failed on tampered data"
           fi
+
+      # The browser demo consumes the built core (dist/) — typecheck + build it too.
+      - name: Build the browser demo
+        working-directory: demo
+        run: |
+          npm ci
+          npm run build
+          npm run build:standalone

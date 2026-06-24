@@ -33,7 +33,7 @@ export const CITATIONS: Record<FieldType, CitationDetail> = {
     short: "RFC 5737",
     standard: "RFC 5737 — IPv4 Blocks Reserved for Documentation",
     reserves:
-      "192.0.2.0/24 (TEST-NET-1), 198.51.100.0/24 (TEST-NET-2), 203.0.113.0/24 (TEST-NET-3). None route on the public Internet.",
+      "192.0.2.0/24 (TEST-NET-1), 198.51.100.0/24 (TEST-NET-2), 203.0.113.0/24 (TEST-NET-3). Per RFC 5737, they should not appear on the public Internet.",
     url: "https://www.rfc-editor.org/rfc/rfc5737.html",
   },
   ipv6: {

@@ -97,7 +97,7 @@ export const CATALOG: readonly CatalogEntry[] = [
     field: "ipv4",
     tier: "provably-non-real",
     citation: "RFC 5737 (IPv4 documentation blocks TEST-NET-1/2/3)",
-    description: "IPv4 addresses inside the three RFC 5737 documentation ranges; never routed on the public Internet.",
+    description: "IPv4 addresses inside the three RFC 5737 documentation ranges, which per the RFC should not be routed on the public Internet.",
     claim: CLAIM_PROVABLE,
     reserved: { kind: "ipv4Blocks", cidrs: RFC5737_BLOCKS },
   },

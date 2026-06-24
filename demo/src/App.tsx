@@ -83,14 +83,14 @@ export default function App() {
         <section className="hero">
           <div className="hero-lead">
             <h1 className="hero-headline">
-              Trusted <span className="hl">synthetic</span> PII
+              Trusted <span className="hl">synthetic</span> PII-shaped data
             </h1>
             <p className="hero-sub">
-              Anonymous from the start, not scrubbed after the fact. Every value is drawn from official lists of
-              never-real data, so by construction it cannot relate to a real person.
+              Anonymous from the start, not scrubbed after the fact. Every value is fake by design — reserved,
+              test-only, or self-evidently invented — so none of it relates to a real person.
             </p>
             <div className="verb-chips">
-              <span className="verb-chip on">Generate</span>
+              <span className="verb-chip">Generate</span>
               <span className="verb-chip">Verify</span>
               <span className="verb-chip">Scan</span>
             </div>
@@ -168,7 +168,8 @@ export default function App() {
               <h3>Designated test-only</h3>
               <p>
                 A real-looking value that banks and payment systems publish on purpose for testing, like a test credit
-                card number. It looks valid everywhere, but it can never charge a card or move real money.
+                card number. Real processors are set up to reject it, so it looks like an ordinary card but pays for
+                nothing.
               </p>
             </div>
             <div className="tier-card tier-fake">
@@ -191,8 +192,8 @@ export default function App() {
               <h3>Generate</h3>
               <p>Produce test data from cited reserved ranges, deterministically from a seed.</p>
               <p className="op-note">
-                Model-based synthesizers learn from real data and can memorize and regurgitate real records. By-construction
-                generation has no training step and no real input, so there is nothing to memorize.
+                No model, no training data. Unlike AI synthesizers, there are no real records for it to memorize and
+                leak.
               </p>
             </div>
             <div className="card op">
@@ -205,8 +206,8 @@ export default function App() {
             <div className="card op">
               <h3>Scan</h3>
               <p>
-                Point it at an existing seed file and it flags values outside reserved ranges as candidate real PII — the
-                copy of production already sitting in staging.
+                Point it at an existing CSV and, for the fields you name, it flags any value outside the reserved ranges
+                as candidate real PII — a tripwire for real data that slipped into a test set.
               </p>
             </div>
           </div>

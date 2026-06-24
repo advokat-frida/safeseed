@@ -55,9 +55,13 @@ export default function ProofPanel() {
     return { ds: dataset, csv: toCsv(dataset.columns, dataset.rows) };
   }, [seed]);
 
-  // Run record binds the content hash (async via Web Crypto).
+  // Run record binds the content hash (async via Web Crypto). While it recomputes for a new
+  // seed, clear the old record + verdict first, so the verifier never runs the new data against
+  // the stale record — which would flash a phantom VERIFY: FAIL before the new hash resolves.
   useEffect(() => {
     let live = true;
+    setRecord(null);
+    setVerifyResult(null);
     makeRunRecord(ds, csv).then((r) => {
       if (live) setRecord(r);
     });
@@ -66,57 +70,38 @@ export default function ProofPanel() {
     };
   }, [ds, csv]);
 
-  // The tampered file the verifier actually checks.
-  const tamperedCsv = useMemo(() => {
-    if (tamper === "none") return csv;
+  // Single source of truth for step 3: the tampered rows, which cell changed (+ its old
+  // value), the CSV the verifier checks, and a plain-language note. The table shown and the
+  // bytes verified are derived from the SAME rows, so they can never disagree.
+  const tampered = useMemo(() => {
     const rows = ds.rows.map((r) => [...r]);
     const ipIdx = SCHEMA.findIndex((f) => f.type === "ipv4");
     const cardIdx = SCHEMA.findIndex((f) => f.type === "creditCard");
+    let changed: { row: number; col: number; before: string } | null = null;
+    let note = "";
     if (tamper === "outrange" && rows[1]) {
+      changed = { row: 1, col: ipIdx, before: rows[1][ipIdx]! };
       rows[1][ipIdx] = "8.8.8.8"; // a real, routable public IP — outside RFC 5737
-    }
-    if (tamper === "inrange" && rows[1]) {
-      const cur = rows[1][cardIdx];
+      note = "Row 2's IP is now a real, routable address — outside every reserved range.";
+    } else if (tamper === "inrange" && rows[1]) {
+      const cur = rows[1][cardIdx]!;
+      changed = { row: 1, col: cardIdx, before: cur };
       rows[1][cardIdx] = cur === "4242424242424242" ? "4111111111111111" : "4242424242424242";
+      note = "Row 2's card is still a valid test card — but not the one the receipt fingerprinted.";
     }
-    return toCsv(ds.columns, rows);
-  }, [tamper, ds, csv]);
-
-  // The concrete edit being made, surfaced so this step reads as "edit the file → re-verify",
-  // not "pick a toggle → see an output".
-  const tamperEdit = useMemo(() => {
-    if (tamper === "none") return null;
-    const row = ds.rows[1];
-    if (!row) return null;
-    const ipIdx = SCHEMA.findIndex((f) => f.type === "ipv4");
-    const cardIdx = SCHEMA.findIndex((f) => f.type === "creditCard");
-    if (tamper === "outrange") {
-      return {
-        field: "ip",
-        before: row[ipIdx]!,
-        after: "8.8.8.8",
-        note: "A real, routable IP address — outside every reserved range.",
-      };
-    }
-    const cur = row[cardIdx]!;
-    return {
-      field: "card",
-      before: cur,
-      after: cur === "4242424242424242" ? "4111111111111111" : "4242424242424242",
-      note: "Still a valid test card — but not the one the receipt fingerprinted.",
-    };
+    return { rows, changed, csv: toCsv(ds.columns, rows), note };
   }, [tamper, ds]);
 
   useEffect(() => {
     if (!record) return;
     let live = true;
-    verify(tamperedCsv, record).then((r) => {
+    verify(tampered.csv, record).then((r) => {
       if (live) setVerifyResult(r);
     });
     return () => {
       live = false;
     };
-  }, [tamperedCsv, record]);
+  }, [tampered, record]);
 
   return (
     <section className="proof" id="proof" aria-label="Interactive proof">
@@ -313,21 +298,53 @@ export default function ProofPanel() {
             </button>
           </div>
         </div>
-        {tamperEdit && (
-          <div className="tamper-diff">
-            <span className="tamper-diff-loc">
-              Edited <code>customers.synthetic.csv</code> · row 2 · {tamperEdit.field}
+        <div className="exhibit verify-exhibit">
+          <div className="exhibit-bar">
+            <span className="exhibit-file">customers.synthetic.csv</span>
+            <span className="exhibit-meta">
+              {tamper === "none" ? "the file from step 1 · untouched" : "the file from step 1 · 1 cell edited"}
             </span>
-            <span className="tamper-diff-change">
-              <span className="tamper-before">{tamperEdit.before}</span>
-              <span className="tamper-arrow" aria-hidden="true">
-                →
-              </span>
-              <span className="tamper-after">{tamperEdit.after}</span>
-            </span>
-            <span className="tamper-diff-note">{tamperEdit.note}</span>
           </div>
-        )}
+          <div className="table-wrap">
+            <table className="data">
+              <thead>
+                <tr>
+                  {SCHEMA.map((f) => (
+                    <th key={f.name}>
+                      <span className="col-name">{f.name}</span>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {tampered.rows.map((row, r) => (
+                  <tr key={r}>
+                    {row.map((cell, c) => {
+                      const tier = getEntry(SCHEMA[c]!.type).tier;
+                      const isChanged = tampered.changed?.row === r && tampered.changed?.col === c;
+                      return (
+                        <td
+                          key={isChanged ? `${c}-${tamper}` : c}
+                          className={`${TIER_CLASS[tier]} ${isChanged ? "cell-changed" : ""}`}
+                        >
+                          {cell}
+                          {isChanged && tampered.changed && (
+                            <span className="cell-was">was {tampered.changed.before}</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {tampered.note && (
+            <p className="verify-edit-note" role="status" aria-live="polite">
+              {tampered.note}
+            </p>
+          )}
+        </div>
         {verifyResult && (
           <div className={`verify-result ${verifyResult.ok ? "pass" : "fail"}`} role="status" aria-live="polite">
             <div className="verify-status">
@@ -394,8 +411,9 @@ function ScanStep() {
         <span className="step-sub">find real PII already sitting in a test file</span>
       </div>
       <p className="scan-intro">
-        Paste an existing CSV. Scan flags every value that is <em>not</em> in a reserved range as candidate real PII.
-        This is what a generator alone can't do — it works on data you already have.
+        Paste an existing CSV. For each typed column, Scan flags every value that is <em>not</em> in its reserved range
+        as candidate real PII. It is a tripwire for the field types you name — not a general PII discovery tool — and
+        unlike a generator, it works on data you already have.
       </p>
       <div className="field">
         <textarea rows={5} value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} />

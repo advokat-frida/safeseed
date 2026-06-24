@@ -412,17 +412,24 @@ h4 {
   margin-top: 24px;
 }
 .verb-chip {
-  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
   font-weight: 600;
-  padding: 6px 16px;
-  border-radius: 999px;
-  border: 1.5px solid var(--rule);
+  letter-spacing: 0.02em;
+  padding: 5px 12px;
+  border-radius: 6px;
+  background: var(--recessed);
+  border: 1px solid var(--rule);
   color: var(--muted);
 }
-.verb-chip.on {
+.verb-chip::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
   background: var(--teal);
-  border-color: var(--teal);
-  color: #fff;
 }
 .hero-cta {
   display: inline-flex;
@@ -579,7 +586,7 @@ h4 {
 .section-lead {
   margin: 8px 0 20px;
   color: var(--muted);
-  max-width: 64ch;
+  max-width: 90ch;
 }
 .tiers,
 .ops,
@@ -1124,13 +1131,12 @@ td.scan-flag {
   font-size: 13.5px;
   line-height: 1.55;
   color: var(--muted);
-  max-width: 74ch;
+  max-width: 90ch;
 }
 .step-help strong {
   color: var(--ink);
 }
-.step-help code,
-.tamper-diff-loc code {
+.step-help code {
   font-family: var(--mono);
   font-size: 12px;
   color: var(--teal);
@@ -1140,55 +1146,38 @@ td.scan-flag {
   padding: 1px 5px;
 }
 
-/* the concrete edit, shown before the verdict so verify reads as a live check */
-.tamper-diff {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
+/* step 3 verify: the live data table whose cell mutates as you edit, so PASS → FAIL is visible */
+.verify-exhibit {
   margin-bottom: 14px;
-  padding: 12px 14px;
-  border: 1px solid var(--rule);
-  border-left: 3px solid var(--terracotta);
-  border-radius: 8px;
-  background: rgba(181, 83, 46, 0.05);
-  animation: fade-rise 0.2s ease both;
 }
-.tamper-diff-loc {
-  font-size: 11px;
+.cell-changed {
+  background: rgba(181, 83, 46, 0.16) !important;
+  box-shadow: inset 3px 0 0 var(--terracotta) !important;
+  color: var(--terracotta) !important;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
+  animation: cell-flash 0.65s ease-out both;
 }
-.tamper-diff-loc code {
-  text-transform: none;
-  letter-spacing: 0;
-  color: var(--ink);
-}
-.tamper-diff-change {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  font-family: var(--mono);
-  font-size: 14px;
-}
-.tamper-before {
+.cell-was {
+  display: block;
+  margin-top: 2px;
+  font-size: 10.5px;
+  font-weight: 600;
   color: var(--muted);
   text-decoration: line-through;
 }
-.tamper-arrow {
-  color: var(--terracotta);
-  font-weight: 700;
+@keyframes cell-flash {
+  0% {
+    background: rgba(181, 83, 46, 0.55);
+  }
+  100% {
+    background: rgba(181, 83, 46, 0.16);
+  }
 }
-.tamper-after {
-  color: var(--terracotta);
-  font-weight: 700;
-  background: rgba(181, 83, 46, 0.12);
-  padding: 1px 7px;
-  border-radius: 4px;
-}
-.tamper-diff-note {
+.verify-edit-note {
+  margin: 0;
+  padding: 10px 14px;
+  border-top: 1px solid var(--rule);
+  background: var(--parchment);
   font-size: 12.5px;
   font-style: italic;
   color: var(--muted);
@@ -1238,6 +1227,9 @@ td.scan-flag {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+  }
+  .cell-changed {
+    animation: none !important;
   }
 }
 

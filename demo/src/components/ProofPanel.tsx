@@ -52,6 +52,31 @@ function HelpTip({ text }: { text: string }) {
   );
 }
 
+/** The provenance card shown when a column's tier chip is clicked. Used in both step 1 and step 3. */
+function CiteCard({ field, onClose }: { field: FieldType; onClose: () => void }) {
+  const entry = getEntry(field);
+  const cite = CITATIONS[field];
+  return (
+    <div className="cite-card">
+      <button className="cite-close" onClick={onClose} aria-label="Close">
+        ×
+      </button>
+      <div className="cite-card-tier">
+        <span className={`cite-dot ${TIER_CLASS[entry.tier]}`} />
+        {TIER_LABEL[entry.tier]}
+      </div>
+      <h4>{cite.standard}</h4>
+      <p>{cite.reserves}</p>
+      <p className="cite-core">Catalog citation: {entry.citation}</p>
+      {cite.url && (
+        <a href={cite.url} target="_blank" rel="noreferrer">
+          {cite.url} ↗
+        </a>
+      )}
+    </div>
+  );
+}
+
 type Tamper = "none" | "inrange" | "outrange";
 
 export default function ProofPanel() {
@@ -60,6 +85,7 @@ export default function ProofPanel() {
   const [record, setRecord] = useState<RunRecord | null>(null);
   const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
   const [activeCite, setActiveCite] = useState<FieldType | null>(null);
+  const [activeCiteVerify, setActiveCiteVerify] = useState<FieldType | null>(null);
 
   // Deterministic: output is a pure function of (schema, seed).
   const { ds, csv } = useMemo(() => {
@@ -88,20 +114,31 @@ export default function ProofPanel() {
   const tampered = useMemo(() => {
     const rows = ds.rows.map((r) => [...r]);
     const ipIdx = SCHEMA.findIndex((f) => f.type === "ipv4");
-    const cardIdx = SCHEMA.findIndex((f) => f.type === "creditCard");
+    const emailIdx = SCHEMA.findIndex((f) => f.type === "email");
+    // kind distinguishes the two checks: "real" = an out-of-range real value the RANGE check
+    // catches (the value is the problem); "edited" = an in-range edit that only the FINGERPRINT
+    // catches (the value is still safe, the FILE changed). Different meaning, different colour.
     let changed: { row: number; col: number; before: string } | null = null;
     let note = "";
+    let kind: "real" | "edited" | null = null;
     if (tamper === "outrange" && rows[1]) {
       changed = { row: 1, col: ipIdx, before: rows[1][ipIdx]! };
       rows[1][ipIdx] = "8.8.8.8"; // a real, routable public IP — outside RFC 5737
-      note = "Row 2's IP is now a real, routable address — outside every reserved range.";
+      note =
+        "8.8.8.8 is a real, routable IP. The range check catches it directly: it falls outside every reserved range.";
+      kind = "real";
     } else if (tamper === "inrange" && rows[1]) {
-      const cur = rows[1][cardIdx]!;
-      changed = { row: 1, col: cardIdx, before: cur };
-      rows[1][cardIdx] = cur === "4242424242424242" ? "4111111111111111" : "4242424242424242";
-      note = "Row 2's card is still a valid test card — but not the one the receipt fingerprinted.";
+      // Edit a cell to another SAFE, in-range, and unique value (a different example.com
+      // address — no other row shares it, so nothing looks flagged-here-but-fine-there). This
+      // demonstrates tamper-evidence, NOT PII detection: the value stays valid; the file changes.
+      const cur = rows[1][emailIdx]!;
+      changed = { row: 1, col: emailIdx, before: cur };
+      rows[1][emailIdx] = cur.replace(/^([^@]+)@/, "$1.edited@");
+      note =
+        "Still a valid address in a reserved (RFC 2606) domain, so it stays in range and is perfectly safe. Nothing is wrong with the value — but the file no longer matches its recorded fingerprint, so the tamper check catches that it was edited.";
+      kind = "edited";
     }
-    return { rows, changed, csv: toCsv(ds.columns, rows), note };
+    return { rows, changed, kind, csv: toCsv(ds.columns, rows), note };
   }, [tamper, ds]);
 
   useEffect(() => {
@@ -213,25 +250,7 @@ export default function ProofPanel() {
           </div>
         </div>
 
-        {activeCite && (
-          <div className="cite-card">
-            <button className="cite-close" onClick={() => setActiveCite(null)} aria-label="Close">
-              ×
-            </button>
-            <div className="cite-card-tier">
-              <span className={`cite-dot ${TIER_CLASS[getEntry(activeCite).tier]}`} />
-              {TIER_LABEL[getEntry(activeCite).tier]}
-            </div>
-            <h4>{CITATIONS[activeCite].standard}</h4>
-            <p>{CITATIONS[activeCite].reserves}</p>
-            <p className="cite-core">Catalog citation: {getEntry(activeCite).citation}</p>
-            {CITATIONS[activeCite].url && (
-              <a href={CITATIONS[activeCite].url} target="_blank" rel="noreferrer">
-                {CITATIONS[activeCite].url} ↗
-              </a>
-            )}
-          </div>
-        )}
+        {activeCite && <CiteCard field={activeCite} onClose={() => setActiveCite(null)} />}
       </div>
 
       {/* STEP 2 — RUN RECORD */}
@@ -271,8 +290,9 @@ export default function ProofPanel() {
           <h3>Verify</h3>
         </div>
         <p className="step-help">
-          SafeSeed runs two independent re-checks whenever the generated file is edited, and the test only passes if
-          both do.
+          Verify runs two independent re-checks: a <strong>fingerprint</strong> (has the file changed at all?) and a{" "}
+          <strong>range check</strong> (is every value still in a reserved range?). It passes only if both do — try
+          either edit:
         </p>
         <div className="tamper-ctl">
           <span id="tamper-label">Edit the file:</span>
@@ -289,14 +309,14 @@ export default function ProofPanel() {
               aria-pressed={tamper === "inrange"}
               onClick={() => setTamper("inrange")}
             >
-              Swap a card for another test card
+              Edit a cell, keep it valid
             </button>
             <button
               className={`seg-btn ${tamper === "outrange" ? "active" : ""}`}
               aria-pressed={tamper === "outrange"}
               onClick={() => setTamper("outrange")}
             >
-              Paste in a real IP
+              Slip in a real value
             </button>
           </div>
         </div>
@@ -317,10 +337,15 @@ export default function ProofPanel() {
                     return (
                       <th key={f.name}>
                         <span className="col-name">{f.name}</span>
-                        <span className={`cite-chip is-static ${TIER_CLASS[tier]}`} title={TIER_LABEL[tier]}>
+                        <button
+                          className={`cite-chip ${TIER_CLASS[tier]}`}
+                          onClick={() => setActiveCiteVerify(activeCiteVerify === f.type ? null : f.type)}
+                          aria-label={`${f.name}: ${TIER_LABEL[tier]}, cited by ${cite.short} — open citation`}
+                          title={`${TIER_LABEL[tier]} — click for the citation`}
+                        >
                           <span className="cite-dot" aria-hidden="true" />
                           {cite.short}
-                        </span>
+                        </button>
                       </th>
                     );
                   })}
@@ -332,11 +357,9 @@ export default function ProofPanel() {
                     {row.map((cell, c) => {
                       const tier = getEntry(SCHEMA[c]!.type).tier;
                       const isChanged = tampered.changed?.row === r && tampered.changed?.col === c;
+                      const changedClass = isChanged ? (tampered.kind === "real" ? "cell-changed" : "cell-edited") : "";
                       return (
-                        <td
-                          key={isChanged ? `${c}-${tamper}` : c}
-                          className={`${TIER_CLASS[tier]} ${isChanged ? "cell-changed" : ""}`}
-                        >
+                        <td key={isChanged ? `${c}-${tamper}` : c} className={`${TIER_CLASS[tier]} ${changedClass}`}>
                           {cell}
                           {isChanged && tampered.changed && (
                             <span className="cell-was">was {tampered.changed.before}</span>
@@ -355,6 +378,7 @@ export default function ProofPanel() {
             </p>
           )}
         </div>
+        {activeCiteVerify && <CiteCard field={activeCiteVerify} onClose={() => setActiveCiteVerify(null)} />}
         {verifyResult && (
           <div className={`verify-result ${verifyResult.ok ? "pass" : "fail"}`} role="status" aria-live="polite">
             <div className="verify-status">

@@ -288,7 +288,7 @@ export default function App() {
                   RFC 3849
                 </a>{" "}
                 IP addresses,{" "}
-                <a href="https://www.nationalnanpa.com/" target="_blank" rel="noreferrer">
+                <a href="https://www.nanpa.com/" target="_blank" rel="noreferrer">
                   NANPA
                 </a>{" "}
                 555-01xx phone numbers, and{" "}

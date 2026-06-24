@@ -1168,6 +1168,22 @@ td.scan-flag {
   font-weight: 700;
   animation: cell-flash 0.65s ease-out both;
 }
+/* an in-range edit: the value is still safe, only the file changed — amber, not red */
+.cell-edited {
+  background: rgba(201, 162, 39, 0.18) !important;
+  box-shadow: inset 3px 0 0 var(--tier-designated) !important;
+  color: #7a5e10 !important;
+  font-weight: 700;
+  animation: cell-flash-amber 0.65s ease-out both;
+}
+@keyframes cell-flash-amber {
+  0% {
+    background: rgba(201, 162, 39, 0.5);
+  }
+  100% {
+    background: rgba(201, 162, 39, 0.18);
+  }
+}
 .cell-was {
   display: block;
   margin-top: 2px;
@@ -1239,7 +1255,8 @@ td.scan-flag {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
-  .cell-changed {
+  .cell-changed,
+  .cell-edited {
     animation: none !important;
   }
 }
@@ -1294,11 +1311,6 @@ td.scan-flag {
 /* ============================================================
    round-4 additions
    ============================================================ */
-
-/* static (non-interactive) reference tag — reuses cite-chip visuals */
-.cite-chip.is-static {
-  cursor: default;
-}
 
 /* citation card link matches the description size, and never overflows */
 .cite-card a {

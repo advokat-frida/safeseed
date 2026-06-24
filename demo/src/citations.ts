@@ -46,7 +46,7 @@ export const CITATIONS: Record<FieldType, CitationDetail> = {
     short: "NANPA",
     standard: "NANPA fictitious-number assignment",
     reserves: "555-0100 through 555-0199 — the block designated for fictitious use.",
-    url: "https://www.nationalnanpa.com/",
+    url: "https://www.nanpa.com/",
   },
   ssn: {
     short: "SSA",

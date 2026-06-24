@@ -116,7 +116,7 @@ const FAQS = [
         Whole-file verify will correctly flag it, because the file is no longer byte-for-byte what was generated — that
         is the point of tamper-evidence. For the "add your own non-PII columns" workflow, use <strong>Scan</strong> (the
         Scan step in the demo above). Scan reads any file you already have and flags every value that is not in a
-        reserved range as candidate real PII; it does not need the original run record, so it works fine after you have
+        reserved range as possible real PII; it does not need the original run record, so it works fine after you have
         edited or extended the file. A column-scoped verify mode (attest the synthetic columns, allow extra ones) is on
         the roadmap to make this a first-class flow.
       </>
@@ -343,7 +343,7 @@ export default function App() {
               <h3>Scan</h3>
               <p>
                 Point it at an existing CSV and, for the fields you name, it flags any value outside the reserved ranges
-                as candidate real PII. No generator and no setup — it runs on files you already have, so it catches real
+                as possible real PII. No generator and no setup — it runs on files you already have, so it catches real
                 data that slipped into a test set.
               </p>
             </div>

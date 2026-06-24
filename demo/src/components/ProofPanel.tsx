@@ -417,7 +417,7 @@ function ScanStep() {
       </div>
       <p className="scan-intro">
         Find real PII already sitting in a test file by pointing the scanner at a document. For each typed column, the
-        scan flags every value that is <em>not</em> in its reserved range as candidate real PII. It is a tripwire for
+        scan flags every value that is <em>not</em> in its reserved range as possible real PII. It is a tripwire for
         the field types you name — not a general PII discovery tool — and unlike a generator, it works on data you
         already have.
       </p>
@@ -431,10 +431,10 @@ function ScanStep() {
         <span className="scan-summary" role="status" aria-live="polite">
           {result &&
             (result.ok ? (
-              <span className="scan-clean">clean — {result.scannedRows} rows, no candidate PII</span>
+              <span className="scan-clean">clean — {result.scannedRows} rows, nothing flagged</span>
             ) : (
               <span className="scan-dirty">
-                {result.findings.length} candidate{result.findings.length === 1 ? "" : "s"} across{" "}
+                {result.findings.length} value{result.findings.length === 1 ? "" : "s"} flagged across{" "}
                 {result.scannedRows} rows
               </span>
             ))}
@@ -461,7 +461,7 @@ function ScanStep() {
                     return (
                       <td key={c} className={isFlagged ? "scan-flag" : ""}>
                         {cell}
-                        {isFlagged && <span className="flag-tag">candidate real PII</span>}
+                        {isFlagged && <span className="flag-tag">possible real PII</span>}
                       </td>
                     );
                   })}

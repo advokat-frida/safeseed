@@ -2,10 +2,32 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import { fileURLToPath } from "node:url";
+import { readFileSync } from "node:fs";
 
 // The demo consumes the built SafeSeed core exactly as an external user would:
 // `import { generate } from "safeseed"` resolves to the package's dist build.
 const safeseedEntry = fileURLToPath(new URL("../dist/index.js", import.meta.url));
+
+// Inline the favicon as a data URI at build time. Otherwise the <link rel="icon"
+// href="/fox.svg"> stays an external request, which the single-file artifact opened
+// from disk (file://) can't resolve and the strict `img-src data:` CSP blocks — a
+// blocked request in the network tab is the wrong look for a "zero network" demo.
+const faviconSvg = readFileSync(fileURLToPath(new URL("./public/fox.svg", import.meta.url)), "utf8");
+const faviconDataUri = `data:image/svg+xml,${encodeURIComponent(faviconSvg)}`;
+
+function inlineFaviconOnBuild() {
+  return {
+    name: "inline-favicon-on-build",
+    apply: "build" as const,
+    // Run post so we replace whatever Vite's asset rewrite left (/fox.svg, ./fox.svg, …).
+    transformIndexHtml: {
+      order: "post" as const,
+      handler(html: string) {
+        return html.replace(/href="[^"]*fox\.svg"/, `href="${faviconDataUri}"`);
+      },
+    },
+  };
+}
 
 // The shipped artifact's selling point is "nothing leaves your device", so every
 // build carries a strict CSP. connect-src 'none' = no network at all; font-src 'self'
@@ -40,6 +62,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
+      inlineFaviconOnBuild(),
       strictCspOnBuild(standalone ? STANDALONE_CSP : HOSTED_CSP),
       ...(standalone ? [viteSingleFile()] : []),
     ],

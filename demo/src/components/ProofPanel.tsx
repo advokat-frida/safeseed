@@ -113,10 +113,14 @@ export default function ProofPanel() {
             <input
               id="seed"
               type="number"
+              min={0}
+              step={1}
+              inputMode="numeric"
               value={seed}
               onChange={(e) => {
                 setTamper("none");
-                setSeed(Number(e.target.value) || 0);
+                const n = Number(e.target.value);
+                if (e.target.value !== "" && Number.isFinite(n)) setSeed(n);
               }}
             />
             <button className="btn btn-ghost" onClick={() => { setTamper("none"); setSeed((s) => s + 1); }}>
@@ -145,9 +149,10 @@ export default function ProofPanel() {
                         <button
                           className={`cite-chip ${TIER_CLASS[tier]}`}
                           onClick={() => setActiveCite(activeCite === f.type ? null : f.type)}
+                          aria-label={`${f.name}: ${TIER_LABEL[tier]}, cited by ${cite.short} — open citation`}
                           title={`${TIER_LABEL[tier]} — click for the citation`}
                         >
-                          <span className="cite-dot" />
+                          <span className="cite-dot" aria-hidden="true" />
                           {cite.short}
                         </button>
                       </th>
@@ -231,21 +236,33 @@ export default function ProofPanel() {
           <span className="step-sub">two independent checks, fails closed</span>
         </div>
         <div className="tamper-ctl">
-          <span>Try to slip something past it:</span>
-          <div className="seg">
-            <button className={`seg-btn ${tamper === "none" ? "active" : ""}`} onClick={() => setTamper("none")}>
+          <span id="tamper-label">Try to slip something past it:</span>
+          <div className="seg" role="group" aria-labelledby="tamper-label">
+            <button
+              className={`seg-btn ${tamper === "none" ? "active" : ""}`}
+              aria-pressed={tamper === "none"}
+              onClick={() => setTamper("none")}
+            >
               Untouched
             </button>
-            <button className={`seg-btn ${tamper === "inrange" ? "active" : ""}`} onClick={() => setTamper("inrange")}>
+            <button
+              className={`seg-btn ${tamper === "inrange" ? "active" : ""}`}
+              aria-pressed={tamper === "inrange"}
+              onClick={() => setTamper("inrange")}
+            >
               Edit one cell (still in range)
             </button>
-            <button className={`seg-btn ${tamper === "outrange" ? "active" : ""}`} onClick={() => setTamper("outrange")}>
+            <button
+              className={`seg-btn ${tamper === "outrange" ? "active" : ""}`}
+              aria-pressed={tamper === "outrange"}
+              onClick={() => setTamper("outrange")}
+            >
               Slip in a real IP (8.8.8.8)
             </button>
           </div>
         </div>
         {verifyResult && (
-          <div className={`verify-result ${verifyResult.ok ? "pass" : "fail"}`}>
+          <div className={`verify-result ${verifyResult.ok ? "pass" : "fail"}`} role="status" aria-live="polite">
             <div className="verify-status">{verifyResult.ok ? "VERIFY: PASS" : "VERIFY: FAIL"}</div>
             {verifyResult.ok ? (
               <ul>
@@ -317,15 +334,17 @@ function ScanStep() {
         <button className="btn btn-primary" onClick={() => setResult(scan({ csv: text, columns: SCAN_COLUMNS }))}>
           Scan
         </button>
-        {result &&
-          (result.ok ? (
-            <span className="scan-clean">clean — {result.scannedRows} rows, no candidate PII</span>
-          ) : (
-            <span className="scan-dirty">
-              {result.findings.length} candidate{result.findings.length === 1 ? "" : "s"} across {result.scannedRows}{" "}
-              rows
-            </span>
-          ))}
+        <span className="scan-summary" role="status" aria-live="polite">
+          {result &&
+            (result.ok ? (
+              <span className="scan-clean">clean — {result.scannedRows} rows, no candidate PII</span>
+            ) : (
+              <span className="scan-dirty">
+                {result.findings.length} candidate{result.findings.length === 1 ? "" : "s"} across{" "}
+                {result.scannedRows} rows
+              </span>
+            ))}
+        </span>
       </div>
       {result && (
         <div className="table-wrap">

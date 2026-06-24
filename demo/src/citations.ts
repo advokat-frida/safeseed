@@ -50,9 +50,9 @@ export const CITATIONS: Record<FieldType, CitationDetail> = {
   },
   ssn: {
     short: "SSA",
-    standard: "SSA SSN assignment rules",
+    standard: "SSA SSN randomization (since 2011-06-25)",
     reserves:
-      "Areas the SSA never issues (000, 666, 900-999), plus group 00 and serial 0000. (Re-verify against ssa.gov before public release.)",
+      "Areas the SSA never issues (000, 666, 900-999), plus group 00 and serial 0000 — confirmed against the SSA randomization rules.",
     url: "https://www.ssa.gov/employer/randomization.html",
   },
   creditCard: {

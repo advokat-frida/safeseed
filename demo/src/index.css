@@ -47,6 +47,24 @@ a {
 a:hover {
   text-decoration: underline;
 }
+
+/* Visible keyboard focus on every interactive control (light ring stays visible
+   on teal-filled buttons too). */
+.btn:focus-visible,
+.seg-btn:focus-visible,
+.cite-chip:focus-visible,
+.cite-close:focus-visible,
+.seed-ctl input:focus-visible,
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+.btn-primary:focus-visible,
+.seg-btn.active:focus-visible {
+  outline-color: var(--paper);
+  outline-offset: -2px;
+}
 h1,
 h2,
 h3,
@@ -67,45 +85,6 @@ h4 {
   min-height: 100vh;
 }
 
-/* header */
-.site-header {
-  padding: 40px 0 24px;
-  border-bottom: 1px solid var(--rule);
-}
-.wordmark {
-  display: inline-flex;
-  align-items: center;
-  gap: 14px;
-}
-.wordmark:hover {
-  text-decoration: none;
-}
-.wordmark-stack {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.12;
-}
-.eyebrow {
-  font-family: var(--sans);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--teal);
-}
-.wordmark-text {
-  font-family: var(--serif);
-  font-weight: 700;
-  font-size: 26px;
-  color: var(--ink);
-  letter-spacing: 0.01em;
-}
-.tagline {
-  margin: 18px 0 0;
-  max-width: 64ch;
-  color: var(--muted);
-  font-size: 15px;
-}
 
 .site-main {
   flex: 1;

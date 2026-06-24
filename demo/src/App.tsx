@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import ProofPanel from "./components/ProofPanel";
 import { getNetworkCount, subscribeNetworkCount } from "./netGuard";
+import foxLogo from "./assets/fox-logo.png";
 
 function useNetworkCount() {
   return useSyncExternalStore(subscribeNetworkCount, getNetworkCount);
@@ -22,12 +23,12 @@ export default function App() {
         <section className="hero">
           <div className="hero-lead">
             <h1 className="hero-headline">
-              Test data that <span className="hl">can't</span> be a real person.
+              Test data with <span className="hl">no real person</span> inside it.
             </h1>
             <p className="hero-sub">
               Not scrubbed after the fact — drawn by construction from ranges the standards bodies reserve as
-              permanently not-real. If real data never enters the generator, there is nothing to leak. Confirmably
-              synthetic by construction, not by promise.
+              permanently not-real. If real data never enters the generator, there is no real record for it to
+              memorize or re-emit. Confirmably synthetic by construction, not by promise.
             </p>
             <div className="verb-chips">
               <span className="verb-chip on">Generate</span>
@@ -38,14 +39,17 @@ export default function App() {
 
           <aside className="airgap">
             <span className="airgap-medallion">
-              <img className="fox-neon" src="/fox-logo.png" alt="Advokat Frida" width={72} height={72} />
+              <img className="fox-neon" src={foxLogo} alt="Advokat Frida" width={72} height={72} />
             </span>
             <code className="airgap-csp">connect-src 'none'</code>
             <div className="airgap-counter">
               <span className="airgap-n">{netCount}</span>
-              <span className="airgap-l">network calls this session</span>
+              <span className="airgap-l">fetch / XHR / beacon calls this session</span>
             </div>
-            <p className="airgap-cap">Open your network tab. Confirm it yourself.</p>
+            <p className="airgap-cap">
+              The shipped build enforces it with CSP <code>connect-src 'none'</code>; this counter catches any
+              attempt live. Confirm in your network tab.
+            </p>
             <p className="airgap-teaser">
               It attests the generator, not your environment — and "not derived from production data" is not "not
               personal data." <a href="#boundary">Read the full note ↓</a>

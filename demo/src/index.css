@@ -867,6 +867,7 @@ td.tier-fake {
 .cite-card {
   position: relative;
   margin-top: 14px;
+  margin-bottom: 16px;
   background: var(--parchment);
   border: 1px solid var(--rule);
   border-radius: 8px;
@@ -1035,7 +1036,7 @@ td.scan-flag {
 
 /* boundary */
 .boundary {
-  margin: 44px 0 8px;
+  margin: 44px 0 40px;
   background: var(--recessed);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
@@ -1468,7 +1469,6 @@ td.scan-flag {
 }
 .faq-a {
   padding: 0 0 18px;
-  max-width: 90ch;
   font-size: 14px;
   line-height: 1.65;
   color: var(--muted);

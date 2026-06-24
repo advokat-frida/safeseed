@@ -115,10 +115,10 @@ const FAQS = [
       <>
         Whole-file verify will correctly flag it, because the file is no longer byte-for-byte what was generated — that
         is the point of tamper-evidence. For the "add your own non-PII columns" workflow, use <strong>Scan</strong> (the
-        Scan step in the demo above). Scan reads any file you already have and flags every value that is not in a
-        reserved range as possible real PII; it does not need the original run record, so it works fine after you have
-        edited or extended the file. A column-scoped verify mode (attest the synthetic columns, allow extra ones) is on
-        the roadmap to make this a first-class flow.
+        Scan step in the demo above). Scan reads any file you already have and flags every value outside a reserved
+        range, in the columns you name; it does not need the original run record, so it works fine after you have edited
+        or extended the file. A column-scoped verify mode (attest the synthetic columns, allow extra ones) is on the
+        roadmap to make this a first-class flow.
       </>
     ),
   },
@@ -146,9 +146,9 @@ const FAQS = [
     a: (
       <>
         Off-the-shelf libraries already emit reserved-range values; what is missing is the discipline around them.
-        SafeSeed ties every PII field to a cited standard, enforces it (verify fails the build on drift), detects real
-        data that slipped in (scan), and states its honesty tiers plainly. You can even wrap Faker for realistic non-PII
-        fields and let the cited ranges own every PII-shaped one.
+        SafeSeed ties every PII-shaped field to a cited standard, enforces it (verify fails the build on drift), audits
+        named columns against their reserved ranges (scan), and states its honesty tiers plainly. You can even wrap
+        Faker for realistic non-PII fields and let the cited ranges own every PII-shaped one.
       </>
     ),
   },
@@ -218,7 +218,8 @@ export default function App() {
             </h1>
             <p className="hero-sub">
               Anonymous from the start, not scrubbed after the fact. Every value is fake by design — reserved,
-              test-only, or structurally fake — so none of it relates to a real person.
+              test-only, or structurally fake — so none of it relates to a real person, and a built-in receipt lets you
+              prove, any time, that it hasn't changed since.
             </p>
             <div className="verb-chips">
               <span className="verb-chip">Generate</span>
@@ -334,17 +335,17 @@ export default function App() {
             <div className="card op">
               <h3>Verify</h3>
               <p>
-                Re-check a file against its run record. A SHA-256 content fingerprint (a cryptographic hash, not
-                encryption) confirms not one byte changed, and an independent range check confirms every value is still
-                reserved. Wire it into CI to fail the build the moment data drifts.
+                Prove a file is still the exact synthetic data you generated. A SHA-256 content fingerprint (a
+                cryptographic hash, not encryption) confirms not one byte changed, and a range check confirms every
+                value is still synthetic. Wire it into CI to fail the build the moment the data drifts.
               </p>
             </div>
             <div className="card op">
               <h3>Scan</h3>
               <p>
-                Point it at an existing CSV and, for the fields you name, it flags any value outside the reserved ranges
-                as possible real PII. No generator and no setup — it runs on files you already have, so it catches real
-                data that slipped into a test set.
+                Audit a file you already have: for the columns you name, it flags any value outside its reserved range,
+                so you can review anything that isn't provably synthetic. It checks only the columns you type — no
+                generator, no setup.
               </p>
             </div>
           </div>
@@ -398,6 +399,10 @@ export default function App() {
                 </li>
                 <li>
                   That a file edited <em>after</em> generation is still safe — re-run verify or scan to confirm.
+                </li>
+                <li>
+                  <strong>Find or classify PII in your real data.</strong> SafeSeed only proves the data it made is
+                  synthetic and unaltered; it is not a discovery or detection tool.
                 </li>
               </ul>
             </div>

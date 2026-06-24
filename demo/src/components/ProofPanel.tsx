@@ -115,18 +115,18 @@ export default function ProofPanel() {
     const rows = ds.rows.map((r) => [...r]);
     const ipIdx = SCHEMA.findIndex((f) => f.type === "ipv4");
     const emailIdx = SCHEMA.findIndex((f) => f.type === "email");
-    // kind distinguishes the two checks: "real" = an out-of-range real value the RANGE check
-    // catches (the value is the problem); "edited" = an in-range edit that only the FINGERPRINT
-    // catches (the value is still safe, the FILE changed). Different meaning, different colour.
+    // kind distinguishes the two checks: "outrange" = a value outside its reserved range, which
+    // the RANGE check catches (the value is the problem); "edited" = an in-range edit that only
+    // the FINGERPRINT catches (the value is still synthetic, the FILE changed). Different colour.
     let changed: { row: number; col: number; before: string } | null = null;
     let note = "";
-    let kind: "real" | "edited" | null = null;
+    let kind: "outrange" | "edited" | null = null;
     if (tamper === "outrange" && rows[1]) {
       changed = { row: 1, col: ipIdx, before: rows[1][ipIdx]! };
       rows[1][ipIdx] = "8.8.8.8"; // a real, routable public IP — outside RFC 5737
       note =
         "8.8.8.8 is a real, routable IP. The range check catches it directly: it falls outside every reserved range.";
-      kind = "real";
+      kind = "outrange";
     } else if (tamper === "inrange" && rows[1]) {
       // Edit a cell to another SAFE, in-range, and unique value (a different example.com
       // address — no other row shares it, so nothing looks flagged-here-but-fine-there). This
@@ -157,8 +157,9 @@ export default function ProofPanel() {
       <div className="proof-head">
         <h2>See it for yourself</h2>
         <p>
-          Every step below runs locally and instantly. Nothing is sent anywhere — generate the data, read its receipt,
-          try to slip something real past the verifier, then scan a file that looks clean.
+          Every step below runs locally and instantly. Nothing is sent anywhere: generate synthetic data, fingerprint
+          it, prove the file was never altered, and audit the columns you name in an existing file for any value outside
+          its reserved range.
         </p>
         <div className="tier-legend" aria-hidden="true">
           <span className="tier-legend-item">
@@ -290,9 +291,9 @@ export default function ProofPanel() {
           <h3>Verify</h3>
         </div>
         <p className="step-help">
-          Verify runs two independent re-checks: a <strong>fingerprint</strong> (has the file changed at all?) and a{" "}
-          <strong>range check</strong> (is every value still in a reserved range?). It passes only if both do — try
-          either edit:
+          Verify proves a file is exactly the synthetic data you generated, unaltered. It runs two independent
+          re-checks: a <strong>fingerprint</strong> (has the file changed at all?) and a <strong>range check</strong>{" "}
+          (is every value still synthetic?). It passes only if both do — try either edit:
         </p>
         <div className="tamper-ctl">
           <span id="tamper-label">Edit the file:</span>
@@ -357,7 +358,7 @@ export default function ProofPanel() {
                     {row.map((cell, c) => {
                       const tier = getEntry(SCHEMA[c]!.type).tier;
                       const isChanged = tampered.changed?.row === r && tampered.changed?.col === c;
-                      const changedClass = isChanged ? (tampered.kind === "real" ? "cell-changed" : "cell-edited") : "";
+                      const changedClass = isChanged ? (tampered.kind === "outrange" ? "cell-changed" : "cell-edited") : "";
                       return (
                         <td key={isChanged ? `${c}-${tamper}` : c} className={`${TIER_CLASS[tier]} ${changedClass}`}>
                           {cell}
@@ -388,7 +389,7 @@ export default function ProofPanel() {
             {verifyResult.ok ? (
               <ul>
                 <li>content hash matches the recorded hash ✓</li>
-                <li>every value is in its declared reserved range ✓</li>
+                <li>every value is still in its cited reserved range, so still synthetic ✓</li>
               </ul>
             ) : (
               <ul>
@@ -440,10 +441,9 @@ function ScanStep() {
         <h3>Scan</h3>
       </div>
       <p className="scan-intro">
-        Find real PII already sitting in a test file by pointing the scanner at a document. For each typed column, the
-        scan flags every value that is <em>not</em> in its reserved range as possible real PII. It is a tripwire for
-        the field types you name — not a general PII discovery tool — and unlike a generator, it works on data you
-        already have.
+        Audit a file you already have. For each column you name, the scanner flags any value <em>outside</em> its
+        reserved range — anything that isn't provably synthetic, so you can review it. It checks only the columns you
+        type, and needs no run record.
       </p>
       <div className="field">
         <textarea rows={5} value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} />
@@ -455,10 +455,10 @@ function ScanStep() {
         <span className="scan-summary" role="status" aria-live="polite">
           {result &&
             (result.ok ? (
-              <span className="scan-clean">clean — {result.scannedRows} rows, nothing flagged</span>
+              <span className="scan-clean">all in range — {result.scannedRows} rows, nothing flagged</span>
             ) : (
               <span className="scan-dirty">
-                {result.findings.length} value{result.findings.length === 1 ? "" : "s"} flagged across{" "}
+                {result.findings.length} value{result.findings.length === 1 ? "" : "s"} outside range across{" "}
                 {result.scannedRows} rows
               </span>
             ))}
@@ -485,7 +485,7 @@ function ScanStep() {
                     return (
                       <td key={c} className={isFlagged ? "scan-flag" : ""}>
                         {cell}
-                        {isFlagged && <span className="flag-tag">possible real PII</span>}
+                        {isFlagged && <span className="flag-tag">outside range</span>}
                       </td>
                     );
                   })}

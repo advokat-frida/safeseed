@@ -22,6 +22,11 @@
   --sans: "Inter", system-ui, -apple-system, sans-serif;
   --mono: ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Menlo, Consolas, monospace;
   --radius: 10px;
+
+  /* Fluid shell: grows with the viewport instead of pinning at a fixed width, so
+     wide monitors stop wasting half the screen on margins. Capped at 1380px because
+     the prose blocks inside carry their own ch caps — past this the text floats. */
+  --container: clamp(1040px, 88vw, 1380px);
 }
 
 * {
@@ -79,9 +84,10 @@ h4 {
 }
 
 .site {
-  max-width: 1040px;
+  width: 100%;
+  max-width: var(--container);
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 clamp(24px, 3vw, 56px);
   display: flex;
   flex-direction: column;
   min-height: 100vh;
@@ -274,15 +280,14 @@ h4 {
 /* footer — the page signature */
 .site-footer {
   border-top: 1px solid var(--rule);
-  padding: 28px 0 40px;
-  margin-top: 24px;
+  padding: 20px 0 28px;
+  margin-top: 16px;
   text-align: left;
 }
 .footer-note {
   font-size: 13.5px;
   color: var(--muted);
-  max-width: 68ch;
-  margin: 0 0 20px;
+  margin: 0 0 14px;
 }
 .footer-note strong {
   color: var(--ink);
@@ -309,13 +314,6 @@ h4 {
 }
 .footer-sig-sub {
   font-size: 11px;
-  color: var(--muted);
-}
-.footer-demo-note {
-  margin: 18px 0 0;
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
   color: var(--muted);
 }
 

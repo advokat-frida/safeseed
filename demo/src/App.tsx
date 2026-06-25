@@ -510,7 +510,6 @@ export default function App() {
             <span className="footer-sig-sub">Part of Advokat Frida · Frida's Toolkit</span>
           </span>
         </div>
-        <p className="footer-demo-note">Demo — work in progress. Not for distribution or production use.</p>
       </footer>
     </div>
   );

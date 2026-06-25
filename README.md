@@ -139,6 +139,12 @@ The catalog in [`src/catalog.ts`](src/catalog.ts) is the reusable core: it maps 
 
 Core library, CLI, the `verify` Action, and an interactive browser demo are built and tested (64 tests; CI green). SafeSeed 0.2.0 adds per-column hashes and opt-in **column-scoped verify**, a self-serve **generator page**, and a four-tier honesty taxonomy that separates protocol-reserved values from authority-reserved (never-issued) ones. The demo lives in [`demo/`](demo/); both the showcase and the generator ship as committed, offline single files at [`demo/safeseed-demo.html`](demo/safeseed-demo.html) and [`demo/safeseed-generator.html`](demo/safeseed-generator.html). npm publication is the remaining step. The design record is in [SPEC.md](SPEC.md); the v2 feature spec is in [docs/generator-and-column-scoped-verify.md](docs/generator-and-column-scoped-verify.md).
 
+## Support
+
+SafeSeed is free and MIT-licensed. If it's useful to you or your team, you can [support its development on Ko-fi](https://ko-fi.com/Q3S6220HI9).
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/Q3S6220HI9)
+
 ## License
 
 [MIT](LICENSE).

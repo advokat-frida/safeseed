@@ -226,7 +226,7 @@ export default function App() {
       {/* MASTHEAD */}
       <header className="masthead">
         <span className="masthead-brand">
-          <img className="fox-neon masthead-fox" src={foxLogo} alt="Advokat Frida" width={40} height={40} />
+          <img className="fox-neon masthead-fox" src={foxLogo} alt="Advokat Frida" width={72} height={72} />
           <span className="masthead-lockup">
             <span className="masthead-mark">SAFESEED</span>
             <span className="masthead-kicker">Frida's Toolkit · No. 01</span>

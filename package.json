@@ -15,7 +15,7 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "safeseed": "./dist/cli.js"
+    "safeseed": "dist/cli.js"
   },
   "exports": {
     ".": {

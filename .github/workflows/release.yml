@@ -1,0 +1,56 @@
+name: Release
+
+# Publish SafeSeed to npm when a version tag is pushed. Releasing becomes:
+#   npm version patch|minor|major   (bumps package.json + creates the tag)
+#   git push --follow-tags
+# ...from any machine. The actual publish runs here, so no local npm login,
+# no interactive 2FA, no being-at-a-specific-rig. One-time setup: add an npm
+# Automation access token as the repo secret NPM_TOKEN (see PUBLISH-CHECKLIST.md).
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  id-token: write # required for npm provenance attestation
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Verify the tag matches package.json version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::Tag v$TAG does not match package.json version $PKG. Bump the version and retag."
+            exit 1
+          fi
+          echo "Releasing safeseed@$PKG"
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # --access public makes the (unscoped) package public; --provenance attaches
+      # a verifiable build-origin attestation, which fits SafeSeed's whole thesis.
+      - name: Publish to npm
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

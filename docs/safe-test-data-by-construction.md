@@ -28,16 +28,17 @@ Audit once and trust every output, versus re-prove privacy on every run. For the
 
 ## What "never real" actually means — and where it gets honest
 
-"Reserved by standard" is not hand-waving. Real, citable standards define values that can never belong to a real person or system:
+"Reserved by standard" is not hand-waving. Real, citable standards reserve values that don't belong to a real person or system — some because the standard itself makes them impossible, some because the issuing authority simply never assigns them:
 
 - **Email and domains** — RFC 2606 reserves `example.com`, `example.net`, `example.org`, and the `.invalid` / `.example` suffixes. An address there can never route to a real mailbox.
-- **IP addresses** — RFC 5737 reserves three IPv4 ranges for documentation; RFC 3849 reserves `2001:db8::/32` for IPv6. Neither can appear on the public Internet.
-- **Phone numbers** — the North American numbering plan reserves `555-0100` through `555-0199` as fictitious, non-working numbers.
-- **Social Security numbers** — certain ranges were never issued and are invalid by design (area numbers `000`, `666`, and `900–999`, among others).
+- **IP addresses** — RFC 5737 reserves three IPv4 ranges for documentation; RFC 3849 reserves `2001:db8::/32` for IPv6. These blocks are reserved and never assigned to a real network.
+- **Phone numbers** — the North American numbering plan reserves `555-0100` through `555-0199` as fictitious numbers the carriers never assign to a real line.
+- **Social Security numbers** — the SSA never issues certain ranges (area numbers `000`, `666`, and `900–999`, among others), so no real SSN is drawn from them.
 
 But honesty *is* the credibility here, so the claim has tiers, and the serious version says so plainly:
 
-- **Provably non-real by construction** — the reserved domains, IPs, phone block, and invalid SSN ranges above. These cannot be real.
+- **Provably non-real** — the reserved domains and documentation IPs above. A published standard reserves them, so no real party can register or be assigned one.
+- **Reserved, never issued** — the `555-01xx` phone block and the never-issued SSN ranges. The issuing authority reserves these and never assigns them, so no real holder has one. Strong, but it rests on administrative policy rather than protocol — which is why it sits a notch below the provable tier rather than inside it.
 - **Designated test-only** — the standard payment-card test numbers (e.g. `4242…`, published in processor/sandbox testing docs). These *pass* the checksum, so they are valid-looking; they are non-real by processor/sandbox designation (they authorize nowhere), *not* by mathematical impossibility. Say "designated test card," not "cannot be a real card."
 - **Structurally fake** — names, street addresses, free text. No standards body reserves "fake names." The honest move is to make these *self-evidently* fake (`TEST_Lastname_000142`, `123 Example Way`) rather than plausible-but-random people — because a randomly generated "John Smith at 42 Main St" can coincidentally match a living person, and the law does not care that you generated it.
 

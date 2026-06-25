@@ -9,9 +9,15 @@
 /**
  * How a value is known to be non-real. Ordered from strongest to weakest claim.
  *
- * - `provably-non-real`     reserved by a published standard; cannot belong to a
- *                           real person or system (RFC 2606 domains, RFC 5737 /
- *                           3849 IPs, NANPA 555-01xx phones, unassigned SSN ranges).
+ * - `provably-non-real`     reserved by a published *standard / protocol*; cannot
+ *                           belong to a real person or system (RFC 2606 domains,
+ *                           RFC 5737 / 3849 documentation IPs). The standard itself
+ *                           makes them non-routable / non-registrable.
+ * - `reserved-not-issued`   reserved by the *issuing authority* and never assigned,
+ *                           so no real holder has one (NANPA 555-01xx fictitious
+ *                           phones, SSA never-issued SSN ranges). Strong, but it
+ *                           rests on administrative policy, NOT protocol — so it is
+ *                           held apart from the protocol-provable tier above.
  * - `designated-test-only`  a valid-looking value that networks/sandboxes have
  *                           *designated* for testing (e.g. card test PANs). It
  *                           passes validation, so it is non-real by designation,
@@ -21,6 +27,7 @@
  */
 export type Tier =
   | "provably-non-real"
+  | "reserved-not-issued"
   | "designated-test-only"
   | "structurally-fake";
 

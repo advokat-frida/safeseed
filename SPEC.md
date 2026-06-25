@@ -52,7 +52,7 @@ A monorepo would only win if everything were the same artifact type with heavy s
 4. **`verify`** — re-hashes the artifact, checks every field against its declared range, validates the run record, exits non-zero on any drift. Wireable as a required CI/merge gate.
 5. **`scan` (reverse mode)** — point it at an *existing* CSV / seed file; it flags values that are **not** in reserved ranges as candidate real PII. (Security said this is what they'd deploy week one — it addresses the prod dump already sitting in staging, not just virgin data.)
 6. **In-artifact threat model** — a plain "what this attests / what it does NOT" statement shipped with the tool, the CLI output, and the demo.
-7. **The provable-tier taxonomy** baked into every output: each field labeled provably-non-real / designated-test-only / structurally-fake.
+7. **The honesty-tier taxonomy** baked into every output: each field labeled provably-non-real (protocol-reserved) / reserved-not-issued (authority-reserved, never assigned) / designated-test-only / structurally-fake.
 
 ## Acceptance (observable behavior)
 
@@ -89,7 +89,7 @@ A monorepo would only win if everything were the same artifact type with heavy s
 **record**
 - `record.bindsToOutputFileHash`
 - `record.statesTierPerField`
-- `record.usesHonestLanguageNoOverclaim` (no "proof" / "cannot be real" on the designated-test or structurally-fake tiers)
+- `record.usesHonestLanguageNoOverclaim` (no "proof" / "cannot be real" on any tier below provably-non-real — reserved-not-issued, designated-test, structurally-fake)
 
 ## Out of scope (deliberate)
 

@@ -12,7 +12,12 @@ const SCHEMA: FieldSchema[] = [
   { name: "last", type: "lastName" },
 ];
 
-const TIERS: Tier[] = ["provably-non-real", "designated-test-only", "structurally-fake"];
+const TIERS: Tier[] = [
+  "provably-non-real",
+  "reserved-not-issued",
+  "designated-test-only",
+  "structurally-fake",
+];
 
 async function build() {
   const ds = generate({ schema: SCHEMA, rows: 12, seed: 5 });
@@ -86,9 +91,16 @@ describe("record.statesTierPerField", () => {
 });
 
 describe("record.usesHonestLanguageNoOverclaim", () => {
-  const banned = [/\bproof\b/i, /\bproven\b/i, /cannot be (a )?real/i, /\bimpossible/i, /\bguarantee/i];
+  const banned = [
+    /\bproof\b/i,
+    /\bproven\b/i,
+    /cannot be (a )?real/i,
+    /cannot correspond/i,
+    /\bimpossible/i,
+    /\bguarantee/i,
+  ];
 
-  it("designated-test and structurally-fake claims avoid proof/impossibility language", async () => {
+  it("reserved-not-issued, designated-test, and structurally-fake claims avoid proof/impossibility language", async () => {
     const { record } = await build();
     for (const f of record.fields) {
       if (f.tier !== "provably-non-real") {

@@ -73,8 +73,9 @@ const FAQS = [
           testing docs
         </a>
         ; other processors publish their own equivalents. So they are authoritative, but the safety is by agreement: real
-        processors are configured to reject them. That is why they sit in their own tier, one notch below "provably
-        non-real," which is safe by impossibility rather than by agreement.
+        processors are configured to reject them. That is why they sit in their own tier, below both "provably non-real"
+        (safe by protocol impossibility) and "reserved, never issued" (a number the authority never assigns) — a test
+        card is a perfectly valid number, kept safe only because processors agree to refuse it.
       </>
     ),
   },
@@ -243,8 +244,8 @@ export default function App() {
             </h1>
             <p className="hero-sub">
               Anonymous from the start, not scrubbed after the fact. Every value is fake by design — provably non-real,
-              designated for testing, or structurally fake — so none of it relates to a real person, and a built-in
-              receipt lets you prove, any time, that it hasn't changed since.
+              reserved and never issued, designated for testing, or structurally fake — so none of it relates to a real
+              person, and a built-in receipt lets you prove, any time, that it hasn't changed since.
             </p>
             <div className="verb-chips">
               <span className="verb-chip">
@@ -343,7 +344,7 @@ export default function App() {
 
         {/* HONESTY TIERS — how it does it */}
         <section className="tiers">
-          <h2 className="section-h">Three honesty tiers</h2>
+          <h2 className="section-h">Four honesty tiers</h2>
           <p className="section-lead">
             Not all synthetic data is created the same way. Each color below is a different tier of honesty that carries
             a different strength of guarantee.
@@ -353,12 +354,13 @@ export default function App() {
               <span className="tier-dot" />
               <h3>Provably non-real</h3>
               <p>
-                Set aside by a published standard, so it can never belong to a real person or system. Every source is
-                public and checkable:{" "}
+                Set aside by a published standard, so it can never belong to a real person or system. The standard
+                reserves them, so no real registrant or network is ever assigned one, and every source is public and
+                checkable:{" "}
                 <a href="https://datatracker.ietf.org/doc/html/rfc2606" target="_blank" rel="noreferrer">
                   RFC 2606
                 </a>{" "}
-                email domains,{" "}
+                email domains, and{" "}
                 <a href="https://www.rfc-editor.org/rfc/rfc5737.html" target="_blank" rel="noreferrer">
                   RFC 5737
                 </a>{" "}
@@ -366,15 +368,23 @@ export default function App() {
                 <a href="https://www.rfc-editor.org/rfc/rfc3849.html" target="_blank" rel="noreferrer">
                   RFC 3849
                 </a>{" "}
-                IP addresses,{" "}
+                documentation IP addresses.
+              </p>
+            </div>
+            <div className="tier-card tier-reserved">
+              <span className="tier-dot" />
+              <h3>Reserved, never issued</h3>
+              <p>
+                Valid in format, but the issuing authority sets these aside and never assigns them, so no real holder
+                has one. Strong, though it rests on administrative policy rather than protocol:{" "}
                 <a href="https://www.nanpa.com/" target="_blank" rel="noreferrer">
                   NANPA
                 </a>{" "}
-                555-01xx phone numbers, and{" "}
+                555-01xx fictitious phone numbers, and{" "}
                 <a href="https://www.ssa.gov/employer/randomization.html" target="_blank" rel="noreferrer">
                   never-issued SSN
                 </a>{" "}
-                ranges.
+                ranges (SSA randomization).
               </p>
             </div>
             <div className="tier-card tier-designated">
@@ -425,8 +435,8 @@ export default function App() {
               </h3>
               <ul>
                 <li>
-                  Every value came from one of the three honesty tiers — provably non-real, designated for testing, or
-                  structurally fake — and the file hasn't changed since it was generated.
+                  Every value came from one of the four honesty tiers — provably non-real, reserved and never issued,
+                  designated for testing, or structurally fake — and the file hasn't changed since it was generated.
                 </li>
                 <li>
                   The generated values are <strong>anonymous</strong> on their own — they relate to no identified or

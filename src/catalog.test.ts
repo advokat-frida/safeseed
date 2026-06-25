@@ -11,6 +11,7 @@ import type { Tier } from "./types.js";
 
 const TIERS: Tier[] = [
   "provably-non-real",
+  "reserved-not-issued",
   "designated-test-only",
   "structurally-fake",
 ];
@@ -33,6 +34,38 @@ describe("catalog.everyFieldHasCitationAndTier", () => {
   it("field types are unique", () => {
     const fields = CATALOG.map((e) => e.field);
     expect(new Set(fields).size).toBe(fields.length);
+  });
+});
+
+describe("catalog.tierTaxonomyReflectsReality", () => {
+  it("only protocol/standard-reserved fields are provably-non-real", () => {
+    const provable = CATALOG.filter((e) => e.tier === "provably-non-real")
+      .map((e) => e.field)
+      .sort();
+    expect(provable).toEqual(["domain", "email", "ipv4", "ipv6"].sort());
+  });
+
+  it("authority-reserved fields (NANPA phones, SSA SSNs) are reserved-not-issued, not provably-non-real", () => {
+    expect(getEntry("phone").tier).toBe("reserved-not-issued");
+    expect(getEntry("ssn").tier).toBe("reserved-not-issued");
+  });
+
+  it("reserved-not-issued claims avoid protocol-impossibility / proof language", () => {
+    const banned = [
+      /\bproof\b/i,
+      /\bproven\b/i,
+      /cannot be (a )?real/i,
+      /cannot correspond/i,
+      /\bimpossible/i,
+      /\bguarantee/i,
+    ];
+    const reserved = CATALOG.filter((e) => e.tier === "reserved-not-issued");
+    expect(reserved.length).toBeGreaterThan(0);
+    for (const e of reserved) {
+      for (const re of banned) {
+        expect(re.test(e.claim), `${e.field} claim overclaims: "${e.claim}"`).toBe(false);
+      }
+    }
   });
 });
 

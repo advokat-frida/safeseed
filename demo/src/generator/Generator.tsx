@@ -17,11 +17,13 @@ const PREVIEW_ROWS = 12;
 
 const TIER_CLASS: Record<Tier, string> = {
   "provably-non-real": "tier-provable",
+  "reserved-not-issued": "tier-reserved",
   "designated-test-only": "tier-designated",
   "structurally-fake": "tier-fake",
 };
 const TIER_LABEL: Record<Tier, string> = {
   "provably-non-real": "Provably non-real",
+  "reserved-not-issued": "Reserved, never issued",
   "designated-test-only": "Designated for testing",
   "structurally-fake": "Structurally fake",
 };

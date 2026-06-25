@@ -48,10 +48,13 @@ export interface CatalogEntry {
   reserved: ReservedSpec;
 }
 
-// Tier-appropriate claim language. The strong wording lives ONLY on the provable
-// tier; the weaker tiers deliberately avoid "proof", "impossible", "cannot be real".
+// Tier-appropriate claim language. The strong wording ("cannot correspond to a
+// real person") lives ONLY on the protocol-provable tier; every weaker tier
+// deliberately avoids "proof", "impossible", "guarantee", "cannot be real".
 const CLAIM_PROVABLE =
   "Reserved by published standard; values in this range cannot correspond to a real person or system.";
+const CLAIM_RESERVED_NOT_ISSUED =
+  "Reserved by the issuing authority and never assigned, so no real holder has one. Non-real by administrative policy rather than by protocol.";
 const CLAIM_DESIGNATED =
   "Designated test value that passes validation; non-real by processor/sandbox designation, not by construction. Valid-looking, but reserved for testing.";
 const CLAIM_FAKE =
@@ -111,18 +114,18 @@ export const CATALOG: readonly CatalogEntry[] = [
   },
   {
     field: "phone",
-    tier: "provably-non-real",
+    tier: "reserved-not-issued",
     citation: "NANPA / ATIS fictitious-number assignment (555-0100 through 555-0199)",
-    description: "North American numbers in the 555-01xx fictitious subscriber block; designated non-working.",
-    claim: CLAIM_PROVABLE,
+    description: "North American numbers in the 555-01xx fictitious subscriber block, which the numbering authority reserves and never assigns to a real line (administrative reservation, not a protocol limit).",
+    claim: CLAIM_RESERVED_NOT_ISSUED,
     reserved: { kind: "phoneBlock", centralOfficeCode: "555", subscriberStart: 100, subscriberEnd: 199 },
   },
   {
     field: "ssn",
-    tier: "provably-non-real",
+    tier: "reserved-not-issued",
     citation: "SSA SSN randomization (effective 2011-06-25): never-assigned area numbers 000 / 666 / 900-999, plus group 00 and serial 0000 (ssa.gov/employer/randomization.html)",
-    description: "US SSNs whose area, group, or serial falls in a range the SSA never issues.",
-    claim: CLAIM_PROVABLE,
+    description: "US SSNs whose area, group, or serial falls in a range the SSA never issues — reserved by the issuing authority's own rules rather than by protocol.",
+    claim: CLAIM_RESERVED_NOT_ISSUED,
     reserved: {
       kind: "ssnInvalid",
       invalidAreas: ["000", "666"],

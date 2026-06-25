@@ -93,7 +93,8 @@ Honesty is the credibility here, so the claim has tiers, and every field is labe
 
 | Tier | What it means | Examples | The claim |
 |---|---|---|---|
-| **provably-non-real** | Reserved by a published standard; cannot belong to a real person or system. | RFC 2606 email domains, RFC 5737 / 3849 IPs, NANPA `555-01xx` phones, unassigned SSN ranges | "Cannot correspond to a real person or system." |
+| **provably-non-real** | Reserved by a published standard/protocol; the standard itself makes them non-routable/non-registrable. | RFC 2606 email domains, RFC 5737 / 3849 documentation IPs | "Cannot correspond to a real person or system." |
+| **reserved-not-issued** | Reserved by the *issuing authority* and never assigned — strong, but administrative policy, not protocol. | NANPA `555-01xx` phones, never-issued SSN ranges | "Never assigned, so no real holder has one; non-real by policy, not protocol." |
 | **designated-test-only** | A valid-looking value processors/sandboxes *designate* for testing. It passes validation. | Card test PANs (`4242…`) | "Non-real by designation, **not** by impossibility." |
 | **structurally-fake** | No standard reserves it, so it is made *self-evidently* fake instead of plausible. | `TEST_Lastname_000142`, `123 Example Way` | "Synthetic token; not derived from any real record." |
 
@@ -136,7 +137,7 @@ The catalog in [`src/catalog.ts`](src/catalog.ts) is the reusable core: it maps 
 
 ## Status
 
-Core library, CLI, the `verify` Action, and an interactive browser demo are built and tested (59 tests; CI green). SafeSeed 0.2.0 adds per-column hashes and opt-in **column-scoped verify**, plus a self-serve **generator page**. The demo lives in [`demo/`](demo/); both the showcase and the generator ship as committed, offline single files at [`demo/safeseed-demo.html`](demo/safeseed-demo.html) and [`demo/safeseed-generator.html`](demo/safeseed-generator.html). npm publication is the remaining step. The design record is in [SPEC.md](SPEC.md); the v2 feature spec is in [docs/generator-and-column-scoped-verify.md](docs/generator-and-column-scoped-verify.md).
+Core library, CLI, the `verify` Action, and an interactive browser demo are built and tested (64 tests; CI green). SafeSeed 0.2.0 adds per-column hashes and opt-in **column-scoped verify**, a self-serve **generator page**, and a four-tier honesty taxonomy that separates protocol-reserved values from authority-reserved (never-issued) ones. The demo lives in [`demo/`](demo/); both the showcase and the generator ship as committed, offline single files at [`demo/safeseed-demo.html`](demo/safeseed-demo.html) and [`demo/safeseed-generator.html`](demo/safeseed-generator.html). npm publication is the remaining step. The design record is in [SPEC.md](SPEC.md); the v2 feature spec is in [docs/generator-and-column-scoped-verify.md](docs/generator-and-column-scoped-verify.md).
 
 ## License
 

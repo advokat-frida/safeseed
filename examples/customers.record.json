@@ -32,17 +32,17 @@
     {
       "name": "phone",
       "type": "phone",
-      "tier": "provably-non-real",
+      "tier": "reserved-not-issued",
       "citation": "NANPA / ATIS fictitious-number assignment (555-0100 through 555-0199)",
-      "claim": "Reserved by published standard; values in this range cannot correspond to a real person or system.",
+      "claim": "Reserved by the issuing authority and never assigned, so no real holder has one. Non-real by administrative policy rather than by protocol.",
       "sha256": "dac1b7f4c72ad7e5d0e1759ce30d9d9f8c76fa1dea474c4d4d11ea3bfdd6b474"
     },
     {
       "name": "ssn",
       "type": "ssn",
-      "tier": "provably-non-real",
+      "tier": "reserved-not-issued",
       "citation": "SSA SSN randomization (effective 2011-06-25): never-assigned area numbers 000 / 666 / 900-999, plus group 00 and serial 0000 (ssa.gov/employer/randomization.html)",
-      "claim": "Reserved by published standard; values in this range cannot correspond to a real person or system.",
+      "claim": "Reserved by the issuing authority and never assigned, so no real holder has one. Non-real by administrative policy rather than by protocol.",
       "sha256": "1ecfc6b217719ab581b2a11f454062848dbe7b726000d23e3cdeaab9c8acc733"
     },
     {

@@ -15,6 +15,10 @@
 .tier-dot.tier-provable {
   background: var(--tier-provable);
 }
+.tier-reserved .tier-dot,
+.tier-dot.tier-reserved {
+  background: var(--tier-reserved);
+}
 .tier-designated .tier-dot,
 .tier-dot.tier-designated {
   background: var(--tier-designated);
@@ -157,6 +161,10 @@
 .tier-chip.tier-provable {
   border-color: var(--tier-provable);
   color: var(--tier-provable);
+}
+.tier-chip.tier-reserved {
+  border-color: var(--tier-reserved);
+  color: var(--tier-reserved);
 }
 .tier-chip.tier-designated {
   border-color: var(--tier-designated);

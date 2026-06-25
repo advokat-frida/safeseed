@@ -11,7 +11,8 @@
   --eyebrow: #c83232;
 
   /* honesty tiers — color encodes claim strength, not a traffic light */
-  --tier-provable: #12666a; /* teal: strongest claim */
+  --tier-provable: #12666a; /* teal: strongest claim (protocol-reserved) */
+  --tier-reserved: #4f74a6; /* steel blue: reserved by an authority, never issued (kept clearly distinct from the teal provable tier) */
   --tier-designated: #c9a227; /* brass: valid-looking, read the basis */
   --tier-fake: #b5532e; /* terracotta: human-shaped, structurally fake */
   --flag: #b5532e;
@@ -352,6 +353,11 @@ h4 {
 .tier-provable .tier-dot {
   background: var(--tier-provable);
 }
+.tier-reserved.cite-dot,
+.tier-reserved .cite-dot,
+.tier-reserved .tier-dot {
+  background: var(--tier-reserved);
+}
 .tier-designated.cite-dot,
 .tier-designated .cite-dot,
 .tier-designated .tier-dot {
@@ -659,7 +665,7 @@ h4 {
 /* tier cards */
 .tier-cards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 16px;
 }
 .tier-card {
@@ -671,6 +677,9 @@ h4 {
 }
 .tier-card.tier-provable {
   border-left-color: var(--tier-provable);
+}
+.tier-card.tier-reserved {
+  border-left-color: var(--tier-reserved);
 }
 .tier-card.tier-designated {
   border-left-color: var(--tier-designated);
@@ -868,6 +877,10 @@ td.tier-provable {
   background: rgba(18, 102, 106, 0.045);
   box-shadow: inset 3px 0 0 var(--tier-provable);
 }
+td.tier-reserved {
+  background: rgba(79, 116, 166, 0.06);
+  box-shadow: inset 3px 0 0 var(--tier-reserved);
+}
 td.tier-designated {
   background: rgba(201, 162, 39, 0.07);
   box-shadow: inset 3px 0 0 var(--tier-designated);
@@ -893,6 +906,10 @@ td.tier-fake {
 .cite-chip.tier-provable {
   border-color: var(--tier-provable);
   color: var(--tier-provable);
+}
+.cite-chip.tier-reserved {
+  border-color: var(--tier-reserved);
+  color: var(--tier-reserved);
 }
 .cite-chip.tier-designated {
   border-color: var(--tier-designated);

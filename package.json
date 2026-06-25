@@ -3,6 +3,14 @@
   "version": "0.2.0",
   "description": "Confirmably-synthetic test data by construction. Generate, attest, verify, and scan non-production data using standards-reserved \"never-real\" ranges. Zero backend, zero runtime dependencies, MIT.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tanjaminben/safeseed.git"
+  },
+  "homepage": "https://github.com/tanjaminben/safeseed#readme",
+  "bugs": {
+    "url": "https://github.com/tanjaminben/safeseed/issues"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -22,6 +30,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"

@@ -148,7 +148,7 @@ h4 {
 
 .site-main {
   flex: 1;
-  padding: 32px 0;
+  padding: 32px 0 16px;
 }
 
 /* cards */
@@ -744,7 +744,7 @@ h4 {
 
 /* proof panel */
 .proof {
-  margin: 44px 0;
+  margin: 44px 0 0;
   background: var(--paper);
   border: 2px solid var(--teal);
   border-radius: var(--radius);

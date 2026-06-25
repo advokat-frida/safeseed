@@ -21,7 +21,7 @@ export default function App() {
   return (
     <div className="site">
       <div className="demo-banner" role="note">
-        <strong>Demo — work in progress.</strong> Not for distribution or production use.
+        <strong>Demo version.</strong> Not for distribution or production use.
       </div>
       {/* MASTHEAD */}
       <header className="masthead">

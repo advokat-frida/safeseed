@@ -440,7 +440,11 @@ export default function App() {
                 </li>
                 <li>
                   The generated values are <strong>anonymous</strong> on their own — they relate to no identified or
-                  identifiable person, so they are not personal data within the meaning of GDPR Art. 4(1) (cf.{" "}
+                  identifiable person, so they are not personal data within the meaning of{" "}
+                  <a href="https://gdpr-info.eu/art-4-gdpr/" target="_blank" rel="noreferrer">
+                    GDPR Art. 4(1)
+                  </a>{" "}
+                  (cf.{" "}
                   <a href="https://gdpr-info.eu/recitals/no-26/" target="_blank" rel="noreferrer">
                     Recital 26
                   </a>
@@ -477,7 +481,15 @@ export default function App() {
           <p className="boundary-close">
             In short: SafeSeed lets you prove, on every run, that the data it generated is synthetic and hasn't changed
             since — and it is honest about where that proof ends. Use it as a data-minimization and security control for
-            non-production environments (specifically evidence toward GDPR Art. 25 &amp; 32, SOC 2, and ISO 27001). This
+            non-production environments (specifically evidence toward GDPR Art.{" "}
+            <a href="https://gdpr-info.eu/art-25-gdpr/" target="_blank" rel="noreferrer">
+              25
+            </a>{" "}
+            &amp;{" "}
+            <a href="https://gdpr-info.eu/art-32-gdpr/" target="_blank" rel="noreferrer">
+              32
+            </a>
+            , SOC 2, and ISO 27001). This
             should not be used as a substitute for your own privacy diligence.
           </p>
         </section>

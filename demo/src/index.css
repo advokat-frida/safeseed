@@ -44,6 +44,25 @@
   --fs-small: 14px;   /* helper prose, list items, UI controls */
   --fs-meta: 12.5px;  /* data tables, mono, code, captions, fine print */
   --fs-micro: 11px;   /* eyebrows, kickers, tags, badges */
+
+  /* Line height — three steps: tight headings, snug data/captions, body prose. */
+  --lh-tight: 1.2;
+  --lh-snug: 1.5;
+  --lh-body: 1.6;
+
+  /* Spacing — an 8px grid. New rules use these; off-grid strays were snapped to
+     the nearest step. (Full retrofit of every padding is Stage 2+.) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+
+  /* Radius — a 3-step ladder + the pill (999px) / circle (50%) handled inline.
+     --radius (10px) = cards/panels, --r-md = controls, --r-sm = chips/code. */
+  --r-md: 8px;
+  --r-sm: 6px;
 }
 
 * {
@@ -60,7 +79,7 @@ body {
   color: var(--ink);
   font-family: var(--sans);
   font-size: var(--fs-body);
-  line-height: 1.6;
+  line-height: var(--lh-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -96,7 +115,7 @@ h4 {
   font-family: var(--serif);
   font-weight: 700;
   color: var(--ink);
-  line-height: 1.2;
+  line-height: var(--lh-tight);
   margin: 0;
 }
 
@@ -114,7 +133,7 @@ h4 {
 .demo-banner {
   margin: 10px 0 0;
   padding: 7px 14px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   background: rgba(181, 83, 46, 0.09);
   border: 1px solid rgba(181, 83, 46, 0.3);
   font-size: var(--fs-meta);
@@ -132,22 +151,12 @@ h4 {
   padding: 32px 0;
 }
 
-/* cards & panels */
+/* cards */
 .card {
   background: var(--paper);
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   padding: 24px;
-}
-.panel {
-  background: var(--paper);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  padding: 20px;
-}
-.panel h3 {
-  font-size: var(--fs-h3);
-  margin-bottom: 14px;
 }
 
 /* form controls */
@@ -171,14 +180,14 @@ h4 {
   font-size: var(--fs-body);
   padding: 9px 12px;
   border: 1px solid var(--rule);
-  border-radius: 8px;
+  border-radius: var(--r-md);
   background: var(--parchment);
   color: var(--ink);
 }
 .field textarea {
   font-family: var(--mono);
   font-size: var(--fs-small);
-  line-height: 1.5;
+  line-height: var(--lh-snug);
   resize: vertical;
 }
 .field input:focus,
@@ -206,7 +215,7 @@ h4 {
 .seg {
   display: inline-flex;
   border: 1px solid var(--rule);
-  border-radius: 8px;
+  border-radius: var(--r-md);
   overflow: hidden;
 }
 .seg-btn {
@@ -232,16 +241,16 @@ h4 {
 .btn {
   font-family: var(--sans);
   font-size: var(--fs-small);
-  font-weight: 500;
+  font-weight: 600;
   padding: 9px 16px;
-  border-radius: 8px;
+  border-radius: var(--r-md);
   border: 1px solid var(--rule);
   background: var(--paper);
   color: var(--ink);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--sp-2);
 }
 .btn:hover {
   border-color: var(--teal);
@@ -272,26 +281,9 @@ h4 {
   font-size: var(--fs-micro);
   font-weight: 600;
   padding: 2px 8px;
-  border-radius: 5px;
+  border-radius: var(--r-sm);
   color: #fff;
   white-space: nowrap;
-}
-
-/* caveat / boundary */
-.caveat {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  background: rgba(201, 138, 43, 0.1);
-  border: 1px solid rgba(201, 138, 43, 0.4);
-  border-radius: var(--radius);
-  padding: 12px 14px;
-  font-size: var(--fs-small);
-  line-height: 1.5;
-  color: #6f4e12;
-}
-.caveat strong {
-  color: #5a3f0e;
 }
 
 /* footer — the page signature */
@@ -447,7 +439,7 @@ h4 {
 .hero-sub {
   margin: 20px 0 0;
   font-size: var(--fs-lead);
-  line-height: 1.6;
+  line-height: var(--lh-body);
   color: var(--muted);
   max-width: 56ch;
 }
@@ -459,12 +451,12 @@ h4 {
 .verb-chip {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--sp-2);
   font-size: var(--fs-meta);
   font-weight: 600;
   letter-spacing: 0.02em;
   padding: 5px 12px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   background: var(--recessed);
   border: 1px solid var(--rule);
   color: var(--muted);
@@ -477,7 +469,7 @@ h4 {
 .hero-cta {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--sp-2);
   margin-top: 22px;
   font-size: var(--fs-small);
   font-weight: 600;
@@ -505,7 +497,7 @@ h4 {
 .hero-cta-alt {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--sp-2);
   font-size: var(--fs-small);
   font-weight: 600;
   color: var(--teal);
@@ -600,7 +592,7 @@ h4 {
   font-feature-settings: "zero" 1;
   background: var(--parchment);
   border: 1px solid var(--rule);
-  border-radius: 8px;
+  border-radius: var(--r-md);
   padding: 10px 18px;
   text-align: center;
 }
@@ -623,7 +615,7 @@ h4 {
   font-size: var(--fs-small); /* the claim line: bumped from 13, but held below body so it
                                  doesn't wrap hard in the narrow rail (italic serif keeps it distinct) */
   color: var(--ink);
-  line-height: 1.5;
+  line-height: var(--lh-snug);
 }
 .airgap-probe {
   align-self: flex-start;
@@ -637,7 +629,7 @@ h4 {
 .airgap-fine {
   margin: 0;
   font-size: var(--fs-small);
-  line-height: 1.5;
+  line-height: var(--lh-snug);
   color: var(--muted);
 }
 .airgap-fine code {
@@ -646,13 +638,13 @@ h4 {
   color: var(--teal);
   background: var(--parchment);
   border: 1px solid var(--rule);
-  border-radius: 4px;
+  border-radius: var(--r-sm);
   padding: 1px 5px;
 }
 .airgap-teaser {
   margin: 6px 0 0;
   font-size: var(--fs-small);
-  line-height: 1.5;
+  line-height: var(--lh-snug);
   color: var(--muted);
   border-top: 1px solid var(--rule);
   padding-top: 12px;
@@ -714,7 +706,7 @@ h4 {
   margin: 0;
   font-size: var(--fs-small);
   color: var(--muted);
-  line-height: 1.55;
+  line-height: var(--lh-body);
 }
 
 /* operations */
@@ -722,7 +714,7 @@ h4 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
-  margin-top: 26px;
+  margin-top: var(--sp-5);
 }
 .op h3 {
   font-size: var(--fs-h3);
@@ -741,7 +733,7 @@ h4 {
   margin: 0;
   font-size: var(--fs-body);
   color: var(--muted);
-  line-height: 1.55;
+  line-height: var(--lh-body);
 }
 .op-note {
   margin-top: 12px !important;
@@ -764,11 +756,10 @@ h4 {
 .proof-head p {
   margin: 8px 0 0;
   color: var(--muted);
-  max-width: 70ch;
 }
 .step {
   margin-top: 28px;
-  padding-top: 22px;
+  padding-top: var(--sp-5);
   border-top: 1px solid var(--rule);
 }
 .step:first-of-type {
@@ -823,7 +814,7 @@ h4 {
   font-size: var(--fs-small);
   padding: 6px 9px;
   border: 1px solid var(--rule);
-  border-radius: 7px;
+  border-radius: var(--r-md);
   background: var(--parchment);
   color: var(--ink);
 }
@@ -831,7 +822,7 @@ h4 {
 /* document-style data exhibit */
 .exhibit {
   border: 1px solid var(--rule);
-  border-radius: 8px;
+  border-radius: var(--r-md);
   overflow: hidden;
   background: var(--paper);
 }
@@ -913,8 +904,8 @@ td.tier-fake {
   font-size: var(--fs-micro);
   font-weight: 600;
   padding: 2px 7px;
-  border-radius: 5px;
-  border: 1.5px solid var(--rule);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--rule);
   background: var(--paper);
   color: var(--muted);
   cursor: pointer;
@@ -944,7 +935,7 @@ td.tier-fake {
   margin: 0;
   font-size: var(--fs-meta);
   color: var(--muted);
-  line-height: 1.5;
+  line-height: var(--lh-snug);
 }
 .determinism p + p {
   margin-top: 7px;
@@ -960,7 +951,7 @@ td.tier-fake {
   margin-bottom: 16px;
   background: var(--parchment);
   border: 1px solid var(--rule);
-  border-radius: 8px;
+  border-radius: var(--r-md);
   padding: 16px 18px;
 }
 .cite-close {
@@ -993,7 +984,7 @@ td.tier-fake {
   margin: 0 0 8px;
   font-size: var(--fs-small);
   color: var(--ink);
-  line-height: 1.55;
+  line-height: var(--lh-body);
 }
 .cite-card .cite-core {
   font-size: var(--fs-meta);
@@ -1007,11 +998,11 @@ pre.code {
   margin: 0;
   background: #1c1b18;
   color: #e9e2d2;
-  border-radius: 8px;
+  border-radius: var(--r-md);
   padding: 16px 18px;
   font-family: var(--mono);
   font-size: var(--fs-meta);
-  line-height: 1.55;
+  line-height: var(--lh-body);
   overflow-x: auto;
   white-space: pre;
 }
@@ -1026,7 +1017,7 @@ pre.code + pre.code {
 }
 .verify-checks li {
   font-size: var(--fs-small);
-  line-height: 1.6;
+  line-height: var(--lh-body);
   color: var(--muted);
   margin-bottom: 4px;
 }
@@ -1043,9 +1034,9 @@ pre.code + pre.code {
   color: var(--muted);
 }
 .verify-result {
-  border-radius: 8px;
+  border-radius: var(--r-md);
   padding: 14px 16px;
-  border: 1.5px solid;
+  border: 2px solid;
 }
 .verify-result.pass {
   border-color: var(--green);
@@ -1058,7 +1049,7 @@ pre.code + pre.code {
 .verify-status {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--sp-2);
   font-family: var(--mono);
   font-weight: 700;
   font-size: var(--fs-body);
@@ -1076,7 +1067,7 @@ pre.code + pre.code {
 }
 .verify-result li {
   font-size: var(--fs-small);
-  line-height: 1.6;
+  line-height: var(--lh-body);
   color: var(--ink);
 }
 .fail-kind {
@@ -1088,14 +1079,14 @@ pre.code + pre.code {
   margin: 10px 0 0;
   font-size: var(--fs-meta);
   color: var(--muted);
-  line-height: 1.5;
+  line-height: var(--lh-snug);
 }
 
 /* scan */
 .scan-intro {
   font-size: var(--fs-small);
   color: var(--muted);
-  line-height: 1.55;
+  line-height: var(--lh-body);
   margin: 0 0 12px;
 }
 .scan-formats {
@@ -1153,7 +1144,7 @@ td.scan-flag {
   color: #fff;
   background: var(--terracotta);
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: var(--r-sm);
 }
 
 /* boundary */
@@ -1172,8 +1163,8 @@ td.scan-flag {
 }
 .boundary p {
   margin: 0 0 12px;
-  font-size: var(--fs-body);
-  line-height: 1.65;
+  font-size: var(--fs-small);
+  line-height: var(--lh-body);
   color: var(--muted);
 }
 .boundary p:last-child {
@@ -1226,7 +1217,7 @@ td.scan-flag {
   font-size: var(--fs-micro);
   font-weight: 600;
   padding: 4px 10px;
-  border-radius: 6px;
+  border-radius: var(--r-sm);
   border: 1px solid rgba(233, 226, 210, 0.25);
   background: rgba(233, 226, 210, 0.1);
   color: #d8d0bf;
@@ -1252,7 +1243,7 @@ td.scan-flag {
 .tier-legend-item {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--sp-2);
   font-size: var(--fs-meta);
   font-weight: 600;
   color: var(--muted);
@@ -1262,9 +1253,8 @@ td.scan-flag {
 .step-help {
   margin: 0 0 14px;
   font-size: var(--fs-small);
-  line-height: 1.55;
+  line-height: var(--lh-body);
   color: var(--muted);
-  max-width: 90ch;
   text-wrap: pretty;
 }
 .step-help strong {
@@ -1276,7 +1266,7 @@ td.scan-flag {
   color: var(--teal);
   background: var(--parchment);
   border: 1px solid var(--rule);
-  border-radius: 4px;
+  border-radius: var(--r-sm);
   padding: 1px 5px;
 }
 
@@ -1475,11 +1465,11 @@ td.scan-flag {
   font-family: var(--sans);
   font-size: var(--fs-meta);
   font-weight: 400;
-  line-height: 1.5;
+  line-height: var(--lh-snug);
   text-transform: none;
   letter-spacing: 0;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: var(--r-md);
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.15s ease;
@@ -1497,7 +1487,7 @@ td.scan-flag {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 28px;
-  margin-bottom: 34px;
+  margin-bottom: var(--sp-6);
 }
 .boundary-col h3 {
   font-family: var(--serif);
@@ -1522,7 +1512,7 @@ td.scan-flag {
 }
 .boundary-col li {
   font-size: var(--fs-small);
-  line-height: 1.55;
+  line-height: var(--lh-body);
   color: var(--muted);
   margin-bottom: 9px;
 }
@@ -1537,8 +1527,8 @@ td.scan-flag {
   margin: 0;
   padding-top: 18px;
   border-top: 1px solid var(--rule);
-  font-size: var(--fs-body);
-  line-height: 1.65;
+  font-size: var(--fs-small);
+  line-height: var(--lh-body);
   color: var(--muted);
 }
 
@@ -1576,7 +1566,7 @@ td.scan-flag {
   font-family: var(--sans);
   font-weight: 400;
   font-size: 22px; /* "+/−" accordion glyph — a UI marker, not body type */
-  line-height: 1.2;
+  line-height: var(--lh-tight);
   color: var(--teal);
 }
 .faq-item[open] summary::after {
@@ -1592,7 +1582,7 @@ td.scan-flag {
 .faq-a {
   padding: 0 0 18px;
   font-size: var(--fs-body);
-  line-height: 1.65;
+  line-height: var(--lh-body);
   color: var(--muted);
 }
 .faq-a a {
@@ -1604,6 +1594,6 @@ td.scan-flag {
   color: var(--teal);
   background: var(--parchment);
   border: 1px solid var(--rule);
-  border-radius: 4px;
+  border-radius: var(--r-sm);
   padding: 1px 5px;
 }

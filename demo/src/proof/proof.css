@@ -1,0 +1,11 @@
+/* Panel-only embed. Drop the demo's page chrome and let the panel size the page,
+   so the host iframe can auto-fit to content (no .site min-height:100vh here). */
+body {
+  background: var(--parchment);
+}
+#root {
+  padding: 1.25rem 1.25rem 1.5rem;
+}
+.proof {
+  margin: 0;
+}

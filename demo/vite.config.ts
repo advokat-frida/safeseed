@@ -64,11 +64,13 @@ function strictCspOnBuild(csp: string) {
 // `standalone-generator` = generator), each a single rollup input.
 const indexEntry = fileURLToPath(new URL("./index.html", import.meta.url));
 const generatorEntry = fileURLToPath(new URL("./generator.html", import.meta.url));
+const proofEntry = fileURLToPath(new URL("./proof.html", import.meta.url));
 
 export default defineConfig(({ mode }) => {
   const standaloneShowcase = mode === "standalone";
   const standaloneGenerator = mode === "standalone-generator";
-  const standalone = standaloneShowcase || standaloneGenerator;
+  const standaloneProof = mode === "standalone-proof";
+  const standalone = standaloneShowcase || standaloneGenerator || standaloneProof;
   return {
     plugins: [
       react(),
@@ -87,10 +89,12 @@ export default defineConfig(({ mode }) => {
       // Inline the fox PNG (~160KB) so even the logo is a zero-request data URI —
       // on-brand for the zero-network claim, and required for the single-file build.
       assetsInlineLimit: 200000,
-      outDir: standaloneGenerator ? "standalone-generator" : standaloneShowcase ? "standalone" : "dist",
+      outDir: standaloneProof
+        ? "standalone-proof"
+        : standaloneGenerator ? "standalone-generator" : standaloneShowcase ? "standalone" : "dist",
       emptyOutDir: true,
       rollupOptions: standalone
-        ? { input: standaloneGenerator ? generatorEntry : indexEntry }
+        ? { input: standaloneProof ? proofEntry : standaloneGenerator ? generatorEntry : indexEntry }
         : { input: { main: indexEntry, generator: generatorEntry } },
     },
     server: { port: 5192, strictPort: true },

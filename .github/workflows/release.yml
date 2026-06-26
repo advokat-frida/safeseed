@@ -13,10 +13,9 @@ on:
 
 permissions:
   contents: read
-  # NOTE: npm --provenance is intentionally NOT used here — it requires a PUBLIC
-  # source repo, and safeseed is private (npm returns E422 "Only public source
-  # repositories are supported when publishing with provenance"). If this repo is
-  # ever made public, re-add `id-token: write` and `--provenance` (publish step).
+  id-token: write   # required for npm provenance — safeseed is a public repo, so npm
+                    # publishes a signed attestation linking the package to the exact
+                    # commit + workflow that built it (shown as "verified" on npm).
 
 jobs:
   publish:
@@ -52,8 +51,8 @@ jobs:
         run: npm run build
 
       # --access public makes the (unscoped) package public on the npm registry.
-      # (Provenance would be --provenance here, but it needs a public source repo.)
+      # --provenance attaches a signed build attestation (needs a public repo + id-token: write).
       - name: Publish to npm
-        run: npm publish --access public
+        run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

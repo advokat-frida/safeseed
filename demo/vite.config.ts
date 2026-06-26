@@ -65,12 +65,43 @@ function strictCspOnBuild(csp: string) {
 const indexEntry = fileURLToPath(new URL("./index.html", import.meta.url));
 const generatorEntry = fileURLToPath(new URL("./generator.html", import.meta.url));
 const proofEntry = fileURLToPath(new URL("./proof.html", import.meta.url));
+const embedEntry = fileURLToPath(new URL("./src/proof/embed.tsx", import.meta.url));
 
 export default defineConfig(({ mode }) => {
   const standaloneShowcase = mode === "standalone";
   const standaloneGenerator = mode === "standalone-generator";
   const standaloneProof = mode === "standalone-proof";
   const standalone = standaloneShowcase || standaloneGenerator || standaloneProof;
+
+  // Embeddable web-component build: one self-executing JS bundle that defines the
+  // <safeseed-proof> custom element — React, the SafeSeed core, the panel, and its CSS
+  // (imported as a string and injected into the shadow root) all inlined. This is the
+  // true inline mount for the Advokat Frida article: no iframe. It's a lib/IIFE bundle,
+  // not a page, so it skips the HTML-oriented plugins (singlefile, CSP-meta, favicon).
+  if (mode === "standalone-embed") {
+    return {
+      plugins: [react()],
+      // React's production build (drops dev warnings + invariant checks). vite build sets
+      // this anyway, but pinning it keeps the embed bundle unambiguously production.
+      define: { "process.env.NODE_ENV": '"production"' },
+      resolve: {
+        alias: { safeseed: safeseedEntry },
+        dedupe: ["react", "react-dom"],
+      },
+      build: {
+        outDir: "standalone-embed",
+        emptyOutDir: true,
+        assetsInlineLimit: 200000,
+        lib: {
+          entry: embedEntry,
+          formats: ["iife"],
+          name: "SafeSeedProof",
+          fileName: () => "safeseed-proof.js",
+        },
+      },
+    };
+  }
+
   return {
     plugins: [
       react(),

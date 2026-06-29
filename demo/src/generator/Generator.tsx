@@ -12,6 +12,7 @@ import {
   type ScanColumn,
   type ScanResult,
 } from "safeseed";
+import { VerifyPanel } from "./VerifyPanel";
 import { Plus, Trash2, Download, ArrowLeft, ShieldCheck, Check, ShieldAlert } from "lucide-react";
 import { getNetworkCount, subscribeNetworkCount } from "../netGuard";
 
@@ -95,6 +96,7 @@ export default function Generator() {
   ]);
   const [rowCount, setRowCount] = useState(100);
   const [seed, setSeed] = useState(1);
+  const [mode, setMode] = useState<"generate" | "verify">("generate");
   const [audit, setAudit] = useState<ScanResult | null>(null);
 
   const [netCount, setNetCount] = useState(getNetworkCount());
@@ -210,11 +212,6 @@ export default function Generator() {
     <div className="site">
       <header className="site-masthead">
         <a className="site-nameplate" href="https://advokatfrida.com">
-          <img
-            className="site-emblem"
-            src="/assets/images/af-logo.png"
-            alt="Advokat Frida"
-          />
           <p className="site-title">Advokat Frida</p>
         </a>
         <p className="site-tagline">
@@ -243,13 +240,24 @@ export default function Generator() {
 
       <main className="site-main gen-main">
         <div className="gen-intro">
-          <p className="eyebrow">Generator</p>
-          <h1>Make confirmably-synthetic test data</h1>
-          <p className="gen-lede">
-            Generate safe fake data, add your own columns alongside it, audit the result, and download it.
-            Every generated value comes from a standards-reserved range or a structurally fake token. It runs
-            entirely in your browser — nothing leaves your device.
-          </p>
+          <p className="eyebrow">{mode === "generate" ? "Generate" : "Verify"}</p>
+          <h1>SafeSeed: In-Browser App</h1>
+          <div className="gen-modes" role="tablist" aria-label="Mode">
+            <button type="button" role="tab" aria-selected={mode === "generate"} className={`gen-mode${mode === "generate" ? " is-active" : ""}`} onClick={() => setMode("generate")}>Generate</button>
+            <button type="button" role="tab" aria-selected={mode === "verify"} className={`gen-mode${mode === "verify" ? " is-active" : ""}`} onClick={() => setMode("verify")}>Verify a file</button>
+          </div>
+          {mode === "generate" ? (
+            <p className="gen-lede">
+              Generate safe fake data, add your own columns alongside it, audit the result, and download it.
+              Every generated value comes from a standards-reserved range or a structurally fake token. It runs
+              entirely in your browser — nothing leaves your device.
+            </p>
+          ) : (
+            <p className="gen-lede">
+              Got a CSV and the verification file SafeSeed handed you with it? Drop them both in and confirm the
+              file is genuine, unchanged, and made of provably-synthetic data — no install, all in your browser.
+            </p>
+          )}
           <ul className="tier-key" aria-label="What the honesty tiers mean">
             <li>
               <span className="tier-dot tier-provable" aria-hidden="true" />
@@ -278,6 +286,7 @@ export default function Generator() {
           </ul>
         </div>
 
+        {mode === "generate" && (<>
         <section className="gen-panel">
           <div className="gen-panel-head">
             <h2>Columns</h2>
@@ -571,16 +580,13 @@ export default function Generator() {
             )}
           </div>
         </section>
+        </>)}
+        {mode === "verify" && <VerifyPanel />}
       </main>
 
       <footer className="site-colophon">
         <div className="site-colophon-inner">
           <div className="site-colophon-brand">
-            <img
-              className="site-colophon-logo"
-              src="/assets/images/af-logo.png"
-              alt=""
-            />
             <div>
               <p className="site-colophon-name">Advokat Frida</p>
               <p className="site-colophon-desc">Privacy and AI governance, by design and in practice.</p>

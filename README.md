@@ -1,5 +1,7 @@
 # SafeSeed
 
+[![npm version](https://img.shields.io/npm/v/safeseed)](https://www.npmjs.com/package/safeseed) [![license: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 **Confirmably-synthetic test data by construction.** Generate stand-in data for test, CI, and demo environments from ranges that published standards have reserved as *permanently not real*, bind a tamper-evident record to the output, verify a file stays in range, and scan data you already have for real PII that slipped in.
 
 No model, no training data, no backend, no accounts, no telemetry, zero runtime dependencies. It runs entirely on your machine. MIT licensed.
@@ -32,6 +34,9 @@ There is also a self-serve **generator page** (browser, zero network): pick fiel
 ### CLI
 
 ```bash
+# Install the CLI (or prefix any command with `npx`, no install needed)
+npm install -g safeseed
+
 # Generate 100 rows of safe data + a run record
 safeseed generate \
   --fields email:email,name:fullName,phone:phone,ssn:ssn,card:creditCard \
@@ -54,7 +59,7 @@ safeseed catalog
 ### As a CI gate (GitHub Action)
 
 ```yaml
-- uses: <org>/safeseed@v0      # the verify Action
+- uses: tanjaminben/safeseed@v0      # the verify Action
   with:
     data: fixtures/seed.csv
     record: fixtures/seed.record.json
@@ -137,7 +142,7 @@ The catalog in [`src/catalog.ts`](src/catalog.ts) is the reusable core: it maps 
 
 ## Status
 
-Core library, CLI, the `verify` Action, and an interactive browser demo are built and tested (64 tests; CI green). SafeSeed 0.2.0 adds per-column hashes and opt-in **column-scoped verify**, a self-serve **generator page**, and a four-tier honesty taxonomy that separates protocol-reserved values from authority-reserved (never-issued) ones. The demo lives in [`demo/`](demo/); both the showcase and the generator ship as committed, offline single files at [`demo/safeseed-demo.html`](demo/safeseed-demo.html) and [`demo/safeseed-generator.html`](demo/safeseed-generator.html). npm publication is the remaining step. The design record is in [SPEC.md](SPEC.md); the v2 feature spec is in [docs/generator-and-column-scoped-verify.md](docs/generator-and-column-scoped-verify.md).
+Core library, CLI, the `verify` Action, and an interactive browser demo are built and tested (64 tests; CI green). SafeSeed 0.2.0 adds per-column hashes and opt-in **column-scoped verify**, a self-serve **generator page**, and a four-tier honesty taxonomy that separates protocol-reserved values from authority-reserved (never-issued) ones. The demo lives in [`demo/`](demo/); both the showcase and the generator ship as committed, offline single files at [`demo/safeseed-demo.html`](demo/safeseed-demo.html) and [`demo/safeseed-generator.html`](demo/safeseed-generator.html). Published on npm as [`safeseed@0.2.0`](https://www.npmjs.com/package/safeseed), with the interactive demo live at [advokatfrida.com/safeseed](https://advokatfrida.com/safeseed/). The design record is in [SPEC.md](SPEC.md); the v2 feature spec is in [docs/generator-and-column-scoped-verify.md](docs/generator-and-column-scoped-verify.md).
 
 ## Support
 

@@ -454,7 +454,7 @@ const DIRTY_CSV = [
   "sam.rivera@example.org,(800) 555-0188,198.51.100.5",
 ].join("\n");
 
-function ScanStep() {
+export function ScanStep() {
   const [text, setText] = useState(DIRTY_CSV);
   const [result, setResult] = useState<ScanResult | null>(null);
 

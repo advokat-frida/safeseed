@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import ProofPanel from "../components/ProofPanel";
+import ProofPanel, { ScanStep } from "../components/ProofPanel";
 import indexCss from "../index.css?inline";
 
 // The demo stylesheet, scoped into the shadow root. The design tokens live on :root in
@@ -53,7 +53,19 @@ const SHADOW_CSS =
 .proof-head p {
   display: none;
 }
-.proof { margin: 0; }
+/* In the embed, the dark :host border (or the wrapping card) is the frame, so drop the demo's
+   own inner .proof border -- otherwise it double-frames (a teal box inside the dark one). Keep
+   its wide side padding: that (plus :host) sets the card's consistent ~50px side gutter, and the
+   network-monitor frame is padded to match it. Trim only the TOP so the demo's legend sits right
+   under the monitor's divider instead of a big empty band. */
+.proof { margin: 0; border: none; padding-top: 14px; }
+/* When fused into the Live-demo card (the monitor + the demo share one frame), drop the
+   panel's own border so the wrapping card provides the single border. */
+:host(.in-demo-card) { border: none; padding-top: 0; }
+/* Scan-only mount ("Try it with your own data"): no extra top padding above the one step,
+   and drop the "4" step number -- it's the only step here, so a number reads oddly. */
+:host(.safeseed-scan-only) .proof-scan-only .step { margin-top: 0; }
+:host(.safeseed-scan-only) .step-n { display: none; }
 `;
 
 // A true inline mount: a custom element that renders the interactive proof into its own
@@ -69,7 +81,18 @@ class SafeSeedProof extends HTMLElement {
     shadow.appendChild(style);
     const mount = document.createElement("div");
     shadow.appendChild(mount);
-    createRoot(mount).render(<ProofPanel />);
+    // The "Try it with your own data" mount carries class="safeseed-scan-only" and renders only
+    // the standalone scanner (paste your own CSV), not the full Generate->Attest->Verify->Scan loop.
+    const scanOnly = this.classList.contains("safeseed-scan-only");
+    createRoot(mount).render(
+      scanOnly ? (
+        <section className="proof proof-scan-only" aria-label="Scan your own data">
+          <ScanStep />
+        </section>
+      ) : (
+        <ProofPanel />
+      ),
+    );
   }
 }
 

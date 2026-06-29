@@ -996,9 +996,10 @@ td.tier-fake {
 pre.record,
 pre.code {
   margin: 0;
-  background: #1c1b18;
-  color: #f5f5f5;
-  border-radius: var(--r-md);
+  background: #16140f;          /* match the article's house terminal (--ink) */
+  color: #f6f4ef;              /* cream (--ground), same as the CI/CD code blocks */
+  border-left: 4px solid #2f6b3a; /* the signature green bar (--forest) */
+  border-radius: 0;            /* square, like the article <pre> */
   padding: 16px 18px;
   font-family: var(--mono);
   font-size: var(--fs-meta);

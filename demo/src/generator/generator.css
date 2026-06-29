@@ -342,3 +342,159 @@
     grid-area: del;
   }
 }
+
+/* =====================================================================
+   DISPATCH SKIN (2026-06-29) — repaint the generator in the Advokat Frida
+   article's house style: Space Grotesk, ink/paper/forest, square cards, the
+   proof-panel button + tier look. Overrides the demo's :root tokens (loaded
+   first) so every existing rule above inherits the article palette. Served
+   from /assets, so it loads the same self-hosted fonts as the article.
+   ===================================================================== */
+@font-face{font-family:"Space Grotesk";font-style:normal;font-weight:400;font-display:swap;src:url(/assets/fonts/spacegrotesk-400-latin.woff2) format("woff2")}
+@font-face{font-family:"Space Grotesk";font-style:normal;font-weight:500;font-display:swap;src:url(/assets/fonts/spacegrotesk-500-latin.woff2) format("woff2")}
+@font-face{font-family:"Space Grotesk";font-style:normal;font-weight:600;font-display:swap;src:url(/assets/fonts/spacegrotesk-600-latin.woff2) format("woff2")}
+@font-face{font-family:"Space Grotesk";font-style:normal;font-weight:700;font-display:swap;src:url(/assets/fonts/spacegrotesk-700-latin.woff2) format("woff2")}
+
+:root {
+  --sans: "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: "Space Grotesk", system-ui, -apple-system, sans-serif;
+  --mono: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+  --ink: #16140f;
+  --paper: #fffdf8;
+  --parchment: #f6f4ef;
+  --recessed: #f6f4ef;
+  --rule: rgba(31, 29, 24, 0.16);
+  --muted: #4a463d;
+  --teal: #2f6b3a;          /* the demo's "accent" token -> the article's forest */
+  --terracotta: #c83232;
+  --eyebrow: #9e5415;       /* amber eyebrows, like the article */
+  --radius: 4px;
+  /* tiers aligned to the article's canonical four (teal / indigo / amber / red) */
+  --tier-provable: #12666a;
+  --tier-reserved: #3a3a8c;
+  --tier-designated: #9e5415;
+  --tier-fake: #c83232;
+}
+
+body { background: var(--parchment); color: var(--ink); }
+
+/* Square, ink-edged cards like the article's blocks (vs the demo's soft cards). */
+.gen-panel { border: 2px solid var(--ink); border-radius: var(--radius); background: var(--paper); }
+.gen-intro h1 { font-family: var(--sans); font-weight: 700; letter-spacing: -0.02em; }
+
+/* Buttons: the proof-panel look -- forest primary, paper+forest-border secondary, square-ish. */
+.btn {
+  border: 2px solid var(--teal); border-radius: var(--radius);
+  background: var(--paper); color: var(--teal); font-weight: 700;
+}
+.btn:hover:not(:disabled) { background: rgba(47, 107, 58, 0.06); }
+.btn-primary { background: var(--teal); color: #fff; border-color: var(--teal); }
+.btn-primary:hover:not(:disabled) { background: #275a31; }
+.btn-ghost { border-color: var(--rule); color: var(--ink); background: transparent; }
+.btn-ghost:hover:not(:disabled) { border-color: var(--teal); color: var(--teal); background: transparent; }
+
+/* Inputs/selects: square, ink-edged, focus in forest. */
+.field-name, .field-type, .num-ctl input {
+  border: 1.5px solid var(--rule); border-radius: var(--radius);
+}
+.field-name:focus-visible, .field-type:focus-visible, .num-ctl input:focus-visible,
+.btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+
+/* Table header band in the article ground; keep tier dots/cells as-is (now article colors). */
+.gen-table { border: none; }
+.gen-table th { background: var(--parchment); border-bottom: 2px solid var(--ink); }
+.gen-table-wrap { border: 2px solid var(--ink); border-radius: var(--radius); }
+
+/* Notes/recessed blocks: article ground with an ink hairline. */
+.gen-note { background: var(--parchment); border: 1px solid var(--rule); border-radius: var(--radius); }
+
+/* --- custom (user) columns + audit (Dispatch skin) --- */
+.field-wrap { display: flex; flex-direction: column; gap: 8px; }
+.field-wrap.is-custom { padding: 10px 12px; border: 1.5px dashed var(--rule); border-radius: var(--radius); background: rgba(31, 29, 24, 0.02); }
+.field-yours-tag {
+  display: inline-flex; align-items: center; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.04em; text-transform: uppercase; padding: 4px 10px;
+  border: 1px dashed var(--muted); border-radius: 999px; color: var(--muted); white-space: nowrap;
+}
+.field-values {
+  width: 100%; font-family: var(--mono); font-size: 13px; padding: 8px 10px;
+  border: 1.5px solid var(--rule); border-radius: var(--radius); background: var(--paper); color: var(--ink);
+}
+.field-values:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+.gen-add-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.gen-add { margin-top: 0; }
+
+.tier-yours { background: var(--muted); }
+.tier-chip-yours { border-style: dashed; border-color: var(--muted); color: var(--muted); }
+.gen-table th.col-yours, .gen-table td.col-yours { color: var(--muted); }
+
+.audit-lede { margin: 0 0 14px; font-size: 14px; line-height: 1.5; color: var(--muted); max-width: 74ch; }
+.audit-cols { display: flex; flex-direction: column; gap: 8px; }
+.audit-col {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 8px 12px; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--paper);
+}
+.audit-col.is-custom { border-style: dashed; }
+.audit-col-name { font-family: var(--mono); font-size: 13px; color: var(--ink); }
+.audit-as { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+.audit-as select {
+  font-family: var(--sans); font-size: 13px; padding: 5px 8px;
+  border: 1.5px solid var(--rule); border-radius: var(--radius); background: var(--paper); color: var(--ink);
+}
+.audit-auto { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--teal); font-weight: 600; }
+.audit-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 14px; }
+.audit-result { margin-top: 16px; padding: 14px 16px; border: 2px solid var(--ink); border-radius: var(--radius); }
+.audit-result.clean { border-color: var(--teal); background: rgba(47, 107, 58, 0.06); }
+.audit-result.dirty { border-color: var(--terracotta); background: rgba(200, 50, 50, 0.06); }
+.audit-verdict { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px; }
+.audit-result.clean .audit-verdict { color: var(--teal); }
+.audit-result.dirty .audit-verdict { color: var(--terracotta); }
+.audit-findings { margin: 10px 0 0; padding-left: 18px; font-size: 13px; color: var(--ink); }
+.audit-findings li { margin-bottom: 4px; }
+.audit-findings code { font-family: var(--mono); font-size: 12px; background: var(--paper); border: 1px solid var(--rule); border-radius: 4px; padding: 1px 5px; }
+
+/* =====================================================================
+   PASS 3 polish (2026-06-29): match the article's font scale, fill the
+   ledes, line up every column + pill, equal download buttons, tier legend.
+   ===================================================================== */
+:root {
+  /* the article / proof-panel reading scale (see proof/embed.tsx) */
+  --fs-hero: 34px;
+  --fs-section: 28px;
+  --fs-h3: 24px;
+  --fs-h4: 20px;
+  --fs-lead: 20px;
+  --fs-body: 20px;
+  --fs-small: 18px;
+  --fs-meta: 16px;
+  --fs-micro: 13.5px;
+}
+
+/* Ledes fill the content width like the headings + cards -- no stranded prose. */
+.gen-lede, .audit-lede { max-width: none; }
+.gen-lede { font-size: var(--fs-lead); }
+
+/* Honesty-tier legend, right under the lede (so nobody has to leave for the article). */
+.tier-key {
+  list-style: none; margin: 18px 0 0; padding: 0;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 9px 28px;
+}
+.tier-key li { display: flex; align-items: baseline; gap: 9px; font-size: 15px; line-height: 1.5; color: var(--muted); }
+.tier-key .tier-dot { margin-top: 5px; flex: none; }
+.tier-key strong { color: var(--ink); font-weight: 700; }
+@media (max-width: 720px) { .tier-key { grid-template-columns: 1fr; } }
+
+/* Field rows: fixed columns so every dropdown + pill lines up, and pills are one width. */
+.field-row { grid-template-columns: minmax(150px, 1fr) 224px 184px 36px; }
+.field-row .tier-chip, .field-row .field-yours-tag { width: 100%; justify-content: center; }
+.field-name, .field-type, .num-ctl input, .field-values { font-size: 15px; }
+
+/* Custom rows align with the rest (the inset box was shifting them); mark them by the dashed
+   tag + a dashed values input instead. */
+.field-wrap.is-custom { padding: 0; border: 0; background: transparent; }
+.field-values { border-style: dashed; }
+
+/* Paired download buttons: equal width -- both take the wider one. */
+.download-row { display: grid; grid-template-columns: 1fr 1fr; width: fit-content; max-width: 100%; gap: 12px; }
+.download-row .btn { width: 100%; justify-content: center; }
+@media (max-width: 620px) { .download-row { grid-template-columns: 1fr; width: auto; } }

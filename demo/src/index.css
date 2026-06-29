@@ -12,10 +12,10 @@
 
   /* honesty tiers — color encodes claim strength, not a traffic light */
   --tier-provable: #12666a; /* teal: strongest claim (protocol-reserved) */
-  --tier-reserved: #4f74a6; /* steel blue: reserved by an authority, never issued (kept clearly distinct from the teal provable tier) */
-  --tier-designated: #c9a227; /* brass: valid-looking, read the basis */
-  --tier-fake: #b5532e; /* terracotta: human-shaped, structurally fake */
-  --flag: #b5532e;
+  --tier-reserved: #3a3a8c; /* indigo: reserved by an authority, never issued -- the article's canonical four */
+  --tier-designated: #9e5415; /* amber: valid-looking, read the basis -- canonical */
+  --tier-fake: #c83232; /* red: human-shaped, structurally fake -- canonical */
+  --flag: #c83232;
   --recessed: #f0ebe0;
 
   --serif: "Libre Baskerville", Georgia, "Times New Roman", serif;

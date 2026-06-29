@@ -498,3 +498,159 @@ body { background: var(--parchment); color: var(--ink); }
 .download-row { display: grid; grid-template-columns: 1fr 1fr; width: fit-content; max-width: 100%; gap: 12px; }
 .download-row .btn { width: 100%; justify-content: center; }
 @media (max-width: 620px) { .download-row { grid-template-columns: 1fr; width: auto; } }
+
+/* =====================================================================
+   SITE CHROME (2026-06-29) — the Advokat Frida masthead + colophon, so this
+   standalone tool reads as part of advokatfrida.com, not a spinoff. Markup
+   mirrors the Ghost theme's site-header / site-footer; styling reuses this
+   page's Dispatch-skin tokens. Anton (nameplate) + Archivo (nav/labels) load
+   from /assets/fonts -- the same self-hosted faces as the live site.
+   ===================================================================== */
+@font-face{font-family:"Anton";font-style:normal;font-weight:400;font-display:swap;src:url(/assets/fonts/anton-400-latin.woff2) format("woff2")}
+@font-face{font-family:"Archivo";font-style:normal;font-weight:400;font-display:swap;src:url(/assets/fonts/archivo-400-latin.woff2) format("woff2")}
+@font-face{font-family:"Archivo";font-style:normal;font-weight:700;font-display:swap;src:url(/assets/fonts/archivo-700-latin.woff2) format("woff2")}
+
+:root {
+  --font-display: "Anton", Impact, system-ui, sans-serif;
+  --font-label: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* --- masthead --- */
+.site-masthead {
+  padding: 1.5rem 0 1.25rem;
+  border-bottom: 4px solid var(--ink);
+  text-align: center;
+}
+.site-nameplate { display: inline-block; color: var(--ink); text-decoration: none; }
+.site-nameplate:hover { text-decoration: none; }
+.site-emblem {
+  display: block;
+  margin: 0 auto 12px;
+  max-height: clamp(120px, 15vw, 190px);
+  width: auto;
+}
+.site-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2.6rem, 9vw, 4.8rem);
+  line-height: 0.86;
+  letter-spacing: 0.005em;
+  text-transform: uppercase;
+  margin: 0;
+  color: var(--ink);
+}
+.site-tagline {
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: clamp(0.95rem, 2vw, 1.1rem);
+  line-height: 1.3;
+  color: var(--ink);
+  margin: 0.85rem auto 0;
+  max-width: 46rem;
+}
+.site-masthead nav { margin: 0; }
+.site-nav {
+  list-style: none;
+  margin: 1.05rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.site-nav li { position: relative; }
+.site-nav li a {
+  display: block;
+  font-family: var(--font-label);
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-decoration: none;
+  padding: 0.4rem 1rem;
+}
+.site-nav li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 0.8rem;
+  background: var(--rule);
+}
+.site-nav li a:hover { color: var(--terracotta); }
+
+/* --- colophon / footer --- */
+.site-colophon {
+  margin-top: 3rem;
+  padding: 2.25rem 0 2.5rem;
+  border-top: 4px solid var(--ink);
+}
+.site-colophon-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2rem;
+}
+.site-colophon-brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.1rem;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.site-colophon-logo { flex-shrink: 0; height: 4.8rem; width: auto; display: block; }
+.site-colophon-aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.85rem;
+  text-align: right;
+  flex: 0 0 auto;
+}
+.site-colophon-name {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  margin: 0 0 0.35rem;
+  color: var(--ink);
+}
+.site-colophon-desc { font-size: 0.85rem; color: var(--muted); margin: 0; max-width: 34rem; }
+.site-colophon-credit { font-family: var(--font-label); font-size: 0.8rem; font-weight: 700; color: var(--teal); margin: 0 0 0.35rem; }
+.site-colophon-copy { font-family: var(--font-label); font-size: 0.8rem; color: var(--muted); margin: 0; }
+.site-colophon-copy a { color: var(--muted); text-decoration: underline; text-underline-offset: 0.15em; }
+.site-colophon-nav {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+}
+.site-colophon-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-label);
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-decoration: none;
+}
+.site-colophon-nav a:hover { color: var(--teal); }
+.site-colophon-nav .nav-icon { display: inline-flex; width: 1rem; height: 1rem; color: var(--teal); }
+.site-colophon-nav .nav-icon svg { display: block; width: 100%; height: 100%; }
+
+@media (max-width: 52rem) {
+  .site-colophon-inner { flex-direction: column; }
+  .site-colophon-aside { align-items: flex-start; text-align: left; }
+}
+@media (max-width: 40rem) {
+  .site-colophon-logo { height: 3.6rem; }
+  .site-emblem { max-height: clamp(96px, 26vw, 140px); }
+}

@@ -208,8 +208,31 @@ export default function Generator() {
 
   return (
     <div className="site">
+      <header className="site-masthead">
+        <a className="site-nameplate" href="https://advokatfrida.com">
+          <img
+            className="site-emblem"
+            src="/assets/images/af-logo.png"
+            alt="Advokat Frida"
+          />
+          <p className="site-title">Advokat Frida</p>
+        </a>
+        <p className="site-tagline">
+          Privacy and AI governance, by design and in practice. For the people who have to make
+          principles actually work.
+        </p>
+        <nav aria-label="Sections">
+          <ul className="site-nav">
+            <li><a href="https://advokatfrida.com/tag/fridas-desk/">Frida&rsquo;s Desk</a></li>
+            <li><a href="https://advokatfrida.com/tag/field-guides/">Field Guides</a></li>
+            <li><a href="https://advokatfrida.com/tag/playbooks/">Playbooks</a></li>
+            <li><a href="https://advokatfrida.com/tag/toolkit/">Toolkit</a></li>
+            <li><a href="https://advokatfrida.com/about/">About</a></li>
+          </ul>
+        </nav>
+      </header>
       <header className="gen-top">
-        <a className="gen-back" href="./index.html">
+        <a className="gen-back" href="https://advokatfrida.com/safeseed/">
           <ArrowLeft size={14} aria-hidden="true" /> What SafeSeed is
         </a>
         <div className={`gen-net${netCount > 0 ? " tripped" : ""}`}>
@@ -550,9 +573,51 @@ export default function Generator() {
         </section>
       </main>
 
-      <footer className="gen-foot">
-        <a href="https://github.com/tanjaminben/safeseed">github.com/tanjaminben/safeseed</a>
-        <span className="gen-foot-sub">Part of Advokat Frida · Frida&rsquo;s Toolkit</span>
+      <footer className="site-colophon">
+        <div className="site-colophon-inner">
+          <div className="site-colophon-brand">
+            <img
+              className="site-colophon-logo"
+              src="/assets/images/af-logo.png"
+              alt=""
+            />
+            <div>
+              <p className="site-colophon-name">Advokat Frida</p>
+              <p className="site-colophon-desc">Privacy and AI governance, by design and in practice.</p>
+            </div>
+          </div>
+          <div className="site-colophon-aside">
+            <div className="site-colophon-meta">
+              <p className="site-colophon-credit">
+                No cookies, no tracking &mdash; this tool runs entirely in your browser.
+              </p>
+              <p className="site-colophon-copy">
+                &copy; 2026 Advokat Frida &middot; Part of Frida&rsquo;s Toolkit &middot;{" "}
+                <a href="https://github.com/tanjaminben/safeseed">SafeSeed on GitHub</a>
+              </p>
+            </div>
+            <nav aria-label="Footer">
+              <ul className="site-colophon-nav">
+                <li>
+                  <a href="https://advokatfrida.com/about/">
+                    <span className="nav-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
+                    </span>
+                    About
+                  </a>
+                </li>
+                <li>
+                  <a href="https://advokatfrida.com/rss/">
+                    <span className="nav-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 11a9 9 0 0 1 9 9" /><path d="M4 4a16 16 0 0 1 16 16" /><circle cx="5" cy="19" r="1" /></svg>
+                    </span>
+                    RSS
+                  </a>
+                </li>
+              </ul>
+            </nav>
+          </div>
+        </div>
       </footer>
     </div>
   );

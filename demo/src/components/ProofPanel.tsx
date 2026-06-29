@@ -271,11 +271,12 @@ export default function ProofPanel() {
         {activeCite && <CiteCard field={activeCite} onClose={() => setActiveCite(null)} />}
       </div>
 
-      {/* STEP 2 — RUN RECORD */}
+      {/* STEP 2 — ATTEST */}
       <div className="step">
         <div className="step-head">
           <span className="step-n">2</span>
-          <h3>Run record</h3>
+          <h3>Attest</h3>
+          <span className="step-sub">the run record</span>
         </div>
         <p className="step-help">
           This tamper-evident receipt contains a <code>contentSha256</code> key — the fingerprint, or unique hash, of

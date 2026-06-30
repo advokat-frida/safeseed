@@ -16,7 +16,6 @@ import {
   type Tier,
 } from "safeseed";
 import { CITATIONS } from "../citations";
-import CiGatePanel from "./CiGatePanel";
 
 const SCHEMA: FieldSchema[] = [
   { name: "email", type: "email" },
@@ -438,9 +437,6 @@ export default function ProofPanel() {
 
       {/* STEP 4 — SCAN */}
       <ScanStep />
-
-      {/* CAPSTONE — WIRE IT INTO CI/CD */}
-      <CiGatePanel />
     </section>
   );
 }

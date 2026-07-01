@@ -16,7 +16,10 @@ import type { FieldType, Tier } from "./types.js";
 // 0.2.0 adds a per-column `sha256` to every FieldRecord (the basis for opt-in
 // column-scoped verify). It is purely additive — strict whole-file verify is
 // unchanged, and a 0.1.0 record without per-column hashes still verifies strictly.
-export const SAFESEED_VERSION = "0.2.0";
+// 0.2.1 ships catalog 2.0.0: the ssn reserved range no longer includes areas
+// 900-999 (the IRS ITIN space — real identifiers), so 0.2.0-era records with 9xx
+// SSNs fail verify by design; verify explains this with a catalog-version warning.
+export const SAFESEED_VERSION = "0.2.1";
 
 export interface FieldRecord {
   name: string;

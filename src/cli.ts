@@ -88,6 +88,8 @@ function parseFields(spec: string): FieldSchema[] {
 function cmdGenerate(p: Parsed): Promise<void> {
   let schema: FieldSchema[] = [];
   let rows = 0;
+  // Deliberate: --seed defaults to 0, so a no-seed run is a repeatable run, not a
+  // random one — determinism is the product. Documented in --help and the README.
   let seed = 0;
   let formatValid = true;
 
@@ -187,6 +189,11 @@ function cmdScan(p: Parsed): void {
   const result = scan({ csv, columns });
   if (result.ok) {
     process.stdout.write(`safeseed scan: clean — ${result.scannedRows} rows, no candidate PII\n`);
+    process.stdout.write(
+      "  note: scan flags real data OUTSIDE the reserved ranges; real data that happens to look reserved " +
+        "(a real mailbox at example.com, a real 555-01xx line) is NOT flagged. " +
+        'Clean means "nothing provably-unreserved found," not "no real PII."\n',
+    );
   } else {
     process.stdout.write(
       `safeseed scan: ${result.findings.length} candidate(s) across ${result.scannedRows} rows\n`,
@@ -219,6 +226,13 @@ function printUsage(): void {
       "  safeseed version",
       "",
       "Field types: " + [...VALID_TYPES].join(", "),
+      "",
+      "Notes:",
+      "  --seed defaults to 0, so runs without it are fully deterministic (identical",
+      "  output every time); pass --seed to vary the dataset.",
+      "  scan flags values OUTSIDE the reserved ranges; real data that happens to look",
+      '  reserved is not flagged — clean means "nothing provably-unreserved found."',
+      "",
       "Exit codes: 0 clean · 1 drift/findings · 2 usage/IO error",
     ].join("\n") + "\n",
   );

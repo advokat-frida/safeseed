@@ -16,10 +16,28 @@
  * verify vouches for the synthetic columns; the columns a team adds are out of
  * scope here and must be checked with `scan`.
  */
-import { getEntry, isReserved } from "./catalog.js";
+import { CATALOG_VERSION, getEntry, isReserved } from "./catalog.js";
 import { sha256Hex } from "./hash.js";
 import { parseCsv, canonicalColumn } from "./csv.js";
 import type { RunRecord } from "./record.js";
+
+/**
+ * When a record was made under a different catalog, the reserved ranges it was
+ * generated against may not be the ranges enforced now — most notably catalog
+ * 2.0.0 removed SSN areas 900-999 (the IRS ITIN space, which contains real
+ * identifiers), so ssn values from catalog-1.0.0 records fail the range check BY
+ * DESIGN. There is deliberately no compatibility mode that re-blesses an old
+ * range; this warning exists so the failure is explained, not mysterious.
+ */
+function catalogVersionWarning(record: RunRecord): string | null {
+  if (record.catalogVersion === undefined || record.catalogVersion === CATALOG_VERSION) return null;
+  return (
+    `run record was made under catalog ${record.catalogVersion}; this SafeSeed enforces catalog ${CATALOG_VERSION}. ` +
+    `Reserved ranges have changed between catalog versions (2.0.0 removed SSN areas 900-999 — the IRS ITIN space, ` +
+    `which holds real identifiers), so any out-of-range failures reported may reflect the corrected ranges rather than ` +
+    `tampering. Regenerate the dataset and record with the current version.`
+  );
+}
 
 export type VerifyFailureKind =
   | "content-hash-mismatch"
@@ -43,7 +61,11 @@ export interface VerifyResult {
   checked: { rows: number; fields: number };
   /** Columns present in the file but not declared in the record (column-scoped mode). */
   unattestedColumns: string[];
-  /** Non-fatal notes, e.g. a 0.1.0 record with no per-column hash → range-only fallback. */
+  /**
+   * Non-fatal notes, e.g. a 0.1.0 record with no per-column hash → range-only
+   * fallback, or a record made under an older catalog whose reserved ranges have
+   * since changed (in which case range failures are expected and by design).
+   */
   warnings: string[];
 }
 
@@ -66,6 +88,10 @@ export async function verify(
 
 async function verifyStrict(csv: string, record: RunRecord): Promise<VerifyResult> {
   const failures: VerifyFailure[] = [];
+  const warnings: string[] = [];
+
+  const versionWarning = catalogVersionWarning(record);
+  if (versionWarning !== null) warnings.push(versionWarning);
 
   const actualHash = await sha256Hex(csv);
   if (actualHash !== record.contentSha256) {
@@ -127,13 +153,17 @@ async function verifyStrict(csv: string, record: RunRecord): Promise<VerifyResul
     failures,
     checked: { rows: rows.length, fields: record.fields.length },
     unattestedColumns: [],
-    warnings: [],
+    warnings,
   };
 }
 
 async function verifyColumnScoped(csv: string, record: RunRecord): Promise<VerifyResult> {
   const failures: VerifyFailure[] = [];
   const warnings: string[] = [];
+
+  const versionWarning = catalogVersionWarning(record);
+  if (versionWarning !== null) warnings.push(versionWarning);
+
   const { columns, rows } = parseCsv(csv);
 
   // The file must stay rectangular: every row matches the header width. This closes

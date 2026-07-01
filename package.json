@@ -1,15 +1,15 @@
 {
   "name": "safeseed",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Confirmably-synthetic test data by construction. Generate, attest, verify, and scan non-production data using standards-reserved \"never-real\" ranges. Zero backend, zero runtime dependencies, MIT.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tanjaminben/safeseed.git"
+    "url": "git+https://github.com/advokat-frida/safeseed.git"
   },
-  "homepage": "https://github.com/tanjaminben/safeseed#readme",
+  "homepage": "https://github.com/advokat-frida/safeseed#readme",
   "bugs": {
-    "url": "https://github.com/tanjaminben/safeseed/issues"
+    "url": "https://github.com/advokat-frida/safeseed/issues"
   },
   "type": "module",
   "main": "./dist/index.js",

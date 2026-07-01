@@ -7,15 +7,23 @@
  * this one table, which is what makes the promise auditable: review these few
  * hundred cited lines once, and every output inherits the guarantee.
  *
- * Sourcing: the RFC 2606 / 5737 / 3849 reservations and the SSA SSN randomization
- * exclusions (area 000/666/900-999, group 00, serial 0000) are confirmed against
- * primary sources. The NANPA 555-0100..0199 fictitious block is well-established;
- * its shipped citation link is the NANPA homepage rather than a deep rule page.
+ * Sourcing: the RFC 2606 / 5737 / 3849 reservations are confirmed against primary
+ * sources. The SSN space (catalog 2.0.0) uses only components that BOTH the SSA
+ * scheme and the IRS ITIN scheme never issue: area 000, area 666, group 00, serial
+ * 0000. The 900-999 area range the SSA excludes is deliberately NOT treated as
+ * reserved — it is the IRS ITIN space (9XX-XX-XXXX), which contains real, issued
+ * taxpayer identifiers, and the IRS has expanded its ITIN group ranges over time.
+ * The NANPA 555-0100..0199 fictitious block is well-established; its shipped
+ * citation link is the NANPA homepage rather than a deep rule page.
  */
 import type { FieldType, Tier } from "./types.js";
 import { ipv4InCidr, ipv6InPrefix } from "./net.js";
 
-export const CATALOG_VERSION = "1.0.0";
+// 2.0.0: the ssn reserved range narrowed to exclude areas 900-999 (the IRS ITIN
+// space — real identifiers). Run records made under catalog 1.0.0 with 9xx-area
+// SSNs now fail verify BY DESIGN; verify emits a catalog-version warning so the
+// failure is explained rather than mysterious.
+export const CATALOG_VERSION = "2.0.0";
 
 /** Inspectable, structured definition of a reserved space. Drives generation,
  * verification, and scanning, and lets tests assert the ranges match standards. */
@@ -27,9 +35,8 @@ export type ReservedSpec =
   | { kind: "phoneBlock"; centralOfficeCode: string; subscriberStart: number; subscriberEnd: number }
   | {
       kind: "ssnInvalid";
+      /** Areas never issued by the SSA and structurally outside the IRS ITIN space (000, 666). */
       invalidAreas: readonly string[];
-      invalidAreaMin: number;
-      invalidAreaMax: number;
       invalidGroup: string;
       invalidSerial: string;
     }
@@ -123,14 +130,14 @@ export const CATALOG: readonly CatalogEntry[] = [
   {
     field: "ssn",
     tier: "reserved-not-issued",
-    citation: "SSA SSN randomization (effective 2011-06-25): never-assigned area numbers 000 / 666 / 900-999, plus group 00 and serial 0000 (ssa.gov/employer/randomization.html)",
-    description: "US SSNs whose area, group, or serial falls in a range the SSA never issues — reserved by the issuing authority's own rules rather than by protocol.",
+    citation:
+      "SSA SSN randomization (effective 2011-06-25): never-assigned area 000 / 666, group 00, serial 0000 (ssa.gov/employer/randomization.html). Areas 900-999 are deliberately excluded: that is the IRS ITIN space (9XX-XX-XXXX), which contains real, issued identifiers.",
+    description:
+      "US SSN-shaped values containing a component that neither the SSA (for SSNs) nor the IRS (for ITINs) ever issues: area 000 or 666, group 00, or serial 0000. The values are format-shaped (NNN-NN-NNNN); a strict SSN validator that encodes the SSA issuance rules will reject them — that rejection is exactly what makes them provably never-issued.",
     claim: CLAIM_RESERVED_NOT_ISSUED,
     reserved: {
       kind: "ssnInvalid",
       invalidAreas: ["000", "666"],
-      invalidAreaMin: 900,
-      invalidAreaMax: 999,
       invalidGroup: "00",
       invalidSerial: "0000",
     },
@@ -230,15 +237,15 @@ export function isReserved(entry: CatalogEntry, value: string): boolean {
       return nxx === r.centralOfficeCode && line >= r.subscriberStart && line <= r.subscriberEnd;
     }
     case "ssnInvalid": {
+      // Reserved = contains a component that is never issued under BOTH the SSA
+      // scheme and the IRS ITIN scheme. Deliberately NOT reserved: areas 900-999
+      // (ITIN space — real, issued identifiers; catalog 2.0.0 removed them).
       const digits = value.replace(/\D/g, "");
       if (digits.length !== 9) return false;
       const area = digits.slice(0, 3);
       const group = digits.slice(3, 5);
       const serial = digits.slice(5);
-      const areaNum = Number(area);
-      const areaInvalid =
-        r.invalidAreas.includes(area) || (areaNum >= r.invalidAreaMin && areaNum <= r.invalidAreaMax);
-      return areaInvalid || group === r.invalidGroup || serial === r.invalidSerial;
+      return r.invalidAreas.includes(area) || group === r.invalidGroup || serial === r.invalidSerial;
     }
     case "cardTestNumbers": {
       const digits = value.replace(/\D/g, "");

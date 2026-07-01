@@ -23,9 +23,12 @@ export interface GenerateOptions {
   /** Seed for deterministic output. Same seed + schema => identical dataset. */
   seed: number;
   /**
-   * Format-valid mode (default true): render values that pass common validators
-   * while staying in range (10-digit phones, NNN-NN-NNNN SSNs). When false,
-   * values are rendered in a looser, even-more-obviously-test form.
+   * Format-valid mode (default true): render values in the common wire shape while
+   * staying in range (10-digit phones, NNN-NN-NNNN SSNs). "Format-valid" means the
+   * SHAPE passes — a strict validator that encodes issuance rules (e.g. an SSN
+   * checker that rejects group 00 / serial 0000) will still reject the value, and
+   * that is by design: never-issued is the safety property. When false, values are
+   * rendered in a looser, even-more-obviously-test form.
    */
   formatValid?: boolean;
 }
@@ -44,7 +47,12 @@ const IPV4_BLOCKS = [
   [198, 51, 100],
   [203, 0, 113],
 ] as const;
-const SSN_INVALID_AREAS = ["900", "901", "902", "910", "987", "999", "000", "666"] as const;
+// Which never-issued SSN component to force on a row: group "00" or serial "0000".
+// Both are structurally excluded by the SSA's own issuance rules AND absent from the
+// IRS ITIN format, so they are never-issued under both schemes. Areas are drawn from
+// 001-899 (skipping 666), which keeps every generated value entirely outside the
+// 9XX ITIN space — robust even if the IRS expands its ITIN group ranges again.
+const SSN_NEVER_ISSUED_MARKERS = ["group", "serial"] as const;
 const STREET_SUFFIX = ["Way", "St", "Ave", "Rd", "Blvd"] as const;
 const CARD_TEST_NUMBERS = [
   "4242424242424242",
@@ -91,10 +99,19 @@ function generateValue(type: FieldType, rng: () => number, row: number, formatVa
       return `555-${line}`;
     }
     case "ssn": {
-      const area = pick(rng, SSN_INVALID_AREAS);
-      const group = pad(intBetween(rng, 1, 99), 2);
-      const serial = pad(intBetween(rng, 1, 9999), 4);
-      return `${area}-${group}-${serial}`;
+      // Never-issued under BOTH the SSA scheme and the IRS ITIN scheme (see catalog):
+      // a plausible-looking area in 001-899 (never 666, never the 9XX ITIN space),
+      // with group forced to "00" or serial forced to "0000" — components neither
+      // authority ever issues. Exactly three RNG draws, same as every prior release,
+      // so the shared seeded stream stays aligned and all other columns are
+      // byte-identical for a given seed.
+      const areaDraw = intBetween(rng, 1, 898);
+      const area = pad(areaDraw >= 666 ? areaDraw + 1 : areaDraw, 3);
+      const marker = pick(rng, SSN_NEVER_ISSUED_MARKERS);
+      if (marker === "group") {
+        return `${area}-00-${pad(intBetween(rng, 1, 9999), 4)}`;
+      }
+      return `${area}-${pad(intBetween(rng, 1, 99), 2)}-0000`;
     }
     case "creditCard":
       return pick(rng, CARD_TEST_NUMBERS);

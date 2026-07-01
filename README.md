@@ -23,7 +23,7 @@ SafeSeed takes the other path: **never let real data into the process at all.** 
 1. **Generate** safe-by-construction test data from the cited reserved ranges (deterministic from a seed, so the output is a committable fixture).
 2. **Attest** with a tamper-evident run record that binds to the file's content hash and states the honesty tier of every field.
 3. **Verify** that a file is still byte-for-byte the generated one *and* that every value is still in range — wire it into CI to fail the build on drift. Strict by default; opt into **column-scoped verify** (`--allow-added-columns`) to attest only the synthetic columns you generated, so a team can add its own business columns (job title, industry) without breaking attestation — added columns are reported as *unattested*, never a silent pass.
-4. **Scan** an *existing* CSV / seed file and flag values that are not in reserved ranges as candidate real PII. Column-scoped verify pairs with scan: verify vouches for the synthetic columns, scan checks the columns you added.
+4. **Scan** an *existing* CSV / seed file and flag values that are not in reserved ranges as candidate real PII. Column-scoped verify pairs with scan: verify vouches for the synthetic columns, scan checks the columns you added. **Know the limit:** scan flags real data *outside* the reserved ranges; real data that happens to look reserved (a real mailbox at `example.com`, a real `555-01xx` line — or, under the old 0.2.0 ranges, a genuine ITIN) will **not** be flagged. A clean scan means "nothing provably-unreserved found," not "no real PII."
 
 `verify` and `scan` are **generator-agnostic**: they work on any data file, however it was produced, so you can keep the generator you already use and wrap it.
 
@@ -56,10 +56,12 @@ safeseed scan --in legacy.csv --fields email:email,phone:phone,ssn:ssn
 safeseed catalog
 ```
 
+`--seed` defaults to `0`, so a run without it is fully deterministic — identical output every time, on purpose (the output is a committable fixture). Pass `--seed` to vary the dataset.
+
 ### As a CI gate (GitHub Action)
 
 ```yaml
-- uses: tanjaminben/safeseed@v0      # the verify Action
+- uses: advokat-frida/safeseed@v0.2.1  # the verify Action
   with:
     data: fixtures/seed.csv
     record: fixtures/seed.record.json
@@ -99,11 +101,13 @@ Honesty is the credibility here, so the claim has tiers, and every field is labe
 | Tier | What it means | Examples | The claim |
 |---|---|---|---|
 | **provably-non-real** | Reserved by a published standard/protocol; the standard itself makes them non-routable/non-registrable. | RFC 2606 email domains, RFC 5737 / 3849 documentation IPs | "Cannot correspond to a real person or system." |
-| **reserved-not-issued** | Reserved by the *issuing authority* and never assigned — strong, but administrative policy, not protocol. | NANPA `555-01xx` phones, never-issued SSN ranges | "Never assigned, so no real holder has one; non-real by policy, not protocol." |
+| **reserved-not-issued** | Reserved by the *issuing authority* and never assigned — strong, but administrative policy, not protocol. | NANPA `555-01xx` phones; SSN components no authority issues (area `000`/`666`, group `00`, serial `0000`) | "Never assigned, so no real holder has one; non-real by policy, not protocol." |
 | **designated-test-only** | A valid-looking value processors/sandboxes *designate* for testing. It passes validation. | Card test PANs (`4242…`) | "Non-real by designation, **not** by impossibility." |
 | **structurally-fake** | No standard reserves it, so it is made *self-evidently* fake instead of plausible. | `TEST_Lastname_000142`, `123 Example Way` | "Synthetic token; not derived from any real record." |
 
 Stating which tier each field sits in is not a weakness to bury. It is the thing that separates a practitioner from a datasheet.
+
+> **The 0.2.1 SSN correction.** SafeSeed 0.2.0 generated SSNs from the `900-999` area range on the theory that the SSA never assigns it — but that range is the IRS ITIN space (`9XX-XX-XXXX`), real issued identifiers, so the "no real holder has one" claim was false for those values. 0.2.1 generates only from components neither the SSA nor the IRS ever issues, narrows the reserved definition to match, and — by design — old 0.2.0 datasets and run records now **fail** `verify` and their `9xx` SSNs are **flagged** by `scan`. Details in [CHANGELOG.md](CHANGELOG.md). One nuance stated plainly: these values are format-*shaped* (`NNN-NN-NNNN`); a strict SSN validator that encodes issuance rules will reject them, and that rejection is exactly the safety property.
 
 ## What this does **not** prove
 
@@ -126,7 +130,7 @@ Off-the-shelf fake-data libraries already emit reserved-range values. What is mi
 - **RFC 5737** — IPv4 documentation blocks (`192.0.2.0/24`, `198.51.100.0/24`, `203.0.113.0/24`).
 - **RFC 3849** — IPv6 documentation prefix (`2001:db8::/32`).
 - **NANPA / ATIS** — fictitious telephone numbers (`555-0100` through `555-0199`).
-- **SSA SSN randomization** (effective 2011-06-25) — never-assigned ranges (area `000`/`666`/`900-999`, group `00`, serial `0000`), confirmed against the [SSA randomization rules](https://www.ssa.gov/employer/randomization.html).
+- **SSA SSN randomization** (effective 2011-06-25) — never-assigned components (area `000`/`666`, group `00`, serial `0000`), confirmed against the [SSA randomization rules](https://www.ssa.gov/employer/randomization.html). The `900-999` areas the SSA also excludes are **deliberately not used**: that space is the [IRS ITIN range](https://www.irs.gov/individuals/individual-taxpayer-identification-number) (`9XX-XX-XXXX`) — real, issued identifiers, with group ranges the IRS has expanded over time.
 - Card numbers are **published processor/sandbox test PANs** (e.g. Stripe testing docs), in the `designated-test-only` tier (they pass Luhn, authorize nowhere).
 
 ## Development
@@ -142,7 +146,7 @@ The catalog in [`src/catalog.ts`](src/catalog.ts) is the reusable core: it maps 
 
 ## Status
 
-Core library, CLI, the `verify` Action, and an interactive browser demo are built and tested (64 tests; CI green). SafeSeed 0.2.0 adds per-column hashes and opt-in **column-scoped verify**, a self-serve **generator page**, and a four-tier honesty taxonomy that separates protocol-reserved values from authority-reserved (never-issued) ones. The demo lives in [`demo/`](demo/); both the showcase and the generator ship as committed, offline single files at [`demo/safeseed-demo.html`](demo/safeseed-demo.html) and [`demo/safeseed-generator.html`](demo/safeseed-generator.html). Published on npm as [`safeseed@0.2.0`](https://www.npmjs.com/package/safeseed), with the interactive demo live at [advokatfrida.com/safeseed](https://advokatfrida.com/safeseed/). The design record is in [SPEC.md](SPEC.md); the v2 feature spec is in [docs/generator-and-column-scoped-verify.md](docs/generator-and-column-scoped-verify.md).
+Core library, CLI, the `verify` Action, and an interactive browser demo are built and tested (74 tests; CI green). SafeSeed 0.2.0 added per-column hashes and opt-in **column-scoped verify**, a self-serve **generator page**, and a four-tier honesty taxonomy that separates protocol-reserved values from authority-reserved (never-issued) ones; 0.2.1 corrects the SSN reserved range (the ITIN collision — see [CHANGELOG.md](CHANGELOG.md)). The demo lives in [`demo/`](demo/); both the showcase and the generator ship as committed, offline single files at [`demo/safeseed-demo.html`](demo/safeseed-demo.html) and [`demo/safeseed-generator.html`](demo/safeseed-generator.html). Published on npm as [`safeseed`](https://www.npmjs.com/package/safeseed), with the interactive demo live at [advokatfrida.com/safeseed](https://advokatfrida.com/safeseed/). The design record is in [SPEC.md](SPEC.md); the v2 feature spec is in [docs/generator-and-column-scoped-verify.md](docs/generator-and-column-scoped-verify.md).
 
 ## Support
 

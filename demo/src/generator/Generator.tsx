@@ -573,7 +573,8 @@ export default function Generator() {
             {customFields.length > 0 && (
               <p>
                 Your {customFields.length} column{customFields.length === 1 ? "" : "s"}
-                {" "}ride along in the file but are <strong>not</strong> attested by SafeSeed — that is what the
+                {" "}{customFields.length === 1 ? "rides" : "ride"} along in the file but{" "}
+                {customFields.length === 1 ? "is" : "are"} <strong>not</strong> attested by SafeSeed — that is what the
                 audit above is for. Column-scoped verify (<code>safeseed verify --allow-added-columns</code>)
                 attests the generated columns and reports yours as added.
               </p>
@@ -599,7 +600,7 @@ export default function Generator() {
               </p>
               <p className="site-colophon-copy">
                 &copy; 2026 Advokat Frida &middot; Part of Frida&rsquo;s Toolkit &middot;{" "}
-                <a href="https://github.com/tanjaminben/safeseed">SafeSeed on GitHub</a>
+                <a href="https://github.com/advokat-frida/safeseed">SafeSeed on GitHub</a>
               </p>
             </div>
             <nav aria-label="Footer">

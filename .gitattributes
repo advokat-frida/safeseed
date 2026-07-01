@@ -3,3 +3,6 @@
 # diffs cleanly across OSes (vite/esbuild emit LF; this stops a Windows checkout's CRLF
 # from showing as spurious drift).
 *.html text eol=lf
+# The favicon SVG is URL-encoded verbatim into those single-files at build time, so its
+# line endings surface inside the HTML bytes. Same pin, same reason.
+*.svg text eol=lf

@@ -507,11 +507,13 @@ export function ScanStep() {
         <span className="scan-summary" role="status" aria-live="polite">
           {result &&
             (result.ok ? (
-              <span className="scan-clean">all in range — {result.scannedRows} rows, nothing flagged</span>
+              <span className="scan-clean">
+                all in range — {result.scannedRows} row{result.scannedRows === 1 ? "" : "s"}, nothing flagged
+              </span>
             ) : (
               <span className="scan-dirty">
                 {result.findings.length} value{result.findings.length === 1 ? "" : "s"} outside range across{" "}
-                {result.scannedRows} rows
+                {result.scannedRows} row{result.scannedRows === 1 ? "" : "s"}
               </span>
             ))}
         </span>

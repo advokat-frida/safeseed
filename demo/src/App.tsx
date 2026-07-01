@@ -62,7 +62,9 @@ export default function App() {
               <a className="hero-cta" href="#proof">
                 Run it yourself <span aria-hidden="true">↓</span>
               </a>
-              <a className="hero-cta-alt" href="./generator.html">
+              {/* The committed/deployed single-file is named safeseed-generator.html —
+                  ./generator.html only exists inside the dev build and 404s live. */}
+              <a className="hero-cta-alt" href="./safeseed-generator.html">
                 Open the generator <span aria-hidden="true">→</span>
               </a>
             </div>
@@ -114,7 +116,7 @@ export default function App() {
         <div className="footer-sig">
           <img className="fox-neon footer-fox-img" src={foxLogo} alt="" aria-hidden="true" width={42} height={42} />
           <span className="footer-sig-lines">
-            <a href="https://github.com/tanjaminben/safeseed">github.com/tanjaminben/safeseed</a>
+            <a href="https://github.com/advokat-frida/safeseed">github.com/advokat-frida/safeseed</a>
             <span className="footer-sig-sub">Part of Advokat Frida · Frida's Toolkit</span>
           </span>
         </div>

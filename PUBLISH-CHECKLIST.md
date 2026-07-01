@@ -8,7 +8,7 @@ The package is shaped and ready. Two ways to publish: the **recommended CI route
 - `package.json` is publish-shaped: `main`, `types`, `bin` (`safeseed` → `dist/cli.js`), `exports`, and a `files` allowlist (`dist`, `README.md`, `LICENSE`) are all set.
 - `prepublishOnly: "npm run build"` is wired, so `dist/` is rebuilt fresh on every publish — you can't accidentally ship a stale build.
 - `repository` / `homepage` / `bugs` metadata added so the npm page links back to the repo.
-- Current version: **0.2.0**.
+- Current version: **0.2.1** (the SSN/ITIN range correction — see `CHANGELOG.md`; not yet published). NOTE: `package.json` is already bumped to 0.2.1, so to release THIS version don't run `npm version patch` again (that would make 0.2.2) — commit, then `git tag v0.2.1 && git push --follow-tags`.
 
 ## Recommended: release via CI (publish from any machine)
 

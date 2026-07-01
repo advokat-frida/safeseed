@@ -129,21 +129,25 @@ describe("catalog.reservedRangesMatchStandards", () => {
     expect(isReserved(e, "212-867-5309")).toBe(false);
   });
 
-  it("ssn reserves unassigned area/group/serial ranges", () => {
+  it("ssn reserves only components never issued by BOTH the SSA and the IRS ITIN scheme", () => {
     const e = getEntry("ssn");
     if (e.reserved.kind === "ssnInvalid") {
-      expect(e.reserved.invalidAreas).toEqual(
-        expect.arrayContaining(["000", "666"]),
-      );
-      expect(e.reserved.invalidAreaMin).toBe(900);
-      expect(e.reserved.invalidAreaMax).toBe(999);
+      expect(e.reserved.invalidAreas).toEqual(["000", "666"]);
+      expect(e.reserved.invalidGroup).toBe("00");
+      expect(e.reserved.invalidSerial).toBe("0000");
+      // The 900-999 area block must NOT be part of the reserved spec: it is the
+      // IRS ITIN space, which contains real, issued identifiers.
+      expect("invalidAreaMin" in e.reserved).toBe(false);
+      expect("invalidAreaMax" in e.reserved).toBe(false);
     }
-    expect(isReserved(e, "900-12-3456")).toBe(true);
     expect(isReserved(e, "000-12-3456")).toBe(true);
     expect(isReserved(e, "666-12-3456")).toBe(true);
-    expect(isReserved(e, "123-00-6789")).toBe(true); // invalid group
-    expect(isReserved(e, "123-45-0000")).toBe(true); // invalid serial
-    expect(isReserved(e, "123-45-6789")).toBe(false); // plausibly real
+    expect(isReserved(e, "123-00-6789")).toBe(true); // never-issued group
+    expect(isReserved(e, "123-45-0000")).toBe(true); // never-issued serial
+    expect(isReserved(e, "123-45-6789")).toBe(false); // plausibly real SSN
+    // 9xx areas are candidate REAL data now (ITIN space), not reserved:
+    expect(isReserved(e, "900-12-3456")).toBe(false);
+    expect(isReserved(e, "999-43-3811")).toBe(false);
   });
 
   it("credit card numbers are designated-test-only and Luhn-valid", () => {

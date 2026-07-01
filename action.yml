@@ -29,12 +29,20 @@ runs:
   steps:
     - name: Verify test data is safe by construction
       shell: bash
+      # Inputs are passed via env and referenced as quoted shell variables — never
+      # interpolated with ${{ }} into the script body — so a crafted input value
+      # (e.g. a path containing $(...) or backticks) is data, not code.
+      env:
+        SAFESEED_DATA: ${{ inputs.data }}
+        SAFESEED_RECORD: ${{ inputs.record }}
+        SAFESEED_ALLOW_ADDED_COLUMNS: ${{ inputs.allow-added-columns }}
+        SAFESEED_NPM_VERSION: ${{ inputs.version }}
       run: |
         flag=""
-        if [ "${{ inputs.allow-added-columns }}" = "true" ]; then
+        if [ "$SAFESEED_ALLOW_ADDED_COLUMNS" = "true" ]; then
           flag="--allow-added-columns"
         fi
-        npx --yes "safeseed@${{ inputs.version }}" verify \
-          --in "${{ inputs.data }}" \
-          --record "${{ inputs.record }}" \
+        npx --yes "safeseed@$SAFESEED_NPM_VERSION" verify \
+          --in "$SAFESEED_DATA" \
+          --record "$SAFESEED_RECORD" \
           $flag

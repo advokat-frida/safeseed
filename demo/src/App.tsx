@@ -1,23 +1,8 @@
-import { useSyncExternalStore } from "react";
 import { Table2, ShieldCheck, ScanSearch } from "lucide-react";
 import ProofPanel from "./components/ProofPanel";
-import { getNetworkCount, subscribeNetworkCount } from "./netGuard";
 import foxLogo from "./assets/fox-logo.png";
 
-function useNetworkCount() {
-  return useSyncExternalStore(subscribeNetworkCount, getNetworkCount);
-}
-
 export default function App() {
-  const netCount = useNetworkCount();
-
-  // Deliberately attempt an outbound request to prove the guard. netGuard counts it the
-  // instant it fires; the shipped build's CSP (connect-src 'none') then refuses the
-  // connection. example.com is RFC 2606's reserved demo domain, so nothing meaningful is hit.
-  const tryEgress = () => {
-    window.fetch("https://example.com/safeseed-egress-test", { mode: "no-cors" }).catch(() => {});
-  };
-
   return (
     <div className="site">
       <div className="demo-banner" role="note">
@@ -69,38 +54,6 @@ export default function App() {
               </a>
             </div>
           </div>
-
-          <aside className={`airgap ${netCount === 0 ? "quiet" : "tripped"}`} aria-label="Network activity monitor">
-            <div className="airgap-head">
-              <span className="airgap-led" aria-hidden="true" />
-              <span className="airgap-head-l">Network monitor</span>
-              <span className="airgap-head-state">{netCount === 0 ? "nothing sent" : "call detected"}</span>
-            </div>
-            <div className="airgap-readout">
-              <span className="airgap-n">{netCount}</span>
-              <span className="airgap-l">
-                network requests
-                <br />
-                this page has made
-              </span>
-            </div>
-            <p className="airgap-cap">
-              {netCount === 0
-                ? "This page cannot contact any server. Nothing you type, generate, or scan ever leaves your browser, and you don't have to take my word for it. Test it:"
-                : "Caught. The attempt was counted the instant it fired, and in the shipped build the Content-Security-Policy refuses the connection outright. Check the failed request in your network tab."}
-            </p>
-            <button type="button" className="btn airgap-probe" onClick={tryEgress}>
-              {netCount === 0 ? "Send a network request" : "Try again"}
-            </button>
-            <p className="airgap-fine">
-              This button fires a real outbound request to <code>example.com</code> (a reserved test domain). The counter
-              above ticks the instant the attempt is made, so you can see for yourself that it was tried.
-            </p>
-            <p className="airgap-fine">
-              Enforced in the shipped build by a Content-Security-Policy (<code>connect-src 'none'</code>) — the
-              browser's own hard block on outbound connections, so the request never actually leaves.
-            </p>
-          </aside>
         </section>
 
         {/* PROOF PANEL (interactive centerpiece) */}

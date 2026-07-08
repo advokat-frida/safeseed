@@ -1,5 +1,5 @@
 /* Generator page — leans on the shared tokens and base classes from index.css
-   (:root vars, .site, .demo-banner, .btn*, .airgap-led, .tier-* colors) and adds
+   (:root vars, .site, .demo-banner, .btn*, .tier-* colors) and adds
    only the layout this page needs. */
 
 /* tier dots: color the same-element case too (index.css colors the descendant case). */
@@ -46,22 +46,6 @@
 .gen-back:hover {
   color: var(--teal);
 }
-.gen-net {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--muted);
-}
-.gen-net.tripped {
-  color: var(--terracotta);
-}
-.gen-net.tripped .airgap-led {
-  background: var(--terracotta);
-}
-
 /* intro */
 .gen-main {
   display: flex;

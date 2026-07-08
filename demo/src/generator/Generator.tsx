@@ -14,7 +14,6 @@ import {
 } from "safeseed";
 import { VerifyPanel } from "./VerifyPanel";
 import { Plus, Trash2, Download, ArrowLeft, ShieldCheck, Check, ShieldAlert } from "lucide-react";
-import { getNetworkCount, subscribeNetworkCount } from "../netGuard";
 
 const MAX_ROWS = 10000;
 const PREVIEW_ROWS = 12;
@@ -22,6 +21,12 @@ const PREVIEW_ROWS = 12;
 // Sentinel "type" for a user-supplied column (their own values, not SafeSeed-generated).
 const CUSTOM = "__custom__" as const;
 type RowType = FieldType | typeof CUSTOM;
+
+// User-supplied column types. "Free text" lives here, not with the generated types:
+// free text is whatever the user puts in it, so SafeSeed cannot vouch for it — it gets
+// the same unattested "your column" treatment as "Your values…", never an honesty tier.
+const YOURS_TYPES: readonly RowType[] = [CUSTOM, "freeText"];
+const isYours = (t: RowType): boolean => YOURS_TYPES.includes(t);
 
 const TIER_CLASS: Record<Tier, string> = {
   "provably-non-real": "tier-provable",
@@ -51,7 +56,7 @@ const FIELD_LABEL: Partial<Record<FieldType, string>> = {
   freeText: "Free text",
 };
 
-const TYPE_OPTIONS = CATALOG.map((e) => ({
+const TYPE_OPTIONS = CATALOG.filter((e) => !isYours(e.field as FieldType)).map((e) => ({
   value: e.field as FieldType,
   label: FIELD_LABEL[e.field] ?? e.field,
   tier: e.tier,
@@ -99,11 +104,8 @@ export default function Generator() {
   const [mode, setMode] = useState<"generate" | "verify">("generate");
   const [audit, setAudit] = useState<ScanResult | null>(null);
 
-  const [netCount, setNetCount] = useState(getNetworkCount());
-  useEffect(() => subscribeNetworkCount(() => setNetCount(getNetworkCount())), []);
-
-  const safeseedFields = fields.filter((f) => f.type !== CUSTOM);
-  const customFields = fields.filter((f) => f.type === CUSTOM);
+  const safeseedFields = fields.filter((f) => !isYours(f.type));
+  const customFields = fields.filter((f) => isYours(f.type));
 
   // Validation — names become CSV headers, so they must be present and unique. And the whole
   // point is generated data, so at least one SafeSeed (non-custom) column is required.
@@ -142,7 +144,7 @@ export default function Generator() {
     for (let r = 0; r < ssDataset.rows.length; r++) {
       const row: string[] = [];
       for (const f of fields) {
-        if (f.type === CUSTOM) {
+        if (isYours(f.type)) {
           const vals = customVals.get(f.id) ?? [];
           row.push(vals.length ? vals[r % vals.length] : "");
         } else {
@@ -184,13 +186,10 @@ export default function Generator() {
   const newId = () => idRef.current++;
   const updateField = (id: number, patch: Partial<FieldRow>) =>
     setFields((fs) => fs.map((f) => (f.id === id ? { ...f, ...patch } : f)));
+  // One add button; the type select's optgroups (generated vs yours) are the real chooser.
   const addField = () => {
     const id = newId();
-    setFields((fs) => [...fs, { id, name: `field_${fs.length + 1}`, type: "firstName", values: "", auditAs: "" }]);
-  };
-  const addCustom = () => {
-    const id = newId();
-    setFields((fs) => [...fs, { id, name: `your_column_${fs.length + 1}`, type: CUSTOM, values: "", auditAs: "" }]);
+    setFields((fs) => [...fs, { id, name: `field_${fs.length + 1}`, type: "email", values: "", auditAs: "" }]);
   };
   const removeField = (id: number) => setFields((fs) => fs.filter((f) => f.id !== id));
 
@@ -232,10 +231,6 @@ export default function Generator() {
         <a className="gen-back" href="https://advokatfrida.com/safeseed/">
           <ArrowLeft size={14} aria-hidden="true" /> What SafeSeed is
         </a>
-        <div className={`gen-net${netCount > 0 ? " tripped" : ""}`}>
-          <span className="airgap-led" aria-hidden="true" />
-          {netCount === 0 ? "0 network requests" : `${netCount} network request(s)`}
-        </div>
       </header>
 
       <main className="site-main gen-main">
@@ -295,7 +290,7 @@ export default function Generator() {
 
           <div className="field-list">
             {fields.map((f) => {
-              const isCustom = f.type === CUSTOM;
+              const isCustom = isYours(f.type);
               const tier = isCustom ? null : getEntry(f.type as FieldType).tier;
               const isDup = f.name.trim() !== "" && dupNames.includes(f.name.trim());
               const isEmpty = f.name.trim() === "";
@@ -324,6 +319,7 @@ export default function Generator() {
                       </optgroup>
                       <optgroup label="Yours">
                         <option value={CUSTOM}>Your values…</option>
+                        <option value="freeText">Free text</option>
                       </optgroup>
                     </select>
                     {isCustom ? (
@@ -362,10 +358,7 @@ export default function Generator() {
 
           <div className="gen-add-row">
             <button className="btn btn-ghost gen-add" onClick={addField}>
-              <Plus size={15} aria-hidden="true" /> Add SafeSeed column
-            </button>
-            <button className="btn btn-ghost gen-add" onClick={addCustom}>
-              <Plus size={15} aria-hidden="true" /> Add your column
+              <Plus size={15} aria-hidden="true" /> Add column
             </button>
           </div>
 
@@ -418,7 +411,7 @@ export default function Generator() {
                 <thead>
                   <tr>
                     {fields.map((f) => {
-                      const isCustom = f.type === CUSTOM;
+                      const isCustom = isYours(f.type);
                       const tier = isCustom ? null : getEntry(f.type as FieldType).tier;
                       return (
                         <th key={f.id} className={isCustom ? "col-yours" : ""}>
@@ -436,7 +429,7 @@ export default function Generator() {
                   {previewRows.map((row, r) => (
                     <tr key={r}>
                       {row.map((cell, c) => (
-                        <td key={c} className={fields[c]?.type === CUSTOM ? "col-yours" : ""}>
+                        <td key={c} className={fields[c] && isYours(fields[c].type) ? "col-yours" : ""}>
                           {cell}
                         </td>
                       ))}
@@ -478,7 +471,7 @@ export default function Generator() {
 
           <div className="audit-cols">
             {fields.map((f) => {
-              const isCustom = f.type === CUSTOM;
+              const isCustom = isYours(f.type);
               return (
                 <div className={`audit-col${isCustom ? " is-custom" : ""}`} key={f.id}>
                   <span className="audit-col-name">{f.name.trim() || "—"}</span>

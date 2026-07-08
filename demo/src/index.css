@@ -34,7 +34,6 @@
      only — line-height / spacing consolidation is Stage 2. The bump: the reading
      baseline moved up a notch (body 16 -> 17) and prose stopped being overridden
      down; headlines were deliberately left where they were. */
-  --fs-counter: 40px; /* the Network Monitor readout — the single loudest number */
   --fs-hero: 31px;    /* hero headline (unchanged, just tokenized) */
   --fs-section: 26px; /* section H2s */
   --fs-h3: 20px;      /* sub-heads: panel / operation / step */
@@ -420,10 +419,6 @@ h4 {
 
 /* hero */
 .hero {
-  display: grid;
-  grid-template-columns: 1.7fr 1fr;
-  gap: 36px;
-  align-items: start;
   padding: 48px 0 40px;
   border-bottom: 1px solid var(--rule);
 }
@@ -510,144 +505,6 @@ h4 {
   background: var(--teal);
   color: #fff;
   text-decoration: none;
-}
-
-/* air-gap rail — a live network-monitor instrument */
-.airgap {
-  background: var(--paper);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  padding: 20px 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  position: relative;
-}
-.airgap-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--rule);
-  font-size: var(--fs-micro);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.airgap-led {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--green);
-  animation: led-pulse 2.4s ease-out infinite;
-}
-.airgap.tripped .airgap-led {
-  background: var(--terracotta);
-  animation: led-pulse-warn 1s ease-out infinite;
-}
-.airgap-head-state {
-  margin-left: auto;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: var(--teal);
-}
-.airgap.tripped .airgap-head-state {
-  color: var(--terracotta);
-}
-@keyframes led-pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(47, 125, 79, 0.5);
-  }
-  70% {
-    box-shadow: 0 0 0 7px rgba(47, 125, 79, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(47, 125, 79, 0);
-  }
-}
-@keyframes led-pulse-warn {
-  0% {
-    box-shadow: 0 0 0 0 rgba(181, 83, 46, 0.5);
-  }
-  70% {
-    box-shadow: 0 0 0 7px rgba(181, 83, 46, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(181, 83, 46, 0);
-  }
-}
-.airgap-readout {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.airgap-n {
-  font-family: var(--mono);
-  font-weight: 700;
-  font-size: var(--fs-counter);
-  line-height: 1;
-  color: var(--teal);
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "zero" 1;
-  background: var(--parchment);
-  border: 1px solid var(--rule);
-  border-radius: var(--r-md);
-  padding: 10px 18px;
-  text-align: center;
-}
-.airgap.tripped .airgap-n {
-  color: var(--terracotta);
-  border-color: var(--terracotta);
-}
-.airgap-l {
-  font-size: var(--fs-meta);
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
-  line-height: 1.35;
-}
-.airgap-cap {
-  margin: 0;
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: var(--fs-small); /* the claim line: bumped from 13, but held below body so it
-                                 doesn't wrap hard in the narrow rail (italic serif keeps it distinct) */
-  color: var(--ink);
-  line-height: var(--lh-snug);
-}
-.airgap-probe {
-  align-self: flex-start;
-  font-size: var(--fs-small);
-  padding: 6px 12px;
-}
-.airgap-probe:hover {
-  border-color: var(--terracotta);
-  color: var(--terracotta);
-}
-.airgap-fine {
-  margin: 0;
-  font-size: var(--fs-small);
-  line-height: var(--lh-snug);
-  color: var(--muted);
-}
-.airgap-fine code {
-  font-family: var(--mono);
-  font-size: var(--fs-meta);
-  color: var(--teal);
-  background: var(--parchment);
-  border: 1px solid var(--rule);
-  border-radius: var(--r-sm);
-  padding: 1px 5px;
-}
-.airgap-teaser {
-  margin: 6px 0 0;
-  font-size: var(--fs-small);
-  line-height: var(--lh-snug);
-  color: var(--muted);
-  border-top: 1px solid var(--rule);
-  padding-top: 12px;
 }
 
 /* section headings */
@@ -1380,10 +1237,6 @@ td.scan-flag {
   :root {
     --fs-hero: 30px;
   }
-  .hero {
-    grid-template-columns: 1fr;
-    gap: 28px;
-  }
   .tier-cards,
   .op-cards,
   .boundary-cols {
@@ -1397,13 +1250,9 @@ td.scan-flag {
 @media (max-width: 560px) {
   :root {
     --fs-hero: 26px;
-    --fs-counter: 32px;
   }
   .site {
     padding: 0 16px;
-  }
-  .airgap-n {
-    padding: 9px 14px;
   }
   .proof {
     padding: 20px 18px;

@@ -22,11 +22,15 @@ const PREVIEW_ROWS = 12;
 const CUSTOM = "__custom__" as const;
 type RowType = FieldType | typeof CUSTOM;
 
-// User-supplied column types. "Free text" lives here, not with the generated types:
-// free text is whatever the user puts in it, so SafeSeed cannot vouch for it — it gets
-// the same unattested "your column" treatment as "Your values…", never an honesty tier.
-const YOURS_TYPES: readonly RowType[] = [CUSTOM, "freeText"];
-const isYours = (t: RowType): boolean => YOURS_TYPES.includes(t);
+// A "your column" is user-supplied: the user's own values, which SafeSeed cannot vouch for,
+// so it gets the unattested "your column" treatment (no honesty tier, excluded from the
+// attested record). "Your values…" is the only such type.
+const isYours = (t: RowType): boolean => t === CUSTOM;
+
+// Catalog field types the generator does not offer as a generated column. The library's
+// freeText only emits structurally-fake TEST_ tokens; in the generator a user who wants a
+// text column supplies their own values via "Your values…", so it is hidden here.
+const HIDDEN_GENERATED: readonly FieldType[] = ["freeText"];
 
 const TIER_CLASS: Record<Tier, string> = {
   "provably-non-real": "tier-provable",
@@ -53,10 +57,9 @@ const FIELD_LABEL: Partial<Record<FieldType, string>> = {
   lastName: "Last name",
   fullName: "Full name",
   streetAddress: "Street address",
-  freeText: "Free text",
 };
 
-const TYPE_OPTIONS = CATALOG.filter((e) => !isYours(e.field as FieldType)).map((e) => ({
+const TYPE_OPTIONS = CATALOG.filter((e) => !HIDDEN_GENERATED.includes(e.field as FieldType)).map((e) => ({
   value: e.field as FieldType,
   label: FIELD_LABEL[e.field] ?? e.field,
   tier: e.tier,
@@ -319,7 +322,6 @@ export default function Generator() {
                       </optgroup>
                       <optgroup label="Yours">
                         <option value={CUSTOM}>Your values…</option>
-                        <option value="freeText">Free text</option>
                       </optgroup>
                     </select>
                     {isCustom ? (

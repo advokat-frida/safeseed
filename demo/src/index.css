@@ -285,55 +285,52 @@ h4 {
   white-space: nowrap;
 }
 
-/* footer — the page signature */
-.site-footer {
-  border-top: 1px solid var(--rule);
-  padding: 20px 0 28px;
-  margin-top: 16px;
-  text-align: left;
-}
-.footer-note {
-  font-size: var(--fs-small);
-  color: var(--muted);
-  margin: 0 0 14px;
-}
-.footer-note strong {
-  color: var(--ink);
-  font-weight: 600;
-}
-.footer-sig {
-  display: inline-flex;
-  align-items: center;
-  gap: 14px;
-}
-.footer-fox-img {
-  width: 42px;
-  height: 42px;
-}
-.footer-sig-lines {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-}
-.footer-sig-lines a {
-  font-size: var(--fs-meta);
-  font-weight: 600;
-}
-.footer-sig-sub {
-  font-size: var(--fs-micro);
-  color: var(--muted);
+/* ============================================================
+   SITE CHROME — the standardized paper top bar + black colophon, so
+   the demo reads as part of advokatfrida.com like the other toolkit
+   pages. The demo body is otherwise still in the original SafeSeed
+   palette, so the chrome loads its own faces (Anton nameplate, Archivo
+   labels, Space Grotesk colophon copy) from /assets/fonts — the same
+   self-hosted files the live site serves.
+   ============================================================ */
+@font-face{font-family:"Anton";font-style:normal;font-weight:400;font-display:swap;src:url(/assets/fonts/anton-400-latin.woff2) format("woff2")}
+@font-face{font-family:"Archivo";font-style:normal;font-weight:400;font-display:swap;src:url(/assets/fonts/archivo-400-latin.woff2) format("woff2")}
+@font-face{font-family:"Archivo";font-style:normal;font-weight:700;font-display:swap;src:url(/assets/fonts/archivo-700-latin.woff2) format("woff2")}
+@font-face{font-family:"Space Grotesk";font-style:normal;font-weight:400;font-display:swap;src:url(/assets/fonts/spacegrotesk-400-latin.woff2) format("woff2")}
+
+:root {
+  --font-display: "Anton", Impact, system-ui, sans-serif;
+  --font-label: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-chrome: "Space Grotesk", system-ui, -apple-system, sans-serif;
 }
 
-/* the Advokat Frida neon kitsune — one magenta PNG, hue-rotated to teal to match
-   the SafeSeed palette (other toolkit pages rotate it to their own accent). */
-.fox-neon {
-  display: block;
-  filter: hue-rotate(-120deg) saturate(1.05) drop-shadow(0 0 6px rgba(18, 102, 106, 0.5));
+.site-bar{display:flex;align-items:center;gap:.5rem 1.25rem;flex-wrap:wrap;min-height:42px;margin:0 calc(clamp(24px,3vw,56px) * -1);padding:.35rem clamp(24px,3vw,56px);background:var(--paper);border-bottom:1px solid var(--rule)}
+.bar-wordmark{flex:none;font-family:var(--font-display);font-weight:400;font-size:22px;line-height:1;letter-spacing:.02em;text-transform:uppercase;color:var(--ink);text-decoration:none}
+.bar-wordmark:hover{text-decoration:none}
+.bar-nav{margin-left:auto;min-width:0}
+.bar-nav ul{display:flex;align-items:center;flex-wrap:wrap;gap:1.25rem;list-style:none;margin:0;padding:0}
+.bar-nav a{font-family:var(--font-label);font-weight:700;font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);text-decoration:none;white-space:nowrap;display:block}
+.bar-nav a:hover{color:var(--eyebrow);text-decoration:none}
+@media(max-width:640px){
+  .bar-nav{width:100%;margin-left:0;overflow-x:auto;scrollbar-width:none}
+  .bar-nav::-webkit-scrollbar{display:none}
+  .bar-nav ul{flex-wrap:nowrap;gap:1rem}
+  .bar-nav a{font-size:10px;letter-spacing:.04em}
 }
-.masthead-fox {
-  width: 72px;
-  height: 72px;
+
+.site-colophon{background:var(--ink);margin:3rem calc(clamp(24px,3vw,56px) * -1) 0}
+.site-colophon-inner{padding:1.6rem clamp(24px,3vw,56px);display:grid;grid-template-columns:1fr auto;gap:34px;align-items:center}
+.site-colophon-brand{min-width:0}
+.site-colophon-name{font-family:var(--font-display);text-transform:uppercase;letter-spacing:.02em;color:#fff;margin:0 0 8px;font-size:1.6rem;font-weight:400;line-height:1}
+.site-colophon-desc{font-family:var(--font-chrome);color:rgba(255,255,255,.82);max-width:34rem;margin:0;font-size:.82rem;line-height:1.55}
+.site-colophon-nav{flex-direction:column;align-items:flex-end;gap:7px;margin:0;padding:0;list-style:none;display:flex}
+.site-colophon-nav a{font-family:var(--font-label);letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.82);font-size:11px;font-weight:400;text-decoration:none;white-space:nowrap}
+.site-colophon-nav a:hover{color:#fff;text-decoration:none}
+@media(max-width:560px){
+  .site-bar,.site-colophon{margin-left:-16px;margin-right:-16px}
+  .site-bar{padding-left:16px;padding-right:16px}
+  .site-colophon-inner{grid-template-columns:1fr;gap:16px;padding:1.4rem 16px}
+  .site-colophon-nav{align-items:flex-start;flex-direction:row;flex-wrap:wrap;gap:10px 20px}
 }
 
 /* ============================================================
@@ -373,48 +370,6 @@ h4 {
 .tier-fake .cite-dot,
 .tier-fake .tier-dot {
   background: var(--tier-fake);
-}
-
-/* masthead */
-.masthead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 0 14px;
-  border-bottom: 2px solid var(--ink);
-}
-.masthead-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-}
-.masthead-lockup {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.masthead-mark {
-  font-family: var(--sans);
-  font-size: 25px; /* bespoke wordmark — a logo, deliberately off the type scale */
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  color: var(--terracotta);
-  line-height: 1;
-}
-.masthead-kicker {
-  font-family: var(--sans);
-  font-size: 11.5px; /* bespoke — part of the wordmark lockup, balanced to the mark */
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.masthead-dateline {
-  font-size: var(--fs-micro);
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--muted);
 }
 
 /* hero */

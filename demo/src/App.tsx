@@ -1,24 +1,24 @@
 import { Table2, ShieldCheck, ScanSearch } from "lucide-react";
 import ProofPanel from "./components/ProofPanel";
-import foxLogo from "./assets/fox-logo.png";
 
 export default function App() {
   return (
     <div className="site">
+      <header className="site-bar">
+        <a className="bar-wordmark" href="https://advokatfrida.com/">Advokat Frida</a>
+        <nav className="bar-nav" aria-label="Sections">
+          <ul>
+            <li><a href="https://advokatfrida.com/tag/fridas-desk/">Frida&rsquo;s Desk</a></li>
+            <li><a href="https://advokatfrida.com/tag/field-guides/">Field Guides</a></li>
+            <li><a href="https://advokatfrida.com/tag/playbooks/">Playbooks</a></li>
+            <li><a href="https://advokatfrida.com/tag/toolkit/">Toolkit</a></li>
+            <li><a href="https://advokatfrida.com/about/">About</a></li>
+          </ul>
+        </nav>
+      </header>
       <div className="demo-banner" role="note">
         <strong>Demo version.</strong> Not for distribution or production use.
       </div>
-      {/* MASTHEAD */}
-      <header className="masthead">
-        <span className="masthead-brand">
-          <img className="fox-neon masthead-fox" src={foxLogo} alt="Advokat Frida" width={72} height={72} />
-          <span className="masthead-lockup">
-            <span className="masthead-mark">SAFESEED</span>
-            <span className="masthead-kicker">Frida's Toolkit · No. 01</span>
-          </span>
-        </span>
-        <span className="masthead-dateline">client-side · MIT · zero network</span>
-      </header>
 
       <main className="site-main">
         {/* HERO */}
@@ -60,18 +60,19 @@ export default function App() {
         <ProofPanel />
       </main>
 
-      {/* FOOTER */}
-      <footer className="site-footer">
-        <p className="footer-note">
-          <strong>No telemetry, no analytics, no network.</strong> Everything here runs in your browser — verify it in
-          the network tab. Open source, MIT.
-        </p>
-        <div className="footer-sig">
-          <img className="fox-neon footer-fox-img" src={foxLogo} alt="" aria-hidden="true" width={42} height={42} />
-          <span className="footer-sig-lines">
-            <a href="https://github.com/advokat-frida/safeseed">github.com/advokat-frida/safeseed</a>
-            <span className="footer-sig-sub">Part of Advokat Frida · Frida's Toolkit</span>
-          </span>
+      <footer className="site-colophon">
+        <div className="site-colophon-inner">
+          <div className="site-colophon-brand">
+            <p className="site-colophon-name">Advokat Frida</p>
+            <p className="site-colophon-desc">Privacy and AI governance, by design and in practice.<br />Runs entirely in your browser, cookieless and local &mdash; nothing you type leaves the page.</p>
+          </div>
+          <nav aria-label="Footer">
+            <ul className="site-colophon-nav">
+              <li><a href="https://advokatfrida.com/about/">About</a></li>
+              <li><a href="https://advokatfrida.com/tag/toolkit/">Toolkit</a></li>
+              <li><a href="https://advokatfrida.com/rss/">RSS</a></li>
+            </ul>
+          </nav>
         </div>
       </footer>
     </div>

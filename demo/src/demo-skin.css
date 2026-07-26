@@ -1,0 +1,65 @@
+/* ============================================================
+   DEMO DISPATCH SKIN — repaint the SafeSeed demo landing in the Advokat
+   Frida article house style (Space Grotesk, ink/paper/forest, square
+   2px-ink cards + forest buttons), matching the generator's dispatch skin
+   and the live site. Loaded AFTER index.css (see main.tsx) so every
+   token-referencing rule inherits the article palette. Space Grotesk is
+   self-hosted from /assets/fonts — the same faces as the site + the
+   standardized chrome. index.css stays the neutral shared base; this file
+   is the demo-only overlay, the counterpart to generator.css's skin.
+   ============================================================ */
+@font-face{font-family:"Space Grotesk";font-style:normal;font-weight:400;font-display:swap;src:url(/assets/fonts/spacegrotesk-400-latin.woff2) format("woff2")}
+@font-face{font-family:"Space Grotesk";font-style:normal;font-weight:500;font-display:swap;src:url(/assets/fonts/spacegrotesk-500-latin.woff2) format("woff2")}
+@font-face{font-family:"Space Grotesk";font-style:normal;font-weight:600;font-display:swap;src:url(/assets/fonts/spacegrotesk-600-latin.woff2) format("woff2")}
+@font-face{font-family:"Space Grotesk";font-style:normal;font-weight:700;font-display:swap;src:url(/assets/fonts/spacegrotesk-700-latin.woff2) format("woff2")}
+
+:root {
+  --sans: "Space Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: "Space Grotesk", system-ui, -apple-system, sans-serif; /* site sets headings in Space Grotesk, no serif */
+  --parchment: #f6f4ef;
+  --paper: #fffdf8;
+  --recessed: #f6f4ef;
+  --ink: #16140f;
+  --muted: #4a463d;
+  --rule: rgba(31, 29, 24, 0.16);
+  --teal: #2f6b3a;   /* the demo's primary accent -> the article's forest */
+  --teal-d: #275a31;
+  --terracotta: #c83232;
+  --green: #2f6b3a;
+  --eyebrow: #9e5415; /* amber eyebrows, like the article */
+  /* honesty tiers already match the canonical four (teal / indigo / amber / red) */
+
+  /* the article reading scale — never the smaller demo scale (DESIGN-PRINCIPLES §2) */
+  --fs-hero: 34px;
+  --fs-section: 28px;
+  --fs-h3: 24px;
+  --fs-h4: 20px;
+  --fs-lead: 20px;
+  --fs-body: 20px;
+  --fs-small: 18px;
+  --fs-meta: 16px;
+  --fs-micro: 13.5px;
+}
+
+body { background: var(--parchment); color: var(--ink); }
+
+/* Hero highlight: forest, upright (was italic teal serif). */
+.hero-headline .hl { font-style: normal; color: var(--teal); }
+
+/* Square, ink-edged cards + data exhibits like the article's blocks. */
+.exhibit, .cite-card { border: 2px solid var(--ink); border-radius: 4px; }
+.exhibit-bar { background: var(--parchment); border-bottom: 2px solid var(--ink); }
+table.data th { border-bottom: 2px solid var(--ink); }
+.proof { border: 2px solid var(--teal); border-radius: 4px; }
+
+/* Buttons: the proof-panel look — forest primary, paper + forest-border secondary, square. */
+.btn { border: 2px solid var(--teal); border-radius: 4px; background: var(--paper); color: var(--teal); font-weight: 700; }
+.btn:hover { background: rgba(47, 107, 58, 0.06); color: var(--teal); border-color: var(--teal); }
+.btn-primary { background: var(--teal); color: #fff; border-color: var(--teal); }
+.btn-primary:hover { background: var(--teal-d); color: #fff; border-color: var(--teal-d); }
+.btn-ghost { background: transparent; border-color: transparent; color: var(--muted); }
+.btn-ghost:hover { color: var(--eyebrow); border-color: transparent; }
+.hero-cta { background: var(--teal); border-radius: 4px; }
+.hero-cta:hover { background: var(--teal-d); }
+.hero-cta-alt { border: 2px solid var(--teal); border-radius: 4px; color: var(--teal); }
+.hero-cta-alt:hover { background: var(--teal); color: #fff; }

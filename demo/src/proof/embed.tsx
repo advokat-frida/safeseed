@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import ProofPanel, { ScanStep } from "../components/ProofPanel";
 import indexCss from "../index.css?inline";
+import skinCss from "../demo-skin.css?inline";
 
 // The demo stylesheet, scoped into the shadow root. The design tokens live on :root in
 // the source; inside a shadow tree :root never matches, so rewrite it to :host — custom
@@ -8,8 +9,16 @@ import indexCss from "../index.css?inline";
 // not the :root pseudo-class, so the \b keeps it untouched.) The body/#root rules in the
 // source then no-op harmlessly inside the shadow, so the inherited text styles they used
 // to carry are restated on :host below.
+//
+// demo-skin.css rides along because it IS the article house style (Space Grotesk, the
+// forest accent, square 2px-ink cards) — the same repaint the standalone demo gets. Without
+// it the embed kept index.css's neutral skin: teal accents, 1px hairline borders and 8px
+// radii sitting inside an article built from square ink-edged blocks. Its @font-face blocks
+// no-op inside a shadow tree (Space Grotesk is already loaded at the document level) and
+// its font-SIZE tokens are the standalone page's scale, overridden on :host below.
 const SHADOW_CSS =
   indexCss.replace(/:root\b/g, ":host") +
+  skinCss.replace(/:root\b/g, ":host") +
   `
 :host {
   /* Match the host article (Advokat Frida / Dispatch). Its body + heading font is
@@ -20,18 +29,19 @@ const SHADOW_CSS =
   --serif: "Space Grotesk", system-ui, -apple-system, sans-serif;
   --mono: "SFMono-Regular", Menlo, Consolas, monospace;
 
-  /* Scale the demo's type up to the article's reading column. The demo was authored at a
-     17px body baseline, so inside the article (~19.8px reading) it looked shrunken — you had
-     to zoom to read it. These remap the demo tokens onto the article's scale: explanatory
-     prose ~18px, data/tables ~16px, step heads = the article's h3. */
-  --fs-section: 28px;
-  --fs-h3: 24px;
-  --fs-h4: 20px;
-  --fs-lead: 20px;
-  --fs-body: 20px;
-  --fs-small: 18px;
-  --fs-meta: 16px;
-  --fs-micro: 13.5px;
+  /* The article's real reading scale, measured off the rendered page: body prose is 16px
+     and h2 is 24px. An earlier pass assumed ~19.8px and scaled the panel to a 20px baseline,
+     which left the whole embed roughly a quarter larger than the prose around it and pushed
+     the six-column exhibit into a horizontal scrollbar. These track the article instead:
+     prose 16px, step heads a notch under the article's h2, data/tables 13px. */
+  --fs-section: 24px;
+  --fs-h3: 19px;
+  --fs-h4: 17px;
+  --fs-lead: 17px;
+  --fs-body: 16px;
+  --fs-small: 15px;
+  --fs-meta: 13px;
+  --fs-micro: 11px;
 
   display: block;
   box-sizing: border-box;
@@ -46,6 +56,24 @@ const SHADOW_CSS =
   padding: 1.25rem 1.25rem 1.5rem;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+/* Tighter cells than the standalone page: the exhibit carries six columns of monospace
+   PII, and the default 8px/12px padding is what tips it over the available width. The
+   target is the narrowest width that still gets the wide breakout (a ~1025px viewport,
+   which leaves the panel about 750px of usable table). */
+table.data td,
+table.data th { padding: 6px 8px; }
+/* The citation chips under each column name are the widest thing in the header row
+   ("Structurally fake" alone outruns its column's data), so let them wrap rather than
+   set a floor on the column width. */
+table.data th .cite-chip { white-space: normal; text-align: left; }
+/* Between the grid's 1024px collapse and roughly 1120px the breakout only borrows a
+   sliver of the sidenote track, leaving the exhibit a few dozen pixels short. Step the
+   data down one notch there so all six columns still land without a scrollbar. */
+@media (max-width: 1120px) {
+  table.data { font-size: 12px; }
+  table.data td,
+  table.data th { padding: 5px 6px; }
 }
 /* The article already introduces the panel with its own "Live demo" h2 + intro prose, so
    drop the panel's own "See it for yourself" heading and blurb (keep the colour-key legend). */

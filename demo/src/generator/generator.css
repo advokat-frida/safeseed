@@ -425,15 +425,15 @@ body { background: var(--parchment); color: var(--ink); }
    ===================================================================== */
 :root {
   /* the article / proof-panel reading scale (see proof/embed.tsx) */
-  --fs-hero: 34px;
-  --fs-section: 28px;
-  --fs-h3: 24px;
-  --fs-h4: 20px;
-  --fs-lead: 20px;
-  --fs-body: 20px;
-  --fs-small: 18px;
-  --fs-meta: 16px;
-  --fs-micro: 13.5px;
+  --fs-hero: 30px;
+  --fs-section: 24px;
+  --fs-h3: 19px;
+  --fs-h4: 17px;
+  --fs-lead: 19px;
+  --fs-body: 16px;
+  --fs-small: 15px;
+  --fs-meta: 13px;
+  --fs-micro: 11px;
 }
 
 /* Ledes fill the content width like the headings + cards -- no stranded prose. */

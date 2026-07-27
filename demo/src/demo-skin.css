@@ -29,16 +29,21 @@
   --eyebrow: #9e5415; /* amber eyebrows, like the article */
   /* honesty tiers already match the canonical four (teal / indigo / amber / red) */
 
-  /* the article reading scale — never the smaller demo scale (DESIGN-PRINCIPLES §2) */
-  --fs-hero: 34px;
-  --fs-section: 28px;
-  --fs-h3: 24px;
-  --fs-h4: 20px;
-  --fs-lead: 20px;
-  --fs-body: 20px;
-  --fs-small: 18px;
-  --fs-meta: 16px;
-  --fs-micro: 13.5px;
+  /* The SITE's reading scale: body 16px, matching what an Advokat Frida article
+     renders prose at. Was a 20px "article scale" until 2026-07-27 -- the site had been
+     cut to 16px and this block was never re-based, so the standalone demo shipped ~25%
+     larger than the article linking to it. Verify against a live article, not against
+     the docs (DESIGN-PRINCIPLES §2). The embed overrides these on :host in
+     proof/embed.tsx, so it is unaffected by changes here. */
+  --fs-hero: 30px;
+  --fs-section: 24px;
+  --fs-h3: 19px;
+  --fs-h4: 17px;
+  --fs-lead: 19px;
+  --fs-body: 16px;
+  --fs-small: 15px;
+  --fs-meta: 13px;
+  --fs-micro: 11px;
 }
 
 body { background: var(--parchment); color: var(--ink); }

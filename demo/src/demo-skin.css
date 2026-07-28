@@ -22,10 +22,10 @@
   --ink: #16140f;
   --muted: #4a463d;
   --rule: rgba(31, 29, 24, 0.16);
-  --teal: #2f6b3a;   /* the demo's primary accent -> the article's forest */
-  --teal-d: #275a31;
+  --teal: #1f4e32;   /* the demo's primary accent -> the article's forest */
+  --teal-d: #1a422a;
   --terracotta: #c83232;
-  --green: #2f6b3a;
+  --green: #1f4e32;
   --eyebrow: #9e5415; /* amber eyebrows, like the article */
   /* honesty tiers already match the canonical four (teal / indigo / amber / red) */
 
@@ -59,7 +59,7 @@ table.data th { border-bottom: 2px solid var(--ink); }
 
 /* Buttons: the proof-panel look — forest primary, paper + forest-border secondary, square. */
 .btn { border: 2px solid var(--teal); border-radius: 4px; background: var(--paper); color: var(--teal); font-weight: 700; }
-.btn:hover { background: rgba(47, 107, 58, 0.06); color: var(--teal); border-color: var(--teal); }
+.btn:hover { background: rgba(31, 78, 50, 0.06); color: var(--teal); border-color: var(--teal); }
 .btn-primary { background: var(--teal); color: #fff; border-color: var(--teal); }
 .btn-primary:hover { background: var(--teal-d); color: #fff; border-color: var(--teal-d); }
 .btn-ghost { background: transparent; border-color: transparent; color: var(--muted); }

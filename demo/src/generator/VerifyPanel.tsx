@@ -65,7 +65,7 @@ function plainFailure(f: VerifyFailure): string {
   const where = f.row !== undefined ? ` (row ${f.row + 1})` : "";
   switch (f.kind) {
     case "out-of-range-value":
-      return `${f.field ?? "A column"}${where}: "${f.value ?? ""}" isn't a provably-synthetic value for that column — it could be real data.`;
+      return `${f.field ?? "A column"}${where}: "${f.value ?? ""}" isn't inside the reserved range for that column — it could be real data.`;
     case "missing-column":
       return `The verification file expects a column "${f.field}" that isn't in this CSV.`;
     case "column-hash-mismatch":
@@ -135,7 +135,7 @@ export function VerifyPanel() {
       </button>
 
       {result && genuine !== null && (
-        <div className={`verify-result ${verified ? "is-pass" : "is-fail"}`}>
+        <div className={`verify-result ${verified ? "is-pass" : "is-fail"}`} role="status" aria-live="polite">
           <div className="verify-verdict">
             {verified ? <ShieldCheck size={22} aria-hidden="true" /> : <ShieldAlert size={22} aria-hidden="true" />}
             <span>{verified ? "Verified" : "Not verified"}</span>

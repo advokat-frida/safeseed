@@ -902,24 +902,14 @@ pre.code + pre.code {
   line-height: var(--lh-body);
   margin: 0 0 12px;
 }
-.scan-formats {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-.scan-formats-label {
-  font-size: var(--fs-micro);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.seg-btn:disabled {
-  cursor: not-allowed;
-  color: var(--muted);
-  opacity: 0.5;
-  background: var(--recessed);
+.scan-intro code {
+  font-family: var(--mono);
+  font-size: var(--fs-meta);
+  color: var(--teal);
+  background: var(--parchment);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-sm);
+  padding: 1px 5px;
 }
 .scan-actions {
   display: flex;
@@ -958,6 +948,21 @@ td.scan-flag {
   background: var(--terracotta);
   padding: 1px 6px;
   border-radius: var(--r-sm);
+}
+
+/* Not-legal-advice boundary strip (FAMILY-CHROME .finelegal anatomy, on this page's tokens) */
+.finelegal {
+  margin: 44px 0 0;
+  font-size: var(--fs-small);
+  line-height: var(--lh-body);
+  color: var(--muted);
+  border-left: 4px solid var(--muted);
+  padding: 10px 14px;
+  background: var(--paper);
+  border-radius: 4px;
+}
+.finelegal strong {
+  color: var(--ink);
 }
 
 /* boundary */

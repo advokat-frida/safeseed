@@ -301,7 +301,8 @@
   .field-type {
     grid-area: type;
   }
-  .field-row .tier-chip {
+  .field-row .tier-chip,
+  .field-row .field-yours-tag {
     grid-area: tier;
   }
   .field-del {
@@ -450,8 +451,12 @@ body { background: var(--parchment); color: var(--ink); }
 .tier-key strong { color: var(--ink); font-weight: 700; }
 @media (max-width: 720px) { .tier-key { grid-template-columns: 1fr; } }
 
-/* Field rows: fixed columns so every dropdown + pill lines up, and pills are one width. */
-.field-row { grid-template-columns: minmax(150px, 1fr) 224px 184px 36px; }
+/* Field rows: fixed columns so every dropdown + pill lines up, and pills are one width.
+   ≥621px only — an unqualified rule here would override the ≤620px stacked grid above
+   (same specificity, later in the file) and push the row ~230px past a phone viewport. */
+@media (min-width: 621px) {
+  .field-row { grid-template-columns: minmax(150px, 1fr) 224px 184px 36px; }
+}
 .field-row .tier-chip, .field-row .field-yours-tag { width: 100%; justify-content: center; }
 .field-name, .field-type, .num-ctl input, .field-values { font-size: 15px; }
 
@@ -544,3 +549,7 @@ body { background: var(--parchment); color: var(--ink); }
 .verify-checks li.note { color: var(--muted); padding-left: 24px; }
 .verify-failures { list-style: disc; margin: 12px 0 0 20px; padding: 0; display: flex; flex-direction: column; gap: 5px; font-size: 0.85rem; color: var(--terracotta); }
 .verify-warning { margin: 10px 0 0; font-size: 0.82rem; color: var(--eyebrow); }
+
+/* --- Not-legal-advice boundary strip (FAMILY-CHROME .finelegal anatomy) --- */
+.finelegal { margin: 32px 0 0; font-size: 15px; line-height: 1.55; color: var(--muted); border-left: 4px solid var(--muted); padding: 10px 14px; background: var(--paper); border-radius: var(--radius); }
+.finelegal strong { color: var(--ink); }

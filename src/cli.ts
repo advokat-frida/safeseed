@@ -204,6 +204,14 @@ function cmdScan(p: Parsed): void {
     if (result.findings.length > 50) {
       process.stdout.write(`  ...and ${result.findings.length - 50} more\n`);
     }
+    // A named column the scan could not check is a failure, never a silent skip —
+    // otherwise a typo'd --fields name reads as a clean scan.
+    for (const name of result.missingColumns) {
+      process.stdout.write(`  [missing-column] "${name}" is not in the file's header — not scanned\n`);
+    }
+    for (const name of result.duplicateColumns) {
+      process.stdout.write(`  [duplicate-column] "${name}" matches more than one header — ambiguous, not scanned\n`);
+    }
   }
   process.exit(result.ok ? 0 : 1);
 }

@@ -35,7 +35,14 @@ export interface ScanResult {
   findings: ScanFinding[];
   perField: Record<string, number>;
   scannedRows: number;
+  /** Named columns not found in the file's header (case-insensitive, BOM/whitespace-trimmed match). */
+  missingColumns: string[];
+  /** Named columns matching more than one header — ambiguous, so they are not scanned. */
+  duplicateColumns: string[];
 }
+
+/** Header matching is case-insensitive after stripping a leading BOM and surrounding whitespace. */
+const normalizeHeader = (name: string): string => name.replace(/^\uFEFF/, "").trim().toLowerCase();
 
 export function scan(opts: ScanOptions): ScanResult {
   const { columns: dataColumns, rows } = parseCsv(opts.csv);
@@ -43,8 +50,25 @@ export function scan(opts: ScanOptions): ScanResult {
   const perField: Record<string, number> = {};
   for (const col of opts.columns) perField[col.name] = 0;
 
+  // A named column that silently doesn't get scanned is a false clean, so unmatched
+  // names are reported: zero header matches -> missing, two or more -> ambiguous.
+  const indicesByHeader = new Map<string, number[]>();
+  dataColumns.forEach((name, i) => {
+    const key = normalizeHeader(name);
+    const list = indicesByHeader.get(key);
+    if (list) list.push(i);
+    else indicesByHeader.set(key, [i]);
+  });
+
+  const missingColumns: string[] = [];
+  const duplicateColumns: string[] = [];
   const indexByName = new Map<string, number>();
-  dataColumns.forEach((name, i) => indexByName.set(name, i));
+  for (const col of opts.columns) {
+    const matches = indicesByHeader.get(normalizeHeader(col.name)) ?? [];
+    if (matches.length === 0) missingColumns.push(col.name);
+    else if (matches.length > 1) duplicateColumns.push(col.name);
+    else indexByName.set(col.name, matches[0]!);
+  }
 
   rows.forEach((row, r) => {
     for (const col of opts.columns) {
@@ -67,9 +91,11 @@ export function scan(opts: ScanOptions): ScanResult {
   });
 
   return {
-    ok: findings.length === 0,
+    ok: findings.length === 0 && missingColumns.length === 0 && duplicateColumns.length === 0,
     findings,
     perField,
     scannedRows: rows.length,
+    missingColumns,
+    duplicateColumns,
   };
 }

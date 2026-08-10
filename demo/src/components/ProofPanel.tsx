@@ -454,6 +454,10 @@ const DIRTY_CSV = [
   "sam.rivera@example.org,(800) 555-0188,198.51.100.5",
 ].join("\n");
 
+// Headers match named columns case-insensitively (BOM/whitespace-trimmed) in scan(), so
+// cell highlighting keys must normalize the same way or a "Email" header never lights up.
+const normalizeHeader = (name: string): string => name.replace(/^\uFEFF/, "").trim().toLowerCase();
+
 export function ScanStep() {
   const [text, setText] = useState(DIRTY_CSV);
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -461,9 +465,24 @@ export function ScanStep() {
   const parsed = useMemo(() => parseCsv(text), [text]);
   const flagged = useMemo(() => {
     const set = new Set<string>();
-    if (result) for (const f of result.findings) set.add(`${f.row}:${f.field}`);
+    if (result) for (const f of result.findings) set.add(`${f.row}:${normalizeHeader(f.field)}`);
     return set;
   }, [result]);
+
+  // A named column the scan couldn't check must never read as a clean pass, so the verdict
+  // leads with what was actually scanned: all-missing gets the "0 of N found" headline, a
+  // partial match names the columns that WERE checked and the ones that weren't.
+  const missing = result?.missingColumns ?? [];
+  const duplicated = result?.duplicateColumns ?? [];
+  const checkedNames = SCAN_COLUMNS.map((c) => c.name).filter(
+    (n) => !missing.includes(n) && !duplicated.includes(n),
+  );
+  const unmatchedNote = [
+    missing.length > 0 ? `${missing.join(", ")} not found in this file` : "",
+    duplicated.length > 0 ? `${duplicated.join(", ")} appears more than once (ambiguous, not scanned)` : "",
+  ]
+    .filter(Boolean)
+    .join("; ");
 
   return (
     <div className="step">
@@ -472,24 +491,11 @@ export function ScanStep() {
         <h3>Scan</h3>
       </div>
       <p className="scan-intro">
-        Audit a file you already have. For each column you name, the scanner flags any value <em>outside</em> its
-        reserved range — anything that isn't provably synthetic, so you can review it. It checks only the columns you
-        type, and needs no run record.
+        Audit a file you already have. This demo checks three named columns — <code>email</code>, <code>phone</code>,
+        and <code>ip</code> — and flags any value <em>outside</em> its reserved range: anything that isn't provably
+        synthetic, so you can review it. Named columns it can't find in your header are called out, and it needs no
+        run record. (The CLI lets you name any columns.)
       </p>
-      <div className="scan-formats">
-        <span className="scan-formats-label">Input format</span>
-        <div className="seg" role="group" aria-label="Input format">
-          <button type="button" className="seg-btn active" aria-pressed="true">
-            CSV
-          </button>
-          <button type="button" className="seg-btn" disabled title="Planned">
-            JSON · soon
-          </button>
-          <button type="button" className="seg-btn" disabled title="Planned">
-            SQL · soon
-          </button>
-        </div>
-      </div>
       <div className="field">
         <label htmlFor="scan-input">Paste CSV — a header row, then comma-separated values</label>
         <textarea
@@ -506,7 +512,12 @@ export function ScanStep() {
         </button>
         <span className="scan-summary" role="status" aria-live="polite">
           {result &&
-            (result.ok ? (
+            (checkedNames.length === 0 ? (
+              <span className="scan-dirty">
+                <strong>0 of {SCAN_COLUMNS.length} named columns found in this file</strong> — nothing was scanned
+                {unmatchedNote ? ` (${unmatchedNote})` : ""}
+              </span>
+            ) : result.ok ? (
               <span className="scan-clean">
                 all in range — {result.scannedRows} row{result.scannedRows === 1 ? "" : "s"}, nothing flagged
               </span>
@@ -514,6 +525,7 @@ export function ScanStep() {
               <span className="scan-dirty">
                 {result.findings.length} value{result.findings.length === 1 ? "" : "s"} outside range across{" "}
                 {result.scannedRows} row{result.scannedRows === 1 ? "" : "s"}
+                {unmatchedNote && ` — checked ${checkedNames.join(", ")} only; ${unmatchedNote}`}
               </span>
             ))}
         </span>
@@ -535,7 +547,7 @@ export function ScanStep() {
                 <tr key={r}>
                   {row.map((cell, c) => {
                     const colName = parsed.columns[c]!;
-                    const isFlagged = flagged.has(`${r}:${colName}`);
+                    const isFlagged = flagged.has(`${r}:${normalizeHeader(colName)}`);
                     return (
                       <td key={c} className={isFlagged ? "scan-flag" : ""}>
                         {cell}

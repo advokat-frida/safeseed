@@ -183,8 +183,10 @@ export default function Generator() {
     };
   }, [ssDataset, csv]);
 
-  // Any data change invalidates a prior audit.
-  useEffect(() => setAudit(null), [fieldsKey, rowCount, seed]);
+  // Any data change invalidates a prior audit — and so does re-pointing a custom column's
+  // "audit as" type, which changes what the verdict means without changing the data.
+  const auditKey = JSON.stringify(fields.map((f) => [f.id, f.auditAs]));
+  useEffect(() => setAudit(null), [fieldsKey, auditKey, rowCount, seed]);
 
   const newId = () => idRef.current++;
   const updateField = (id: number, patch: Partial<FieldRow>) =>
@@ -218,8 +220,8 @@ export default function Generator() {
           <ul>
             <li><a href="https://advokatfrida.com/tag/fridas-desk/">Frida&rsquo;s Desk</a></li>
             <li><a href="https://advokatfrida.com/tag/field-guides/">Field Guides</a></li>
-            <li><a href="https://advokatfrida.com/tag/playbooks/">Playbooks</a></li>
             <li><a href="https://advokatfrida.com/tag/toolkit/">Toolkit</a></li>
+            <li><a href="https://advokatfrida.com/members/">The Den</a></li>
             <li><a href="https://advokatfrida.com/about/">About</a></li>
           </ul>
         </nav>
@@ -229,9 +231,9 @@ export default function Generator() {
         <div className="gen-intro">
           <p className="eyebrow">{mode === "generate" ? "Generate" : "Verify"}</p>
           <h1>SafeSeed: In-Browser App</h1>
-          <div className="gen-modes" role="tablist" aria-label="Mode">
-            <button type="button" role="tab" aria-selected={mode === "generate"} className={`gen-mode${mode === "generate" ? " is-active" : ""}`} onClick={() => setMode("generate")}>Generate</button>
-            <button type="button" role="tab" aria-selected={mode === "verify"} className={`gen-mode${mode === "verify" ? " is-active" : ""}`} onClick={() => setMode("verify")}>Verify a file</button>
+          <div className="gen-modes" role="group" aria-label="Mode">
+            <button type="button" aria-pressed={mode === "generate"} className={`gen-mode${mode === "generate" ? " is-active" : ""}`} onClick={() => setMode("generate")}>Generate</button>
+            <button type="button" aria-pressed={mode === "verify"} className={`gen-mode${mode === "verify" ? " is-active" : ""}`} onClick={() => setMode("verify")}>Verify a file</button>
           </div>
           {mode === "generate" ? (
             <p className="gen-lede">
@@ -242,7 +244,8 @@ export default function Generator() {
           ) : (
             <p className="gen-lede">
               Got a CSV and the verification file SafeSeed handed you with it? Drop them both in and confirm the
-              file is genuine, unchanged, and made of provably-synthetic data — no install, all in your browser.
+              file is genuine and unchanged, and that every generated value still sits in its reserved range — no
+              install, all in your browser.
             </p>
           )}
           <ul className="tier-key" aria-label="What the honesty tiers mean">
@@ -567,6 +570,11 @@ export default function Generator() {
         </section>
         </>)}
         {mode === "verify" && <VerifyPanel />}
+
+        <p className="finelegal">
+          <strong>Not legal advice.</strong> SafeSeed proves test data is synthetic and unchanged — it doesn't make any
+          use of it compliant, and a human stays accountable for anything that leaves the building.
+        </p>
       </main>
 
       <footer className="site-colophon">

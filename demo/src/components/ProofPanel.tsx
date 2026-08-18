@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Copy, Download, Info, RefreshCw } from "lucide-react";
 import {
   generate,
   toCsv,
@@ -58,12 +59,91 @@ function capitalizeMessage(msg: string): string {
   return head.charAt(0).toUpperCase() + head.slice(1) + tail;
 }
 
-/** A small "?" affordance that reveals an explanatory bubble on hover/focus. */
+/** A compact, semantic help button that reveals an explanatory bubble on hover/focus. */
 function HelpTip({ text }: { text: string }) {
   return (
-    <span className="help-tip" tabIndex={0} role="note" aria-label={text}>
-      ?<span className="help-bubble" role="tooltip">{text}</span>
-    </span>
+    <button className="help-tip" type="button" aria-label="What does seed mean?" aria-describedby="seed-help-tip">
+      <Info aria-hidden="true" size={16} />
+      <span id="seed-help-tip" className="help-bubble" role="tooltip">{text}</span>
+    </button>
+  );
+}
+
+async function copyText(text: string): Promise<void> {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      // Fall through to the local selection-based copy path.
+    }
+  }
+  const fallback = document.createElement("textarea");
+  fallback.value = text;
+  fallback.setAttribute("readonly", "");
+  fallback.style.position = "fixed";
+  fallback.style.opacity = "0";
+  document.body.appendChild(fallback);
+  fallback.select();
+  document.execCommand("copy");
+  fallback.remove();
+}
+
+function downloadText(filename: string, text: string): void {
+  const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function MobileFieldCards({
+  rows,
+  onCitation,
+  changed,
+  changedKind,
+}: {
+  rows: string[][];
+  onCitation: (field: FieldType) => void;
+  changed?: { row: number; col: number; before: string } | null;
+  changedKind?: "outrange" | "edited" | null;
+}) {
+  return (
+    <div className="mobile-field-cards" aria-label="SafeSeed data by field">
+      {SCHEMA.map((field, column) => {
+        const tier = getEntry(field.type).tier;
+        const cite = CITATIONS[field.type];
+        return (
+          <section className={`mobile-field-card ${TIER_CLASS[tier]}`} key={field.name}>
+            <div className="mobile-field-head">
+              <strong>{field.name}</strong>
+              <button
+                className={`cite-chip ${TIER_CLASS[tier]}`}
+                type="button"
+                onClick={() => onCitation(field.type)}
+                aria-label={`${field.name}: ${TIER_LABEL[tier]}, cited by ${cite.short} — open citation`}
+              >
+                <span className="cite-dot" aria-hidden="true" />
+                {cite.short}
+              </button>
+            </div>
+            <ol>
+              {rows.map((row, rowIndex) => {
+                const isChanged = changed?.row === rowIndex && changed?.col === column;
+                return (
+                  <li className={isChanged ? (changedKind === "outrange" ? "cell-changed" : "cell-edited") : ""} key={rowIndex}>
+                    <span>Row {rowIndex + 1}</span>
+                    <code>{row[column]}</code>
+                    {isChanged && changed && <small>was {changed.before}</small>}
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        );
+      })}
+    </div>
   );
 }
 
@@ -101,6 +181,7 @@ export default function ProofPanel() {
   const [verifyResult, setVerifyResult] = useState<VerifyResult | null>(null);
   const [activeCite, setActiveCite] = useState<FieldType | null>(null);
   const [activeCiteVerify, setActiveCiteVerify] = useState<FieldType | null>(null);
+  const [recordCopied, setRecordCopied] = useState(false);
 
   // Deterministic: output is a pure function of (schema, seed).
   const { ds, csv } = useMemo(() => {
@@ -167,6 +248,21 @@ export default function ProofPanel() {
     };
   }, [tampered, record]);
 
+  const recordText = record
+    ? JSON.stringify(
+        {
+          safeseedVersion: record.safeseedVersion,
+          catalogVersion: record.catalogVersion,
+          seed: record.seed,
+          rowCount: record.rowCount,
+          contentSha256: record.contentSha256,
+          fields: record.fields.map((f) => ({ name: f.name, tier: f.tier })),
+        },
+        null,
+        2,
+      )
+    : "computing content hash…";
+
   return (
     <section className="proof" id="proof" aria-label="Interactive proof">
       <div className="proof-head">
@@ -213,8 +309,9 @@ export default function ProofPanel() {
                 if (e.target.value !== "" && Number.isFinite(n)) setSeed(n);
               }}
             />
-            <button className="btn btn-ghost" onClick={() => { setTamper("none"); setSeed((s) => s + 1); }}>
-              ↻ new seed
+            <button className="btn btn-ghost" type="button" onClick={() => { setTamper("none"); setSeed((s) => s + 1); }}>
+              <RefreshCw aria-hidden="true" size={16} />
+              <span>New seed</span>
             </button>
           </div>
         </div>
@@ -226,7 +323,7 @@ export default function ProofPanel() {
               seed {seed} · {ROWS} rows · every cell in a cited reserved range
             </span>
           </div>
-          <div className="table-wrap">
+          <div className="table-wrap wide-data-table" tabIndex={0} role="region" aria-label="Generated SafeSeed data table. Scroll horizontally to inspect all six fields.">
             <table className="data">
               <thead>
                 <tr>
@@ -266,6 +363,7 @@ export default function ProofPanel() {
               </tbody>
             </table>
           </div>
+          <MobileFieldCards rows={ds.rows} onCitation={(field) => setActiveCite(activeCite === field ? null : field)} />
         </div>
 
         {activeCite && <CiteCard field={activeCite} onClose={() => setActiveCite(null)} />}
@@ -286,22 +384,28 @@ export default function ProofPanel() {
           receipt as a small JSON file beside your data and commit both; nothing is ever sent anywhere. That is how the
           next step catches tampering.
         </p>
-        <pre className="record">
-{record
-  ? JSON.stringify(
-      {
-        safeseedVersion: record.safeseedVersion,
-        catalogVersion: record.catalogVersion,
-        seed: record.seed,
-        rowCount: record.rowCount,
-        contentSha256: record.contentSha256,
-        fields: record.fields.map((f) => ({ name: f.name, tier: f.tier })),
-      },
-      null,
-      2,
-    )
-  : "computing content hash…"}
-        </pre>
+        <details className="record-disclosure">
+          <summary>Inspect the run record</summary>
+          <div className="record-actions">
+            <button
+              type="button"
+              onClick={async () => {
+                await copyText(recordText);
+                setRecordCopied(true);
+                window.setTimeout(() => setRecordCopied(false), 1800);
+              }}
+              disabled={!record}
+            >
+              <Copy aria-hidden="true" size={16} />
+              {recordCopied ? "Copied" : "Copy JSON"}
+            </button>
+            <button type="button" onClick={() => downloadText("safeseed-data.record.json", `${recordText}\n`)} disabled={!record}>
+              <Download aria-hidden="true" size={16} />
+              Download .json
+            </button>
+          </div>
+          <pre className="record" tabIndex={0} role="region" aria-label="SafeSeed run record JSON">{recordText}</pre>
+        </details>
       </div>
 
       {/* STEP 3 — VERIFY */}
@@ -359,7 +463,7 @@ export default function ProofPanel() {
               {tamper === "none" ? "the file from step 1 · untouched" : "the file from step 1 · 1 cell edited"}
             </span>
           </div>
-          <div className="table-wrap">
+          <div className="table-wrap wide-data-table" tabIndex={0} role="region" aria-label="Verification data table. Scroll horizontally to inspect all six fields.">
             <table className="data">
               <thead>
                 <tr>
@@ -404,6 +508,12 @@ export default function ProofPanel() {
               </tbody>
             </table>
           </div>
+          <MobileFieldCards
+            rows={tampered.rows}
+            onCitation={(field) => setActiveCiteVerify(activeCiteVerify === field ? null : field)}
+            changed={tampered.changed}
+            changedKind={tampered.kind}
+          />
           {tampered.note && (
             <p className="verify-edit-note" role="status" aria-live="polite">
               {tampered.note}
@@ -531,7 +641,7 @@ export function ScanStep() {
         </span>
       </div>
       {result && (
-        <div className="table-wrap">
+        <div className="table-wrap" tabIndex={0} role="region" aria-label="Scan results table. Scroll horizontally to inspect all fields.">
           <table className="data scan-table">
             <thead>
               <tr>

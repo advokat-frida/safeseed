@@ -10,9 +10,9 @@
   --green: #2f7d4f;
   --eyebrow: #c83232;
 
-  /* honesty tiers — color encodes claim strength, not a traffic light */
+  /* assurance tiers — color encodes claim source, not a traffic light */
   --tier-provable: #12666a; /* teal: strongest claim (protocol-reserved) */
-  --tier-reserved: #3a3a8c; /* indigo: reserved by an authority, never issued -- the article's canonical four */
+  --tier-reserved: #3a3a8c; /* indigo: currently marked fictitious or invalid by the cited authority */
   --tier-designated: #9e5415; /* amber: valid-looking, read the basis -- canonical */
   --tier-fake: #c83232; /* red: human-shaped, structurally fake -- canonical */
   --flag: #c83232;

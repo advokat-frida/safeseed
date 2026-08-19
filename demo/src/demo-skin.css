@@ -27,7 +27,7 @@
   --terracotta: #c83232;
   --green: #1f4e32;
   --eyebrow: #9e5415; /* amber eyebrows, like the article */
-  /* honesty tiers already match the canonical four (teal / indigo / amber / red) */
+  /* assurance tiers already match the canonical four (teal / indigo / amber / red) */
 
   /* The SITE's reading scale: body 16px, matching what an Advokat Frida article
      renders prose at. Was a 20px "article scale" until 2026-07-27 -- the site had been

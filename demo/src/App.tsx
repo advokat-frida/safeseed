@@ -28,9 +28,9 @@ export default function App() {
               Trusted <span className="hl">synthetic</span> PII-shaped data
             </h1>
             <p className="hero-sub">
-              Anonymous from the start, not scrubbed after the fact. Every value is fake by design — drawn from ranges
-              no real person can hold (provably non-real, reserved and never issued, designated for testing) or built
-              to be self-evidently fake — and a built-in receipt lets you prove, any time, that it hasn't changed since.
+              Generated without ingesting production records. Every field is tied to a versioned protocol reservation,
+              authority policy, test designation, or deliberately obvious fake — and a built-in receipt lets you check
+              that the current file still matches its recorded bytes and catalog constraints.
             </p>
             <div className="verb-chips">
               <span className="verb-chip">
@@ -60,8 +60,8 @@ export default function App() {
         <ProofPanel />
 
         <p className="finelegal">
-          <strong>Not legal advice.</strong> SafeSeed proves test data is synthetic and unchanged — it doesn't make any
-          use of it compliant, and a human stays accountable for anything that leaves the building.
+          <strong>Not legal advice.</strong> SafeSeed is a technical control, not proof that a file contains no personal
+          data. It does not make any use compliant, and a human stays accountable for anything that leaves the building.
         </p>
       </main>
 

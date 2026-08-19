@@ -20,7 +20,7 @@ export const CITATIONS: Record<FieldType, CitationDetail> = {
     short: "RFC 2606",
     standard: "RFC 2606 — Reserved Top Level DNS Names",
     reserves:
-      "example.com / .net / .org and the .test / .example / .invalid / .localhost TLDs. These names are permanently reserved and can never be registered by anyone, so no address under them can belong to a real party — active or dormant.",
+      "example.com / .net / .org and the .test / .example / .invalid / .localhost names are reserved for documentation and testing. The reservation prevents ordinary customer registration; it is not a claim that infrastructure can never handle a value under them.",
     url: "https://datatracker.ietf.org/doc/html/rfc2606",
   },
   domain: {
@@ -59,7 +59,7 @@ export const CITATIONS: Record<FieldType, CitationDetail> = {
     short: "Test PAN",
     standard: "Payment-processor / sandbox test PANs",
     reserves:
-      "Numbers processors publish for testing (e.g. 4242 4242 4242 4242). They pass the Luhn checksum but authorize nowhere — non-real by designation, not impossibility.",
+      "Numbers processors publish for testing (e.g. 4242 4242 4242 4242). They pass the Luhn checksum and are intended for test mode — assurance by designation, not impossibility.",
     url: "https://docs.stripe.com/testing",
   },
   firstName: SELF_EVIDENT(),

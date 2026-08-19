@@ -30,6 +30,7 @@ import {
   type FieldType,
   type ScanColumn,
   type RunRecord,
+  type VerifyFailure,
 } from "./index.js";
 
 interface Parsed {
@@ -63,9 +64,41 @@ function parseArgs(argv: string[]): Parsed {
   return { _: positional, flags };
 }
 
+/** Render untrusted diagnostics as one bounded line so CI logs cannot execute them. */
+function safeDiagnostic(value: unknown): string {
+  const escaped = String(value).replace(/[\u0000-\u001f\u007f-\u009f]/g, (character) => {
+    const code = character.codePointAt(0) ?? 0;
+    return `\\u${code.toString(16).padStart(4, "0")}`;
+  });
+  return escaped.length <= 240 ? escaped : `${escaped.slice(0, 237)}...`;
+}
+
 function fail(msg: string): never {
-  process.stderr.write(`safeseed: ${msg}\n`);
+  process.stderr.write(`safeseed: ${safeDiagnostic(msg)}\n`);
   process.exit(2);
+}
+
+function verifyFailureDiagnostic(failure: VerifyFailure): string {
+  const field = failure.field === undefined ? "declared field" : `"${safeDiagnostic(failure.field)}"`;
+  const row = failure.row === undefined ? "" : ` row ${failure.row}`;
+  switch (failure.kind) {
+    case "invalid-record":
+      return `invalid verification record: ${safeDiagnostic(failure.message)}`;
+    case "content-hash-mismatch":
+      return "current file hash does not match the verification record";
+    case "out-of-range-value":
+      return `${field}${row}: value redacted; outside the configured catalog constraint`;
+    case "schema-mismatch":
+      return failure.field === undefined
+        ? "file columns do not match the verification record"
+        : `${field} is ambiguous or inconsistent with the verification record`;
+    case "row-arity-mismatch":
+      return `${row.trim() || "row"}: cell count does not match the expected width`;
+    case "missing-column":
+      return `${field} is missing from the file`;
+    case "column-hash-mismatch":
+      return `${field} hash does not match the verification record`;
+  }
 }
 
 function reqStr(p: Parsed, key: string): string {
@@ -76,13 +109,34 @@ function reqStr(p: Parsed, key: string): string {
 
 const VALID_TYPES = new Set<string>(CATALOG.map((e) => e.field));
 
-function parseFields(spec: string): FieldSchema[] {
-  return spec.split(",").map((pair) => {
-    const [name, type] = pair.split(":").map((s) => s.trim());
-    if (!name || !type) fail(`bad --fields entry "${pair}" (expected name:type)`);
+function validateSchema(value: unknown): FieldSchema[] {
+  if (!Array.isArray(value)) fail("schema must be an array of { name, type } entries");
+  const schema = value.map((candidate, index) => {
+    if (typeof candidate !== "object" || candidate === null || Array.isArray(candidate)) {
+      fail(`schema entry ${index} must be an object with name and type`);
+    }
+    const raw = candidate as Record<string, unknown>;
+    const name = typeof raw.name === "string" ? raw.name.trim() : "";
+    const type = typeof raw.type === "string" ? raw.type.trim() : "";
+    if (name === "" || type === "") fail(`schema entry ${index} needs a nonblank name and type`);
+    if (/[\u0000-\u001f\u007f-\u009f]/u.test(name)) {
+      fail(`schema entry ${index} name must not contain control characters`);
+    }
     if (!VALID_TYPES.has(type)) fail(`unknown field type "${type}" (run: safeseed catalog)`);
     return { name, type: type as FieldType };
   });
+  const names = schema.map((field) => field.name);
+  if (new Set(names).size !== names.length) fail("schema column names must be unique");
+  return schema;
+}
+
+function parseFields(spec: string): FieldSchema[] {
+  const entries = spec.split(",").map((pair) => {
+    const parts = pair.split(":");
+    if (parts.length !== 2) fail(`bad --fields entry "${pair}" (expected name:type)`);
+    return { name: parts[0], type: parts[1] };
+  });
+  return validateSchema(entries);
 }
 
 function cmdGenerate(p: Parsed): Promise<void> {
@@ -95,12 +149,12 @@ function cmdGenerate(p: Parsed): Promise<void> {
 
   if (typeof p.flags.config === "string") {
     const cfg = JSON.parse(readFileSync(p.flags.config, "utf8")) as Partial<{
-      schema: FieldSchema[];
+      schema: unknown;
       rows: number;
       seed: number;
       formatValid: boolean;
     }>;
-    if (cfg.schema) schema = cfg.schema;
+    if (cfg.schema !== undefined) schema = validateSchema(cfg.schema);
     if (typeof cfg.rows === "number") rows = cfg.rows;
     if (typeof cfg.seed === "number") seed = cfg.seed;
     if (typeof cfg.formatValid === "boolean") formatValid = cfg.formatValid;
@@ -116,24 +170,22 @@ function cmdGenerate(p: Parsed): Promise<void> {
 
   const ds = generate({ schema, rows, seed, formatValid });
   const csv = toCsv(ds.columns, ds.rows);
+  const recordWork = typeof p.flags.record === "string"
+    ? makeRunRecord(
+        ds,
+        csv,
+        typeof p.flags.now === "string" ? { generatedAt: p.flags.now } : undefined,
+      )
+    : Promise.resolve(null);
 
-  if (typeof p.flags.out === "string") writeFileSync(p.flags.out, csv);
-  else process.stdout.write(csv);
-
-  const recordWork =
-    typeof p.flags.record === "string"
-      ? makeRunRecord(
-          ds,
-          csv,
-          typeof p.flags.now === "string" ? { generatedAt: p.flags.now } : undefined,
-        ).then((rec) => {
-          writeFileSync(p.flags.record as string, JSON.stringify(rec, null, 2) + "\n");
-        })
-      : Promise.resolve();
-
-  return recordWork.then(() => {
+  return recordWork.then((record) => {
+    if (typeof p.flags.out === "string") writeFileSync(p.flags.out, csv);
+    else process.stdout.write(csv);
+    if (record !== null) {
+      writeFileSync(p.flags.record as string, JSON.stringify(record, null, 2) + "\n");
+    }
     if (typeof p.flags.out === "string") {
-      process.stderr.write(`safeseed: wrote ${ds.rows.length} rows to ${p.flags.out}\n`);
+      process.stderr.write(`safeseed: wrote ${ds.rows.length} rows to ${safeDiagnostic(p.flags.out)}\n`);
     }
   });
 }
@@ -156,7 +208,7 @@ async function cmdVerify(p: Parsed): Promise<void> {
   } else {
     process.stdout.write(`safeseed verify${mode}: FAIL — ${result.failures.length} issue(s)\n`);
     for (const f of result.failures.slice(0, 50)) {
-      process.stdout.write(`  [${f.kind}] ${f.message}\n`);
+      process.stdout.write(`  [${f.kind}] ${verifyFailureDiagnostic(f)}\n`);
     }
     if (result.failures.length > 50) {
       process.stdout.write(`  ...and ${result.failures.length - 50} more\n`);
@@ -164,11 +216,11 @@ async function cmdVerify(p: Parsed): Promise<void> {
   }
   if (result.unattestedColumns.length > 0) {
     process.stdout.write(
-      `  unattested (added) columns, NOT vouched for — scan these: ${result.unattestedColumns.join(", ")}\n`,
+      `  unattested (added) columns, NOT vouched for — scan these: ${result.unattestedColumns.map(safeDiagnostic).join(", ")}\n`,
     );
   }
   for (const w of result.warnings) {
-    process.stdout.write(`  warning: ${w}\n`);
+    process.stdout.write(`  warning: ${safeDiagnostic(w)}\n`);
   }
   process.exit(exitCode(result));
 }
@@ -177,10 +229,11 @@ function cmdScan(p: Parsed): void {
   let columns: ScanColumn[] = [];
   if (typeof p.flags.config === "string") {
     const cfg = JSON.parse(readFileSync(p.flags.config, "utf8")) as Partial<{
-      columns: ScanColumn[];
-      schema: ScanColumn[];
+      columns: unknown;
+      schema: unknown;
     }>;
-    columns = cfg.columns ?? cfg.schema ?? [];
+    const configured = cfg.columns ?? cfg.schema;
+    if (configured !== undefined) columns = validateSchema(configured);
   }
   if (typeof p.flags.fields === "string") columns = parseFields(p.flags.fields);
   if (columns.length === 0) fail("no columns (use --config <file> or --fields name:type,...)");
@@ -192,14 +245,16 @@ function cmdScan(p: Parsed): void {
     process.stdout.write(
       "  note: scan flags real data OUTSIDE the reserved ranges; real data that happens to look reserved " +
         "(a real mailbox at example.com, a real 555-01xx line) is NOT flagged. " +
-        'Clean means "nothing provably-unreserved found," not "no real PII."\n',
+        'Clean means "nothing outside the configured ranges found," not "no real PII."\n',
     );
   } else {
     process.stdout.write(
       `safeseed scan: ${result.findings.length} candidate(s) across ${result.scannedRows} rows\n`,
     );
     for (const f of result.findings.slice(0, 50)) {
-      process.stdout.write(`  row ${f.row} ${f.field}: "${f.value}"\n`);
+      process.stdout.write(
+        `  row ${f.row} ${safeDiagnostic(f.field)}: candidate value redacted; outside configured ${f.type} range\n`,
+      );
     }
     if (result.findings.length > 50) {
       process.stdout.write(`  ...and ${result.findings.length - 50} more\n`);
@@ -207,10 +262,13 @@ function cmdScan(p: Parsed): void {
     // A named column the scan could not check is a failure, never a silent skip —
     // otherwise a typo'd --fields name reads as a clean scan.
     for (const name of result.missingColumns) {
-      process.stdout.write(`  [missing-column] "${name}" is not in the file's header — not scanned\n`);
+      process.stdout.write(`  [missing-column] "${safeDiagnostic(name)}" is not in the file's header — not scanned\n`);
     }
     for (const name of result.duplicateColumns) {
-      process.stdout.write(`  [duplicate-column] "${name}" matches more than one header — ambiguous, not scanned\n`);
+      process.stdout.write(`  [duplicate-column] "${safeDiagnostic(name)}" matches more than one header — ambiguous, not scanned\n`);
+    }
+    for (const row of result.malformedRows) {
+      process.stdout.write(`  [malformed-row] row ${row}: cell count differs from the header — not a clean scan\n`);
     }
   }
   process.exit(result.ok ? 0 : 1);
@@ -223,7 +281,7 @@ function cmdCatalog(): void {
 function printUsage(): void {
   process.stdout.write(
     [
-      `safeseed ${SAFESEED_VERSION} — confirmably-synthetic test data by construction`,
+      `safeseed ${SAFESEED_VERSION} — auditable, catalog-constrained test data`,
       "",
       "Usage:",
       "  safeseed generate --fields <name:type,...> --rows N --seed S [--out f.csv] [--record r.json] [--format-valid true|false]",
@@ -239,7 +297,7 @@ function printUsage(): void {
       "  --seed defaults to 0, so runs without it are fully deterministic (identical",
       "  output every time); pass --seed to vary the dataset.",
       "  scan flags values OUTSIDE the reserved ranges; real data that happens to look",
-      '  reserved is not flagged — clean means "nothing provably-unreserved found."',
+      '  reserved is not flagged — clean means "nothing outside the configured ranges found."',
       "",
       "Exit codes: 0 clean · 1 drift/findings · 2 usage/IO error",
     ].join("\n") + "\n",
@@ -280,6 +338,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((e: unknown) => {
-  process.stderr.write(`safeseed: ${e instanceof Error ? e.message : String(e)}\n`);
+  process.stderr.write(`safeseed: ${safeDiagnostic(e instanceof Error ? e.message : String(e))}\n`);
   process.exit(2);
 });

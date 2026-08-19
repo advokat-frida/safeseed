@@ -6,40 +6,43 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   build-and-prove:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - run: npm ci
 
-      - name: Typecheck
-        run: npm run typecheck
+      - name: Release-aligned audit, typecheck, unit, build, and Action contract
+        run: npm run release:check
 
-      - name: Unit tests
-        run: npm test
+      - name: Committed Action build is byte-fresh
+        run: npm run check:release -- --require-clean-dist
 
-      - name: Build
-        run: npm run build
+      - name: Inspect the npm package payload
+        run: npm pack --dry-run --json --ignore-scripts
 
       # Dogfood the gate: SafeSeed must pass its own committed safe fixture...
       - name: Verify a clean fixture (must pass)
         run: node dist/cli.js verify --in examples/customers.csv --record examples/customers.record.json
 
-      # ...catch real PII planted in a legacy file...
+      # ...catch out-of-range PII-shaped values planted in a legacy file...
       - name: Scan a dirty legacy file (must flag)
         run: |
           if node dist/cli.js scan --in examples/dirty-legacy.csv --fields email:email,phone:phone,ssn:ssn; then
-            echo "::error::scan should have flagged real PII but exited clean"
+            echo "::error::scan should have flagged the out-of-range values but exited clean"
             exit 1
           else
-            echo "scan correctly flagged candidate real PII"
+            echo "scan correctly flagged out-of-range candidates"
           fi
 
       # ...and fail closed when a verified file is edited out of range.
@@ -84,17 +87,96 @@ jobs:
       # and copies them to the committed names. Then assert the committed single-files are
       # byte-fresh: if Generator.tsx (or anything they inline) changed without re-running the
       # build, the diff fails CI rather than silently shipping a stale safeseed-demo.html /
-      # safeseed-generator.html / safeseed-proof.js.
+      # safeseed-generator.html / safeseed-proof.html / safeseed-proof.js.
       - name: Build the browser demo + verify committed single-files are fresh
         working-directory: demo
         run: |
           npm ci
+          npm audit --audit-level=moderate
           npm run build
           npm run build:standalone:all
           cd ..
-          if ! git diff --quiet -- demo/safeseed-demo.html demo/safeseed-generator.html demo/safeseed-proof.js; then
+          if ! git diff --quiet -- demo/safeseed-demo.html demo/safeseed-generator.html demo/safeseed-proof.html demo/safeseed-proof.js; then
             echo "::error::Committed demo single-files are stale. Run 'npm run build:standalone:all' in demo/ and commit the result."
-            git --no-pager diff --stat -- demo/safeseed-demo.html demo/safeseed-generator.html demo/safeseed-proof.js
+            git --no-pager diff --stat -- demo/safeseed-demo.html demo/safeseed-generator.html demo/safeseed-proof.html demo/safeseed-proof.js
             exit 1
           fi
           echo "committed single-files are fresh"
+
+  action-contract:
+    name: Action contract (${{ matrix.os }})
+    needs: build-and-prove
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Bundled Action accepts a clean fixture
+        uses: ./
+        with:
+          data: examples/customers.csv
+          record: examples/customers.record.json
+
+      - name: Bundled Action rejects strict column drift
+        id: strict_drift
+        continue-on-error: true
+        uses: ./
+        with:
+          data: examples/customers-extended.csv
+          record: examples/customers.record.json
+
+      - name: Assert strict drift was rejected
+        if: steps.strict_drift.outcome != 'failure'
+        shell: bash
+        run: exit 1
+
+      # A legacy workflow may still pass the old relaxed input. The wrapper ignores it and
+      # remains strict, so an added column can never become a green whole-file Action result.
+      - name: Legacy relaxed input cannot bypass the strict Action
+        id: legacy_relaxed
+        continue-on-error: true
+        uses: ./
+        with:
+          data: examples/customers-extended.csv
+          record: examples/customers.record.json
+          allow-added-columns: "true"
+
+      - name: Assert the legacy relaxed input was rejected
+        if: steps.legacy_relaxed.outcome != 'failure'
+        shell: bash
+        run: exit 1
+
+      # A CSV cell can contain a newline and attacker-controlled text. Prove on every
+      # hosted runner that it cannot become a workflow command or leak into the log.
+      - name: Prepare a workflow-command injection CSV
+        shell: pwsh
+        run: |
+          $csv = Get-Content -LiteralPath examples/customers.csv -Raw
+          $hostile = '"real.person@gmail.com' + "`n" + '::set-output name=injected::yes"'
+          $csv = $csv.Replace("user1@example.com", $hostile)
+          [IO.File]::WriteAllText(
+            (Join-Path $PWD "workflow-command.csv"),
+            $csv,
+            [Text.UTF8Encoding]::new($false)
+          )
+
+      - name: Bundled Action quarantines verifier output
+        id: workflow_command
+        continue-on-error: true
+        uses: ./
+        with:
+          data: workflow-command.csv
+          record: examples/customers.record.json
+
+      - name: Assert the hostile CSV was rejected
+        if: steps.workflow_command.outcome != 'failure'
+        shell: bash
+        run: exit 1
+
+      - name: Assert untrusted output did not set an Action output
+        if: steps.workflow_command.outputs.injected != ''
+        shell: bash
+        run: exit 1

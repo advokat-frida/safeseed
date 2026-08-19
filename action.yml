@@ -1,5 +1,5 @@
 name: "SafeSeed Verify"
-description: "Fail the build if test data drifts out of its standards-reserved ranges or its run record has been tampered with."
+description: "Fail CI unless the entire CSV still matches its SafeSeed run record and every declared value remains in range."
 author: "SafeSeed"
 branding:
   icon: "shield"
@@ -12,37 +12,9 @@ inputs:
   record:
     description: "Path to the SafeSeed run record JSON for that file."
     required: true
-  allow-added-columns:
-    description: >-
-      Column-scoped verify: attest only the declared synthetic columns and report
-      (do not fail on) business columns the team added. Those added columns are NOT
-      vouched for — scan them separately. Default false = strict whole-file verify.
-    required: false
-    default: "false"
-  version:
-    description: "npm version/tag of safeseed to run."
-    required: false
-    default: "latest"
 
 runs:
-  using: "composite"
-  steps:
-    - name: Verify test data is safe by construction
-      shell: bash
-      # Inputs are passed via env and referenced as quoted shell variables — never
-      # interpolated with ${{ }} into the script body — so a crafted input value
-      # (e.g. a path containing $(...) or backticks) is data, not code.
-      env:
-        SAFESEED_DATA: ${{ inputs.data }}
-        SAFESEED_RECORD: ${{ inputs.record }}
-        SAFESEED_ALLOW_ADDED_COLUMNS: ${{ inputs.allow-added-columns }}
-        SAFESEED_NPM_VERSION: ${{ inputs.version }}
-      run: |
-        flag=""
-        if [ "$SAFESEED_ALLOW_ADDED_COLUMNS" = "true" ]; then
-          flag="--allow-added-columns"
-        fi
-        npx --yes "safeseed@$SAFESEED_NPM_VERSION" verify \
-          --in "$SAFESEED_DATA" \
-          --record "$SAFESEED_RECORD" \
-          $flag
+  # The tagged Action executes the committed CLI build. It does not download a
+  # mutable npm dist-tag, invoke a shell, or require the caller to install Node.
+  using: "node24"
+  main: "action/index.mjs"

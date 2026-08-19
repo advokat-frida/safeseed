@@ -1,5 +1,5 @@
 /**
- * Schema-driven, deterministic generation of safe-by-construction test data.
+ * Schema-driven, deterministic generation of catalog-constrained test data.
  *
  * Every PII-shaped value is drawn from the cited reserved ranges in `catalog.ts`;
  * structurally-fake fields (names, addresses) are emitted as self-evidently fake

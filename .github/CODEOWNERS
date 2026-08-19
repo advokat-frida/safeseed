@@ -1,0 +1,4 @@
+# SafeSeed currently has one maintainer. This file makes ownership explicit, but
+# required code-owner review should not be enabled until a second eligible reviewer
+# exists; otherwise maintainer-authored pull requests cannot satisfy the rule.
+* @tanjaminben

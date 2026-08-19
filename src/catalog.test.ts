@@ -10,8 +10,8 @@ import { luhnValid } from "./luhn.js";
 import type { Tier } from "./types.js";
 
 const TIERS: Tier[] = [
-  "provably-non-real",
-  "reserved-not-issued",
+  "protocol-reserved",
+  "authority-reserved",
   "designated-test-only",
   "structurally-fake",
 ];
@@ -38,30 +38,28 @@ describe("catalog.everyFieldHasCitationAndTier", () => {
 });
 
 describe("catalog.tierTaxonomyReflectsReality", () => {
-  it("only protocol/standard-reserved fields are provably-non-real", () => {
-    const provable = CATALOG.filter((e) => e.tier === "provably-non-real")
+  it("only RFC-reserved fields are protocol-reserved", () => {
+    const protocolReserved = CATALOG.filter((e) => e.tier === "protocol-reserved")
       .map((e) => e.field)
       .sort();
-    expect(provable).toEqual(["domain", "email", "ipv4", "ipv6"].sort());
+    expect(protocolReserved).toEqual(["domain", "email", "ipv4", "ipv6"].sort());
   });
 
-  it("authority-reserved fields (NANPA phones, SSA SSNs) are reserved-not-issued, not provably-non-real", () => {
-    expect(getEntry("phone").tier).toBe("reserved-not-issued");
-    expect(getEntry("ssn").tier).toBe("reserved-not-issued");
+  it("NANPA phones and SSA-invalid SSNs are authority-reserved, not protocol-reserved", () => {
+    expect(getEntry("phone").tier).toBe("authority-reserved");
+    expect(getEntry("ssn").tier).toBe("authority-reserved");
   });
 
-  it("reserved-not-issued claims avoid protocol-impossibility / proof language", () => {
+  it("every tier claim avoids absolute impossibility and lifetime-policy language", () => {
     const banned = [
-      /\bproof\b/i,
-      /\bproven\b/i,
       /cannot be (a )?real/i,
       /cannot correspond/i,
       /\bimpossible/i,
       /\bguarantee/i,
+      /\bpermanent(?:ly)?\b/i,
+      /\bnever assigned\b/i,
     ];
-    const reserved = CATALOG.filter((e) => e.tier === "reserved-not-issued");
-    expect(reserved.length).toBeGreaterThan(0);
-    for (const e of reserved) {
+    for (const e of CATALOG) {
       for (const re of banned) {
         expect(re.test(e.claim), `${e.field} claim overclaims: "${e.claim}"`).toBe(false);
       }
@@ -72,7 +70,7 @@ describe("catalog.tierTaxonomyReflectsReality", () => {
 describe("catalog.reservedRangesMatchStandards", () => {
   it("email reserves the RFC 2606 domains and TLDs", () => {
     const e = getEntry("email");
-    expect(e.tier).toBe("provably-non-real");
+    expect(e.tier).toBe("protocol-reserved");
     expect(e.reserved.kind).toBe("emailDomains");
     if (e.reserved.kind === "emailDomains") {
       expect(e.reserved.domains).toEqual(
@@ -86,6 +84,8 @@ describe("catalog.reservedRangesMatchStandards", () => {
     expect(isReserved(e, "bob@host.invalid")).toBe(true);
     expect(isReserved(e, "carol@gmail.com")).toBe(false);
     expect(isReserved(e, "not-an-email")).toBe(false);
+    expect(isReserved(e, "real.person@gmail.com plus fake@example.com")).toBe(false);
+    expect(isReserved(e, "real.person@gmail.com\nfake@example.com")).toBe(false);
   });
 
   it("ipv4 reserves exactly the three RFC 5737 documentation blocks", () => {
@@ -114,6 +114,8 @@ describe("catalog.reservedRangesMatchStandards", () => {
     expect(isReserved(e, "2001:db8::1")).toBe(true);
     expect(isReserved(e, "2001:db8:dead:beef::cafe")).toBe(true);
     expect(isReserved(e, "2001:4860:4860::8888")).toBe(false);
+    expect(isReserved(e, "2001:db8::1%real.person@gmail.com")).toBe(false);
+    expect(isReserved(e, "2001:db8::1%foo\n8.8.8.8")).toBe(false);
   });
 
   it("phone reserves the NANPA 555-0100..0199 fictitious block", () => {
@@ -127,6 +129,7 @@ describe("catalog.reservedRangesMatchStandards", () => {
     expect(isReserved(e, "212-555-0199")).toBe(true);
     expect(isReserved(e, "212-555-0200")).toBe(false);
     expect(isReserved(e, "212-867-5309")).toBe(false);
+    expect(isReserved(e, "(212) 867-5309 / (800) 555-0100")).toBe(false);
   });
 
   it("ssn reserves only components never issued by BOTH the SSA and the IRS ITIN scheme", () => {
@@ -148,6 +151,11 @@ describe("catalog.reservedRangesMatchStandards", () => {
     // 9xx areas are candidate REAL data now (ITIN space), not reserved:
     expect(isReserved(e, "900-12-3456")).toBe(false);
     expect(isReserved(e, "999-43-3811")).toBe(false);
+    expect(isReserved(e, "900-00-1234")).toBe(false);
+    expect(isReserved(e, "900-70-0000")).toBe(false);
+    expect(isReserved(e, "999-94-0000")).toBe(false);
+    expect(isReserved(e, "SSN 123-00-6789")).toBe(false);
+    expect(isReserved(e, "123-45-6789 / 123-00-6789")).toBe(false);
   });
 
   it("credit card numbers are designated-test-only and Luhn-valid", () => {
@@ -162,6 +170,7 @@ describe("catalog.reservedRangesMatchStandards", () => {
     expect(isReserved(e, "4242 4242 4242 4242")).toBe(true);
     expect(isReserved(e, "4111111111111111")).toBe(true);
     expect(isReserved(e, "1234567890123456")).toBe(false);
+    expect(isReserved(e, "real 1234567890123456 / 4242424242424242")).toBe(false);
   });
 
   it("structurally-fake fields are recognized as self-evidently fake", () => {

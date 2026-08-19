@@ -11,7 +11,7 @@ const safeseedEntry = fileURLToPath(new URL("../dist/index.js", import.meta.url)
 // Inline the favicon as a data URI at build time. Otherwise the <link rel="icon"
 // href="/fox.svg"> stays an external request, which the single-file artifact opened
 // from disk (file://) can't resolve and the strict `img-src data:` CSP blocks — a
-// blocked request in the network tab is the wrong look for a "zero network" demo.
+// blocked request in the network tab would obscure the no-data-upload boundary.
 const faviconSvg = readFileSync(fileURLToPath(new URL("./public/fox.svg", import.meta.url)), "utf8");
 const faviconDataUri = `data:image/svg+xml,${encodeURIComponent(faviconSvg)}`;
 
@@ -30,8 +30,9 @@ function inlineFaviconOnBuild() {
 }
 
 // The shipped artifact's selling point is "nothing leaves your device", so every
-// build carries a strict CSP. connect-src 'none' = no network at all; font-src 'self'
-// so a remote webfont can never be introduced by a future edit. Injected at build
+// build carries a strict CSP. connect-src 'none' blocks data-service connections;
+// font-src 'self' permits only same-origin static fonts and prevents a third-party
+// webfont from being introduced by a future edit. Injected at build
 // time only, so the dev server's HMR still works.
 //   - hosted build: external script bundle -> script-src 'self'.
 //   - standalone (single-file) build: the script is inlined into the HTML, so it

@@ -1,7 +1,7 @@
 /**
  * Minimal, correct CSV (RFC 4180-ish) serializer and parser. Kept in-house so the
- * core has no runtime dependency to audit — the whole pitch is "audit a few
- * hundred cited lines once, trust every output."
+ * core has no runtime dependency to audit. Review the small versioned catalog,
+ * then verify each artifact against the current contract.
  */
 
 /** Serialize columns + rows to a CSV string with a trailing newline. */

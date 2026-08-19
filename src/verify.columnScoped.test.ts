@@ -75,7 +75,7 @@ describe("verify.columnScoped.failsOnInRangeEditToSyntheticColumn", () => {
 });
 
 describe("verify.columnScoped.failsOnOutOfRangeInDeclaredColumn", () => {
-  it("fails (out-of-range-value) when a real value lands in a synthetic column", async () => {
+  it("fails (out-of-range-value) when a declared column leaves its catalog range", async () => {
     const { csv, record } = await build();
     const { columns, rows } = parseCsv(csv);
     const phoneIdx = columns.indexOf("phone");

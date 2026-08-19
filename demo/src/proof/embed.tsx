@@ -110,7 +110,7 @@ class SafeSeedProof extends HTMLElement {
     const mount = document.createElement("div");
     shadow.appendChild(mount);
     // The "Try it with your own data" mount carries class="safeseed-scan-only" and renders only
-    // the standalone scanner (paste your own CSV), not the full Generate->Attest->Verify->Scan loop.
+    // the standalone scanner (paste your own CSV), not the full Generate->Record->Verify->Scan loop.
     const scanOnly = this.classList.contains("safeseed-scan-only");
     createRoot(mount).render(
       scanOnly ? (

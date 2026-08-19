@@ -12,7 +12,7 @@ The fix everyone agrees on: don't put real data there. Use synthetic data instea
 
 **The empirical way.** Train a model on your real production data so it learns the statistical shape, then sample new records from it. This is what most of the market sells. The output is realistic, which is the selling point. But because the model has *seen* real records, it can memorize and re-emit them — so privacy becomes something you defend *after the fact*: run membership-inference attacks, add differential-privacy noise, produce a privacy report, argue the risk is low. You can never quite prove a negative; you can only show the attacks you tried didn't succeed. And you redo that argument for every new dataset, forever.
 
-**The by-construction way.** Never let real data into the process at all. Generate each field from values that a published standard has *reserved as permanently not real*. If the source data never touches the generator, there is nothing to memorize and nothing to leak — not because you defended it, but because the leak surface doesn't exist.
+**The by-construction way.** Do not use production records as source material for generated fields. Generate each declared field from a small, reviewable catalog: protocol-reserved values, authority-reserved ranges, published test values, and deliberately obvious fakes. With no source dataset and no trained model in that field path, the generator cannot memorize or reproduce a source record. User-added columns remain outside the attestation. That is a structural claim about the input path, not a blanket promise that every generated string is incapable of coinciding with a real person.
 
 That difference is the whole point. One approach makes a probabilistic argument about a model. The other makes a structural statement about an input that was never there.
 
@@ -20,26 +20,26 @@ That difference is the whole point. One approach makes a probabilistic argument 
 
 This is the real advantage, and most people miss it.
 
-A by-construction generator is a few hundred lines of logic that say "draw emails from this reserved domain, phone numbers from this reserved block." You audit that logic *once*. After that, every dataset it produces inherits the guarantee, because the guarantee is a property of the code, not of any particular output.
+A by-construction generator is a few hundred lines of logic that say "draw emails from this reserved domain, phone numbers from this reserved block." The privacy argument is concentrated in that code and its source catalog instead of being reconstructed for every source dataset. That makes review tractable, but not permanent: SafeSeed's catalog is versioned and must be re-reviewed when standards, issuing-authority policy, or generator logic changes.
 
-A model-based synthesizer reverses that: the code is generic, but each dataset it emits carries fresh risk that has to be assessed again. You are never done.
+A model-based synthesizer reverses that: the code is generic, but each source dataset and trained model can carry fresh memorization risk that has to be assessed again.
 
-Audit once and trust every output, versus re-prove privacy on every run. For the narrow job of "no real personal data in this test environment," the first is simply the stronger position.
+SafeSeed still verifies every exported artifact. Its run record binds the file, declared fields, catalog version, and field-level hashes; strict verification fails when the file drifts. The useful asymmetry is therefore **review a small versioned catalog, then verify every artifact**, rather than treat a one-time audit as a lifetime guarantee.
 
-## What "never real" actually means — and where it gets honest
+## What each assurance tier actually means
 
-"Reserved by standard" is not hand-waving. Real, citable standards reserve values that don't belong to a real person or system — some because the standard itself makes them impossible, some because the issuing authority simply never assigns them:
+"Reserved by standard" is not hand-waving, but neither is every reservation the same. Published protocols and authority policies define bounded spaces for documentation, testing, fictitious use, or invalid identifiers. The exact consequence and maintenance burden differs by field:
 
-- **Email and domains** — RFC 2606 reserves `example.com`, `example.net`, `example.org`, and the `.invalid` / `.example` suffixes. An address there can never route to a real mailbox.
-- **IP addresses** — RFC 5737 reserves three IPv4 ranges for documentation; RFC 3849 reserves `2001:db8::/32` for IPv6. These blocks are reserved and never assigned to a real network.
-- **Phone numbers** — the North American numbering plan reserves `555-0100` through `555-0199` as fictitious numbers the carriers never assign to a real line.
-- **Social Security numbers** — certain components are never issued by *either* authority that assigns nine-digit taxpayer identifiers: the SSA never issues area `000` or `666`, group `00`, or serial `0000` for SSNs, and none of those appear in IRS ITINs either. SafeSeed draws only from those. (The `900–999` area range the SSA excludes is deliberately *not* used: that is the IRS ITIN space, which contains real, issued identifiers — treating it as "never real" was the 0.2.0 mistake that 0.2.1 corrects.)
+- **Email and domains** — RFC 2606 reserves `example.com`, `example.net`, `example.org`, and the `.invalid` / `.example` names for documentation and testing. They are not customer-controlled production domains; `.invalid` is specifically intended to be invalid.
+- **IP addresses** — RFC 5737 reserves three IPv4 ranges for documentation; RFC 3849 reserves `2001:db8::/32` for IPv6. They are not globally assigned addresses for production hosts.
+- **Phone numbers** — the North American numbering plan reserves `555-0100` through `555-0199` for fictitious, non-working use. This is an administrative reservation, so SafeSeed treats the cited policy as a release-time dependency rather than an eternal fact.
+- **Social Security numbers** — SafeSeed uses components the SSA identifies as invalid for SSNs: area `000` or `666`, group `00`, or serial `0000`. It deliberately does not use the `900–999` area range because that overlaps the IRS ITIN space, which contains issued identifiers. This is an authority-policy claim and must be checked against the current cited sources when the catalog changes.
 
 But honesty *is* the credibility here, so the claim has tiers, and the serious version says so plainly:
 
-- **Provably non-real** — the reserved domains and documentation IPs above. A published standard reserves them, so no real party can register or be assigned one.
-- **Reserved, never issued** — the `555-01xx` phone block and the never-issued SSN components (area `000`/`666`, group `00`, serial `0000`). The issuing authority reserves these and never assigns them, so no real holder has one. Strong, but it rests on administrative policy rather than protocol — which is why it sits a notch below the provable tier rather than inside it.
-- **Designated test-only** — the standard payment-card test numbers (e.g. `4242…`, published in processor/sandbox testing docs). These *pass* the checksum, so they are valid-looking; they are non-real by processor/sandbox designation (they authorize nowhere), *not* by mathematical impossibility. Say "designated test card," not "cannot be a real card."
+- **Protocol-reserved** — `.invalid`, the example names, and documentation IP ranges are reserved by published internet standards. The exact consequence differs by field: `.invalid` is non-resolving by design, while the example names and address blocks are reserved for documentation rather than customer production use.
+- **Authority-reserved** — the `555-01xx` phone block and invalid SSN components (area `000`/`666`, group `00`, serial `0000`). This tier rests on the cited issuing authority's current policy, so it is revalidated when SafeSeed's catalog or release claim changes.
+- **Designated test-only** — published payment-card test numbers (e.g. `4242…` in processor testing docs). These *pass* the checksum, so they are valid-looking and intended for test mode. The processor/sandbox designation is the assurance source, not mathematical impossibility. Say "designated test card," not "cannot be a real card."
 - **Structurally fake** — names, street addresses, free text. No standards body reserves "fake names." The honest move is to make these *self-evidently* fake (`TEST_Lastname_000142`, `123 Example Way`) rather than plausible-but-random people — because a randomly generated "John Smith at 42 Main St" can coincidentally match a living person, and the law does not care that you generated it.
 
 Stating which tier each field sits in is not a weakness to bury. It is the thing that separates a practitioner from a datasheet.
@@ -48,10 +48,10 @@ Stating which tier each field sits in is not a weakness to bury. It is the thing
 
 The fastest way to lose a security reviewer is to claim more than you can defend. So here is the boundary, drawn on purpose:
 
-- **It attests the generator, not your environment.** "Generated from reserved ranges, no real input" is true at the moment of generation. It says nothing about the file that later lands in your CI — which someone could edit, join against a prod snapshot, or quietly replace. The assurance has to be re-checked against the *actual artifact* (hash the file, verify it in the pipeline), and it rests on the *auditable, open code* — not on a certificate. A signature proves the tool ran; it does not prove the tool is right.
+- **The record declares provenance; it does not authenticate it.** The CLI and browser generator can make the structural claim "generated without a production dataset, under catalog version X" because their generation path accepts no source records. The exported record API also accepts a structurally supplied JavaScript dataset: it checks that declared CSV fields agree with that object and the current catalog, but cannot independently recover the object's history. The unsigned hash detects file drift only when the comparison record is separately protected or reviewed. The assurance rests on the auditable generation path and that external control, not on a certificate.
 - **"Not derived from production data" is not "not personal data."** The defensible claim is the former. Never the latter.
 - **It is a security-of-processing and data-minimization control** for non-production environments (in GDPR terms, Articles 25 and 32; in audit terms, SOC 2 and ISO 27001). It is *not* a scope-out from privacy law, not a DSAR answer, not a lawful-basis story.
-- **It is deliberately low-fidelity.** Every phone in one small block, every IP in three ranges. That is correct for "prove there's no real PII in functional and CI tests," and wrong as your general fixture source, your ML training data, or your load-testing input. Reach for it for *assurance*, not realism — and say so loudly, so nobody blames it for an escaped bug.
+- **It is deliberately low-fidelity.** Every phone sits in one small block, every IP in three documentation ranges. That is useful for enforcing a no-production-input fixture path, and wrong as your general fixture source, your ML training data, or your load-testing input. Reach for it for *assurance*, not realism — and say so loudly, so nobody blames it for an escaped bug.
 
 ## "Why not just use Faker and trust me?"
 
@@ -61,4 +61,4 @@ Because "trust me" is not an artifact, and the person who signs the "no producti
 
 ## The honest one-line version
 
-This does not make your test data realistic, and it does not make it legally invisible. It makes *"no production data crossed this boundary"* a property you can audit once and enforce every time, for the one job that actually causes incidents — and it tells you, in writing, exactly where that guarantee ends.
+This does not make your test data realistic, and it does not make it legally invisible. It gives you a versioned, inspectable basis for saying *"this generator did not ingest production data"*, plus an artifact check that fails when the generated file drifts. Each field keeps its own assurance tier, and the catalog still has to be maintained.

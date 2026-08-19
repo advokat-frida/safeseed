@@ -1,12 +1,12 @@
 /**
- * SafeSeed — confirmably-synthetic test data by construction.
+ * SafeSeed — auditable, low-fidelity test data by construction.
  *
- * Generate safe-by-construction test data from standards-reserved ranges, bind a
- * tamper-evident run record to it, verify a file stays in range, and scan existing
- * data for leaked real PII. Pure TypeScript, zero runtime dependencies, isomorphic
- * (Node >=18 and browsers).
+ * Generate catalog-constrained test data without a production source dataset,
+ * bind an unsigned integrity record to declared fields, compare current bytes and
+ * ranges with that record, and scan existing data for out-of-range candidates.
+ * Pure TypeScript, zero runtime dependencies, isomorphic (Node >=22 and browsers).
  */
-export type { Tier, FieldType } from "./types.js";
+export type { Tier, LegacyTier, FieldType } from "./types.js";
 
 export {
   CATALOG,
@@ -27,9 +27,11 @@ export {
 
 export {
   makeRunRecord,
+  validateRunRecord,
   ATTESTATION,
   SAFESEED_VERSION,
   type RunRecord,
+  type RunRecordValidation,
   type FieldRecord,
 } from "./record.js";
 

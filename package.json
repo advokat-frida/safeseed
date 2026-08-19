@@ -1,7 +1,7 @@
 {
   "name": "safeseed",
-  "version": "0.2.1",
-  "description": "Confirmably-synthetic test data by construction. Generate, attest, verify, and scan non-production data using standards-reserved \"never-real\" ranges. Zero backend, zero runtime dependencies, MIT.",
+  "version": "0.3.0",
+  "description": "Generate, record, verify, and scan low-fidelity test data from a versioned catalog of reserved, test-designated, and deliberately fake values. No production dataset required, zero runtime dependencies, MIT.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -30,7 +30,11 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "prepublishOnly": "npm run build",
+    "check:release": "node scripts/check-release.mjs",
+    "test:cli": "node scripts/test-cli.mjs",
+    "test:action": "node scripts/test-action.mjs",
+    "release:check": "npm audit --audit-level=moderate && npm run typecheck && npm test && npm run build && npm run test:cli && npm run test:action && npm run check:release",
+    "prepublishOnly": "npm run release:check",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
@@ -47,7 +51,7 @@
     "non-production"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "devDependencies": {
     "@types/node": "^22.20.0",

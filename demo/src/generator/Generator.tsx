@@ -23,7 +23,7 @@ const CUSTOM = "__custom__" as const;
 type RowType = FieldType | typeof CUSTOM;
 
 // A "your column" is user-supplied: the user's own values, which SafeSeed cannot vouch for,
-// so it gets the unattested "your column" treatment (no honesty tier, excluded from the
+// so it gets the unattested "your column" treatment (no assurance tier, excluded from the
 // attested record). "Your values…" is the only such type.
 const isYours = (t: RowType): boolean => t === CUSTOM;
 
@@ -33,14 +33,14 @@ const isYours = (t: RowType): boolean => t === CUSTOM;
 const HIDDEN_GENERATED: readonly FieldType[] = ["freeText"];
 
 const TIER_CLASS: Record<Tier, string> = {
-  "provably-non-real": "tier-provable",
-  "reserved-not-issued": "tier-reserved",
+  "protocol-reserved": "tier-provable",
+  "authority-reserved": "tier-reserved",
   "designated-test-only": "tier-designated",
   "structurally-fake": "tier-fake",
 };
 const TIER_LABEL: Record<Tier, string> = {
-  "provably-non-real": "Provably non-real",
-  "reserved-not-issued": "Reserved, never issued",
+  "protocol-reserved": "Protocol reserved",
+  "authority-reserved": "Authority reserved",
   "designated-test-only": "Designated for testing",
   "structurally-fake": "Structurally fake",
 };
@@ -237,34 +237,34 @@ export default function Generator() {
           </div>
           {mode === "generate" ? (
             <p className="gen-lede">
-              Generate safe fake data, add your own columns alongside it, audit the result, and download it.
-              Every generated value comes from a standards-reserved range or a structurally fake token. It runs
-              entirely in your browser — nothing leaves your device.
+              Generate low-fidelity test data, add your own columns alongside it, audit the result, and download it.
+              Every generated value comes from a versioned protocol reservation, authority policy, test designation,
+              or structurally fake convention. It runs entirely in your browser — nothing leaves your device.
             </p>
           ) : (
             <p className="gen-lede">
               Got a CSV and the verification file SafeSeed handed you with it? Drop them both in and confirm the
-              file is genuine and unchanged, and that every generated value still sits in its reserved range — no
-              install, all in your browser.
+              current file matches its record and every generated value still sits inside its catalog constraint —
+              no install, all in your browser.
             </p>
           )}
-          <ul className="tier-key" aria-label="What the honesty tiers mean">
+          <ul className="tier-key" aria-label="What the assurance tiers mean">
             <li>
               <span className="tier-dot tier-provable" aria-hidden="true" />
               <span>
-                <strong>Provably non-real</strong> — a standard reserves it; it cannot be a real person or system.
+                <strong>Protocol reserved</strong> — a published standard reserves the namespace for documentation or testing.
               </span>
             </li>
             <li>
               <span className="tier-dot tier-reserved" aria-hidden="true" />
               <span>
-                <strong>Reserved, never issued</strong> — set aside by the issuing authority and never assigned.
+                <strong>Authority reserved</strong> — the cited authority currently marks the range fictitious or invalid.
               </span>
             </li>
             <li>
               <span className="tier-dot tier-designated" aria-hidden="true" />
               <span>
-                <strong>Designated for testing</strong> — valid-looking, published for sandbox use; authorizes nowhere.
+                <strong>Designated for testing</strong> — valid-looking and published for processor or sandbox test mode.
               </span>
             </li>
             <li>
@@ -305,7 +305,7 @@ export default function Generator() {
                       aria-label="Column type"
                       onChange={(e) => updateField(f.id, { type: e.target.value as RowType })}
                     >
-                      <optgroup label="SafeSeed (generated, safe)">
+                      <optgroup label="SafeSeed (generated)">
                         {TYPE_OPTIONS.map((o) => (
                           <option key={o.value} value={o.value}>
                             {o.label}
@@ -455,12 +455,12 @@ export default function Generator() {
         <section className="gen-panel">
           <div className="gen-panel-head">
             <h2>Audit</h2>
-            <span className="gen-hint">Flag any value that is not in a reserved range — real PII that slipped in.</span>
+            <span className="gen-hint">Flag values outside a configured catalog range for review.</span>
           </div>
           <p className="audit-lede">
-            SafeSeed columns are checked against their own type and pass by construction. Point any of
-            <strong> your columns</strong> at the kind of data it should hold, and the audit flags
-            anything real that crept in.
+            SafeSeed-generated columns are checked against their declared constraints. Point any of
+            <strong> your columns</strong> at the kind of data it should hold, and the audit flags out-of-range values
+            as candidate real PII. In-range coincidences are not detected.
           </p>
 
           <div className="audit-cols">
@@ -509,17 +509,20 @@ export default function Generator() {
               <div className="audit-verdict">
                 {audit.ok ? <Check size={16} aria-hidden="true" /> : <ShieldAlert size={16} aria-hidden="true" />}
                 {audit.ok
-                  ? `Clean — every audited value is in its reserved range (${audit.scannedRows} rows).`
-                  : `${audit.findings.length} value${audit.findings.length === 1 ? "" : "s"} outside range across ${audit.scannedRows} rows.`}
+                  ? `Range check passed — every audited value is inside its configured range (${audit.scannedRows} rows). In-range coincidences are not detected.`
+                  : `${audit.findings.length} value${audit.findings.length === 1 ? "" : "s"} outside range across ${audit.scannedRows} rows.${audit.malformedRows.length > 0 ? ` ${audit.malformedRows.length} malformed row${audit.malformedRows.length === 1 ? "" : "s"}.` : ""}`}
               </div>
               {!audit.ok && (
                 <ul className="audit-findings">
                   {audit.findings.slice(0, 12).map((fd, i) => (
                     <li key={i}>
-                      <code>{fd.field}</code> row {fd.row + 1}: <code>{fd.value}</code> — not a safe {fd.type}
+                      <code>{fd.field}</code> row {fd.row + 1}: <code>{fd.value}</code> — outside the configured {fd.type} range
                     </li>
                   ))}
                   {audit.findings.length > 12 && <li>…and {audit.findings.length - 12} more.</li>}
+                  {audit.malformedRows.slice(0, 12).map((row) => (
+                    <li key={`malformed-${row}`}>Row {row + 1} has a different number of cells than the header.</li>
+                  ))}
                 </ul>
               )}
             </div>
@@ -552,10 +555,10 @@ export default function Generator() {
 
           <div className="gen-note">
             <p>
-              Save both files together. The verification file is a small fingerprint of the data (a SHA-256 hash of
-              the whole file and each generated column), so you or your team can later confirm the data is exactly
-              what you generated here and catch any tampering. You only need it if you want that check — the CSV
-              stands on its own.
+              Save both files together. The verification file is an unsigned fingerprint of the data (a SHA-256 hash
+              of the whole file and each generated column). Keep that record under reviewed version control and you
+              can later compare the current bytes and detect drift. Anyone who can replace both files can recompute
+              both, so this is an integrity check, not authenticated provenance. The CSV stands on its own.
             </p>
             {customFields.length > 0 && (
               <p>
@@ -572,8 +575,8 @@ export default function Generator() {
         {mode === "verify" && <VerifyPanel />}
 
         <p className="finelegal">
-          <strong>Not legal advice.</strong> SafeSeed proves test data is synthetic and unchanged — it doesn't make any
-          use of it compliant, and a human stays accountable for anything that leaves the building.
+          <strong>Not legal advice.</strong> SafeSeed is a technical control, not proof that a file contains no personal
+          data. It does not make any use compliant, and a human stays accountable for anything that leaves the building.
         </p>
       </main>
 

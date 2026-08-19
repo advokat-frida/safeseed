@@ -1,0 +1,99 @@
+import { spawnSync } from "node:child_process";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, resolve } from "node:path";
+import process from "node:process";
+import { fileURLToPath } from "node:url";
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const cli = resolve(root, "dist", "cli.js");
+
+function run(args) {
+  return spawnSync(process.execPath, [cli, ...args], {
+    cwd: root,
+    encoding: "utf8",
+  });
+}
+
+function expect(condition, message, result) {
+  if (condition) return;
+  process.stderr.write(`FAIL: ${message}\n`);
+  if (result?.stdout) process.stderr.write(`stdout:\n${result.stdout}`);
+  if (result?.stderr) process.stderr.write(`stderr:\n${result.stderr}`);
+  process.exit(1);
+}
+
+const temp = mkdtempSync(join(tmpdir(), "safeseed-cli-"));
+try {
+  const hostileCsv = join(temp, "hostile.csv");
+  const privateEmail = "real.person@gmail.com";
+  const privatePhone = "(212) 867-5309";
+  const injectedCommand = "::set-output name=injected::yes";
+  writeFileSync(
+    hostileCsv,
+    `email,phone\n"${privateEmail}\n${injectedCommand}","${privatePhone} / (800) 555-0100"\n`,
+  );
+
+  const scan = run(["scan", "--in", hostileCsv, "--fields", "email:email,phone:phone"]);
+  const scanOutput = `${scan.stdout ?? ""}${scan.stderr ?? ""}`;
+  expect(scan.status === 1, "hostile scan must fail", scan);
+  expect(!scanOutput.includes(privateEmail), "scan diagnostics leaked a candidate email", scan);
+  expect(!scanOutput.includes(privatePhone), "scan diagnostics leaked a candidate phone", scan);
+  expect(!scanOutput.includes(injectedCommand), "scan diagnostics emitted a workflow command", scan);
+  expect(scanOutput.includes("candidate value redacted"), "scan diagnostics do not state redaction", scan);
+  process.stdout.write("PASS: CLI scan redacts candidate values and control text\n");
+
+  const config = join(temp, "duplicate.json");
+  const dataOut = join(temp, "partial.csv");
+  const recordOut = join(temp, "partial.record.json");
+  writeFileSync(
+    config,
+    JSON.stringify({
+      schema: [
+        { name: "email", type: "email" },
+        { name: "email", type: "phone" },
+      ],
+      rows: 2,
+      seed: 1,
+    }),
+  );
+  const duplicate = run([
+    "generate",
+    "--config",
+    config,
+    "--out",
+    dataOut,
+    "--record",
+    recordOut,
+  ]);
+  expect(duplicate.status === 2, "duplicate schema must be rejected", duplicate);
+  expect(!existsSync(dataOut) && !existsSync(recordOut), "invalid generation left a partial output", duplicate);
+  process.stdout.write("PASS: CLI rejects duplicate schemas before writing output\n");
+
+  const hostileHeaderConfig = join(temp, "hostile-header.json");
+  const hostileHeader = "safe\n::add-mask::secret\nfield";
+  writeFileSync(
+    hostileHeaderConfig,
+    JSON.stringify({
+      schema: [{ name: hostileHeader, type: "email" }],
+      rows: 1,
+      seed: 1,
+    }),
+  );
+  const hostileGenerate = run(["generate", "--config", hostileHeaderConfig]);
+  const hostileGenerateOutput = `${hostileGenerate.stdout ?? ""}${hostileGenerate.stderr ?? ""}`;
+  expect(hostileGenerate.status === 2, "control-bearing generated header must be rejected", hostileGenerate);
+  expect(!hostileGenerateOutput.includes("::add-mask::secret"), "hostile generated header reached CLI output", hostileGenerate);
+
+  const scanConfig = join(temp, "hostile-scan.json");
+  writeFileSync(scanConfig, JSON.stringify({ columns: [{ name: hostileHeader, type: "email" }] }));
+  const hostileScanConfig = run(["scan", "--config", scanConfig, "--in", hostileCsv]);
+  const hostileScanConfigOutput = `${hostileScanConfig.stdout ?? ""}${hostileScanConfig.stderr ?? ""}`;
+  expect(hostileScanConfig.status === 2, "control-bearing scan column must be rejected", hostileScanConfig);
+  expect(!hostileScanConfigOutput.includes("::add-mask::secret"), "hostile scan column reached CLI output", hostileScanConfig);
+  process.stdout.write("PASS: CLI rejects control-bearing generate and scan schemas\n");
+} finally {
+  rmSync(temp, { recursive: true, force: true });
+}
+
+process.stdout.write("SafeSeed CLI boundary contract: 3/3 passed.\n");

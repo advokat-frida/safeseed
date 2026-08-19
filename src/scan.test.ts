@@ -38,6 +38,35 @@ describe("scan.passesOnAllReservedData", () => {
   });
 });
 
+describe("scan.rejectsCompositeCellsInsteadOfNormalizingToASafeSuffix", () => {
+  it("flags embedded real-looking email, phone, SSN, and card content", () => {
+    const columns: ScanColumn[] = [
+      { name: "email", type: "email" },
+      { name: "phone", type: "phone" },
+      { name: "ssn", type: "ssn" },
+      { name: "card", type: "creditCard" },
+    ];
+    const csv = toCsv(
+      columns.map((column) => column.name),
+      [[
+        "real.person@gmail.com\nfake@example.com",
+        "(212) 867-5309 / (800) 555-0100",
+        "123-45-6789 / 123-00-6789",
+        "1234567890123456 / 4242424242424242",
+      ]],
+    );
+
+    const result = scan({ csv, columns });
+    expect(result.ok).toBe(false);
+    expect(result.findings.map((finding) => finding.field).sort()).toEqual([
+      "card",
+      "email",
+      "phone",
+      "ssn",
+    ]);
+  });
+});
+
 describe("scan.reportsPerFieldFindings", () => {
   it("counts candidate findings per column", () => {
     const csv = [
@@ -98,6 +127,16 @@ describe("scan.reportsAmbiguousDuplicateHeaders", () => {
   });
 });
 
+describe("scan.failsClosedOnMalformedRows", () => {
+  it("rejects an unheadered trailing cell instead of ignoring it", () => {
+    const csv = "email\nfake@example.com,real.person@gmail.com\n";
+    const result = scan({ csv, columns: [{ name: "email", type: "email" }] });
+    expect(result.ok).toBe(false);
+    expect(result.findings).toEqual([]);
+    expect(result.malformedRows).toEqual([0]);
+  });
+});
+
 describe("scan.cleanResultCarriesEmptyColumnReports", () => {
   it("returns empty missing/duplicate arrays on a fully-matched clean scan", () => {
     const ds = generate({ schema: COLUMNS as FieldSchema[], rows: 5, seed: 7 });
@@ -106,5 +145,6 @@ describe("scan.cleanResultCarriesEmptyColumnReports", () => {
     expect(result.ok).toBe(true);
     expect(result.missingColumns).toEqual([]);
     expect(result.duplicateColumns).toEqual([]);
+    expect(result.malformedRows).toEqual([]);
   });
 });

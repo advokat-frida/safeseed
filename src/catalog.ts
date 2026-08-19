@@ -1,18 +1,19 @@
 /**
  * The reserved-range catalog — SafeSeed's reusable core IP.
  *
- * Each entry maps a PII-shaped field type to a standards-reserved "never-real"
- * space, the citation for that reservation, its honesty tier, and the exact
- * language allowed about it. Generation, verification, and scanning all read from
- * this one table, which is what makes the promise auditable: review these few
- * hundred cited lines once, and every output inherits the guarantee.
+ * Each entry maps a PII-shaped field type to a bounded test-data space, the source
+ * for that constraint, its assurance tier, and the exact language allowed about
+ * it. Generation, verification, and scanning all read from this one table, which
+ * is what makes the promise auditable: review this
+ * versioned catalog before release and whenever its sources change, then bind
+ * each output to the catalog version and its tier-appropriate claims.
  *
  * Sourcing: the RFC 2606 / 5737 / 3849 reservations are confirmed against primary
- * sources. The SSN space (catalog 2.0.0) uses only components that BOTH the SSA
- * scheme and the IRS ITIN scheme never issue: area 000, area 666, group 00, serial
- * 0000. The 900-999 area range the SSA excludes is deliberately NOT treated as
- * reserved — it is the IRS ITIN space (9XX-XX-XXXX), which contains real, issued
- * taxpayer identifiers, and the IRS has expanded its ITIN group ranges over time.
+ * sources. The SSN-shaped space uses components the SSA identifies as invalid
+ * for SSNs: area 000, area 666, group 00, or serial 0000. The 900-999 area range
+ * is deliberately NOT treated as reserved because it overlaps the IRS ITIN space
+ * (9XX-XX-XXXX), which contains real, issued taxpayer identifiers, and the IRS has
+ * expanded its ITIN group ranges over time.
  * The NANPA 555-0100..0199 fictitious block is well-established; its shipped
  * citation link is the NANPA homepage rather than a deep rule page.
  */
@@ -20,10 +21,11 @@ import type { FieldType, Tier } from "./types.js";
 import { ipv4InCidr, ipv6InPrefix } from "./net.js";
 
 // 2.0.0: the ssn reserved range narrowed to exclude areas 900-999 (the IRS ITIN
-// space — real identifiers). Run records made under catalog 1.0.0 with 9xx-area
-// SSNs now fail verify BY DESIGN; verify emits a catalog-version warning so the
-// failure is explained rather than mysterious.
-export const CATALOG_VERSION = "2.0.0";
+// space — real identifiers). SafeSeed 0.3 rejects older record contracts and asks
+// for regeneration rather than trusting stale catalog metadata.
+// 3.0.0: ranges are unchanged; tier names and claims were narrowed so the catalog
+// states what reserves/designates a value without claiming coincidence is impossible.
+export const CATALOG_VERSION = "3.0.0";
 
 /** Inspectable, structured definition of a reserved space. Drives generation,
  * verification, and scanning, and lets tests assert the ranges match standards. */
@@ -55,15 +57,16 @@ export interface CatalogEntry {
   reserved: ReservedSpec;
 }
 
-// Tier-appropriate claim language. The strong wording ("cannot correspond to a
-// real person") lives ONLY on the protocol-provable tier; every weaker tier
-// deliberately avoids "proof", "impossible", "guarantee", "cannot be real".
-const CLAIM_PROVABLE =
-  "Reserved by published standard; values in this range cannot correspond to a real person or system.";
-const CLAIM_RESERVED_NOT_ISSUED =
-  "Reserved by the issuing authority and never assigned, so no real holder has one. Non-real by administrative policy rather than by protocol.";
+// Tier-appropriate claim language deliberately avoids proof, impossibility, and
+// lifetime-policy language on every tier. The catalog describes the constraint it
+// can support; it does not infer that a generated string can never coincide with a
+// real party or be handled by infrastructure.
+const CLAIM_PROTOCOL_RESERVED =
+  "Inside a namespace reserved by a published protocol for documentation or testing. The reservation is the claim; it does not prove that no infrastructure could ever handle the value.";
+const CLAIM_AUTHORITY_RESERVED =
+  "Inside a range or invalid pattern the cited issuing authority currently designates for fictitious use or excludes from ordinary issuance. This administrative-policy claim must be revalidated when the catalog changes.";
 const CLAIM_DESIGNATED =
-  "Designated test value that passes validation; non-real by processor/sandbox designation, not by construction. Valid-looking, but reserved for testing.";
+  "Published for processor or sandbox testing and intended for test mode. It passes checksum validation; the test designation, not mathematical impossibility, supports the claim.";
 const CLAIM_FAKE =
   "Structurally synthetic token; not derived from any real record. This field type is not reserved by any standard, so realism is deliberately avoided.";
 
@@ -72,7 +75,7 @@ const RFC2606_TLDS = ["test", "example", "invalid", "localhost"] as const;
 const RFC5737_BLOCKS = ["192.0.2.0/24", "198.51.100.0/24", "203.0.113.0/24"] as const;
 const RFC3849_BLOCKS = ["2001:db8::/32"] as const;
 
-/** Payment-processor / sandbox test PANs (all Luhn-valid by design; authorize nowhere). */
+/** Payment-processor / sandbox test PANs (all Luhn-valid by design). */
 const CARD_TEST_NUMBERS = [
   "4242424242424242", // Visa (widely used sandbox)
   "4111111111111111", // Visa
@@ -89,52 +92,52 @@ const CARD_TEST_NUMBERS = [
 export const CATALOG: readonly CatalogEntry[] = [
   {
     field: "email",
-    tier: "provably-non-real",
+    tier: "protocol-reserved",
     citation: "RFC 2606 §2–3 (reserved example.com/.net/.org and TLDs .test/.example/.invalid/.localhost)",
-    description: "Email addresses whose domain is an RFC 2606 reserved domain or TLD; can never route to a real mailbox.",
-    claim: CLAIM_PROVABLE,
+    description: "Email-shaped values under an RFC 2606 reserved example domain or TLD; reserved for documentation and testing rather than customer production use.",
+    claim: CLAIM_PROTOCOL_RESERVED,
     reserved: { kind: "emailDomains", domains: RFC2606_DOMAINS, reservedTlds: RFC2606_TLDS },
   },
   {
     field: "domain",
-    tier: "provably-non-real",
+    tier: "protocol-reserved",
     citation: "RFC 2606 §2–3 (reserved domains and TLDs)",
     description: "Hostnames under an RFC 2606 reserved domain or TLD.",
-    claim: CLAIM_PROVABLE,
+    claim: CLAIM_PROTOCOL_RESERVED,
     reserved: { kind: "domains", domains: RFC2606_DOMAINS, reservedTlds: RFC2606_TLDS },
   },
   {
     field: "ipv4",
-    tier: "provably-non-real",
+    tier: "protocol-reserved",
     citation: "RFC 5737 (IPv4 documentation blocks TEST-NET-1/2/3)",
     description: "IPv4 addresses inside the three RFC 5737 documentation ranges, which per the RFC should not be routed on the public Internet.",
-    claim: CLAIM_PROVABLE,
+    claim: CLAIM_PROTOCOL_RESERVED,
     reserved: { kind: "ipv4Blocks", cidrs: RFC5737_BLOCKS },
   },
   {
     field: "ipv6",
-    tier: "provably-non-real",
+    tier: "protocol-reserved",
     citation: "RFC 3849 (IPv6 documentation prefix 2001:db8::/32)",
     description: "IPv6 addresses inside the RFC 3849 documentation prefix.",
-    claim: CLAIM_PROVABLE,
+    claim: CLAIM_PROTOCOL_RESERVED,
     reserved: { kind: "ipv6Blocks", cidrs: RFC3849_BLOCKS },
   },
   {
     field: "phone",
-    tier: "reserved-not-issued",
+    tier: "authority-reserved",
     citation: "NANPA / ATIS fictitious-number assignment (555-0100 through 555-0199)",
-    description: "North American numbers in the 555-01xx fictitious subscriber block, which the numbering authority reserves and never assigns to a real line (administrative reservation, not a protocol limit).",
-    claim: CLAIM_RESERVED_NOT_ISSUED,
+    description: "North American numbers in the 555-01xx subscriber block the numbering authority designates for fictitious, non-working use (administrative policy, not a protocol limit).",
+    claim: CLAIM_AUTHORITY_RESERVED,
     reserved: { kind: "phoneBlock", centralOfficeCode: "555", subscriberStart: 100, subscriberEnd: 199 },
   },
   {
     field: "ssn",
-    tier: "reserved-not-issued",
+    tier: "authority-reserved",
     citation:
       "SSA SSN randomization (effective 2011-06-25): never-assigned area 000 / 666, group 00, serial 0000 (ssa.gov/employer/randomization.html). Areas 900-999 are deliberately excluded: that is the IRS ITIN space (9XX-XX-XXXX), which contains real, issued identifiers.",
     description:
-      "US SSN-shaped values containing a component that neither the SSA (for SSNs) nor the IRS (for ITINs) ever issues: area 000 or 666, group 00, or serial 0000. The values are format-shaped (NNN-NN-NNNN); a strict SSN validator that encodes the SSA issuance rules will reject them — that rejection is exactly what makes them provably never-issued.",
-    claim: CLAIM_RESERVED_NOT_ISSUED,
+      "US SSN-shaped values containing a component the SSA identifies as invalid for SSNs: area 000 or 666, group 00, or serial 0000. Areas 900-999 are excluded because they overlap the real IRS ITIN space. A validator that encodes SSA issuance rules should reject these values.",
+    claim: CLAIM_AUTHORITY_RESERVED,
     reserved: {
       kind: "ssnInvalid",
       invalidAreas: ["000", "666"],
@@ -145,8 +148,8 @@ export const CATALOG: readonly CatalogEntry[] = [
   {
     field: "creditCard",
     tier: "designated-test-only",
-    citation: "Payment-processor / sandbox test PANs (e.g. Stripe testing docs); pass Luhn, authorize nowhere",
-    description: "Card numbers processors and sandboxes publish for testing. They pass the Luhn checksum but authorize nowhere, so they are non-real by designation, not by impossibility.",
+    citation: "Payment-processor / sandbox test PANs (e.g. Stripe testing docs); intended for test mode",
+    description: "Card numbers processors and sandboxes publish for testing. They pass the Luhn checksum; their test designation is the assurance source, not mathematical impossibility.",
     claim: CLAIM_DESIGNATED,
     reserved: { kind: "cardTestNumbers", numbers: CARD_TEST_NUMBERS },
   },
@@ -203,6 +206,9 @@ export function getEntry(field: FieldType): CatalogEntry {
 
 function domainIsReserved(domain: string, domains: readonly string[], tlds: readonly string[]): boolean {
   const d = domain.toLowerCase();
+  if (!/^[a-z0-9.-]+$/.test(d) || d.startsWith(".") || d.endsWith(".") || d.includes("..")) {
+    return false;
+  }
   // RFC 2606 reserves the whole zone of a reserved second-level domain, so a
   // subdomain (mail.example.com) is reserved too — not just the bare domain.
   if (domains.some((rd) => d === rd || d.endsWith(`.${rd}`))) return true;
@@ -218,38 +224,53 @@ export function isReserved(entry: CatalogEntry, value: string): boolean {
   const r = entry.reserved;
   switch (r.kind) {
     case "emailDomains": {
-      const at = value.lastIndexOf("@");
-      if (at < 0) return false;
-      return domainIsReserved(value.slice(at + 1), r.domains, r.reservedTlds);
+      // This catalog supports one simple mailbox-shaped value per cell. Reject
+      // whitespace, controls, and multiple addresses instead of extracting a safe
+      // suffix from a composite value that may also contain real PII.
+      if (!/^[^\s@]+@[^\s@]+$/.test(value)) return false;
+      const parts = value.split("@");
+      if (parts.length !== 2 || parts[0] === "" || parts[1] === "") return false;
+      const domain = parts[1];
+      return domain !== undefined && domainIsReserved(domain, r.domains, r.reservedTlds);
     }
     case "domains":
       return domainIsReserved(value, r.domains, r.reservedTlds);
     case "ipv4Blocks":
       return r.cidrs.some((c) => ipv4InCidr(value, c));
     case "ipv6Blocks":
+      if (value.trim() !== value || value.includes("%")) return false;
       return r.cidrs.some((c) => ipv6InPrefix(value, c));
     case "phoneBlock": {
+      // Supported shapes are the generated 7-digit form and a 10-digit NANPA
+      // number, with ordinary phone punctuation only. Never strip arbitrary text
+      // and inspect a safe-looking suffix of a composite cell.
+      if (!/^[0-9()+. -]+$/.test(value)) return false;
       const digits = value.replace(/\D/g, "");
-      if (digits.length < 7) return false;
+      if (digits.length !== 7 && digits.length !== 10) return false;
       const last7 = digits.slice(-7);
       const nxx = last7.slice(0, 3);
       const line = Number(last7.slice(3));
       return nxx === r.centralOfficeCode && line >= r.subscriberStart && line <= r.subscriberEnd;
     }
     case "ssnInvalid": {
-      // Reserved = contains a component that is never issued under BOTH the SSA
-      // scheme and the IRS ITIN scheme. Deliberately NOT reserved: areas 900-999
-      // (ITIN space — real, issued identifiers; catalog 2.0.0 removed them).
-      const digits = value.replace(/\D/g, "");
-      if (digits.length !== 9) return false;
+      // The value contains a component the SSA identifies as invalid for SSNs.
+      // Deliberately excluded: areas 900-999, which overlap the real ITIN space;
+      // catalog 2.0.0 removed them.
+      if (!/^(?:\d{9}|\d{3}-\d{2}-\d{4})$/.test(value)) return false;
+      const digits = value.replaceAll("-", "");
       const area = digits.slice(0, 3);
       const group = digits.slice(3, 5);
       const serial = digits.slice(5);
+      // The entire 9xx area is excluded even when another component is invalid:
+      // it is the IRS ITIN namespace, and a real identifier must never become
+      // "reserved" merely because its group/serial resembles an SSA-invalid SSN.
+      if (Number(area) >= 900) return false;
       return r.invalidAreas.includes(area) || group === r.invalidGroup || serial === r.invalidSerial;
     }
     case "cardTestNumbers": {
-      const digits = value.replace(/\D/g, "");
-      return r.numbers.some((n) => n.replace(/\D/g, "") === digits);
+      if (!/^[0-9 -]+$/.test(value)) return false;
+      const digits = value.replace(/[ -]/g, "");
+      return r.numbers.some((n) => n.replace(/[ -]/g, "") === digits);
     }
     case "fakeToken":
       return new RegExp(r.pattern).test(value);

@@ -1,23 +1,23 @@
 /**
  * Core type vocabulary for SafeSeed.
  *
- * The honesty tier is the load-bearing concept: every value SafeSeed touches is
- * classified by *how* it is known to be non-real, and the language allowed about
- * it follows from the tier (see `record.ts`).
+ * The assurance tier is the load-bearing concept: every catalog value is
+ * classified by the source of the constraint behind it, and the language allowed
+ * about it follows from the tier (see `record.ts`).
  */
 
 /**
- * How a value is known to be non-real. Ordered from strongest to weakest claim.
+ * What supports the claim made about a generated value. Ordered from the most
+ * structural constraint to the most deliberately artificial convention.
  *
- * - `provably-non-real`     reserved by a published *standard / protocol*; cannot
- *                           belong to a real person or system (RFC 2606 domains,
- *                           RFC 5737 / 3849 documentation IPs). The standard itself
- *                           makes them non-routable / non-registrable.
- * - `reserved-not-issued`   reserved by the *issuing authority* and never assigned,
- *                           so no real holder has one (NANPA 555-01xx fictitious
- *                           phones, SSA never-issued SSN ranges). Strong, but it
- *                           rests on administrative policy, NOT protocol — so it is
- *                           held apart from the protocol-provable tier above.
+ * - `protocol-reserved`     reserved by a published internet standard for
+ *                           documentation/testing (RFC 2606 names, RFC 5737 / 3849
+ *                           addresses). The claim is reservation, not that no
+ *                           infrastructure could ever handle the value.
+ * - `authority-reserved`    designated fictitious or invalid under an issuing
+ *                           authority's current policy (NANPA 555-01xx phones,
+ *                           SSA-invalid SSN components). This must be revalidated
+ *                           when the catalog or cited policy changes.
  * - `designated-test-only`  a valid-looking value that networks/sandboxes have
  *                           *designated* for testing (e.g. card test PANs). It
  *                           passes validation, so it is non-real by designation,
@@ -26,10 +26,13 @@
  *                           so it is made self-evidently fake instead of plausible.
  */
 export type Tier =
-  | "provably-non-real"
-  | "reserved-not-issued"
+  | "protocol-reserved"
+  | "authority-reserved"
   | "designated-test-only"
   | "structurally-fake";
+
+/** Tier strings emitted before catalog 3.0.0. Old run records remain readable. */
+export type LegacyTier = "provably-non-real" | "reserved-not-issued";
 
 /** The PII-shaped field types SafeSeed knows how to generate, verify, and scan. */
 export type FieldType =

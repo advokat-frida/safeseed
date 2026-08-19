@@ -13,8 +13,8 @@ const SCHEMA: FieldSchema[] = [
 ];
 
 const TIERS: Tier[] = [
-  "provably-non-real",
-  "reserved-not-issued",
+  "protocol-reserved",
+  "authority-reserved",
   "designated-test-only",
   "structurally-fake",
 ];
@@ -37,6 +37,27 @@ describe("record.bindsToOutputFileHash", () => {
     const { ds, record } = await build();
     expect(record.rowCount).toBe(ds.rows.length);
     expect(record.columns).toEqual(ds.columns);
+  });
+
+  it("accepts added CSV columns but requires every declared field to match the dataset", async () => {
+    const { ds, csv } = await build();
+    const lines = csv.trimEnd().split("\n");
+    const extended = `${lines[0]},role\n${lines.slice(1).map((line) => `${line},tester`).join("\n")}\n`;
+    const record = await makeRunRecord(ds, extended);
+    expect(record.contentSha256).toBe(await sha256Hex(extended));
+
+    const mismatched = extended.replace("user1@", "user99@");
+    await expect(makeRunRecord(ds, mismatched)).rejects.toThrow(/does not match dataset field/i);
+  });
+
+  it("rejects a structurally supplied dataset whose value is outside the current catalog", async () => {
+    const { ds } = await build();
+    const forged = {
+      ...ds,
+      rows: ds.rows.map((row, index) => (index === 0 ? ["real.person@gmail.com", ...row.slice(1)] : row)),
+    };
+    const forgedCsv = toCsv(forged.columns, forged.rows);
+    await expect(makeRunRecord(forged, forgedCsv)).rejects.toThrow(/outside the current email catalog/i);
   });
 });
 
@@ -100,19 +121,24 @@ describe("record.usesHonestLanguageNoOverclaim", () => {
     /\bguarantee/i,
   ];
 
-  it("reserved-not-issued, designated-test, and structurally-fake claims avoid proof/impossibility language", async () => {
+  it("all current claims avoid absolute impossibility and lifetime-policy language", async () => {
     const { record } = await build();
     for (const f of record.fields) {
-      if (f.tier !== "provably-non-real") {
-        for (const re of banned) {
-          expect(re.test(f.claim), `${f.tier} claim overclaims: "${f.claim}"`).toBe(false);
-        }
+      for (const re of banned) {
+        expect(re.test(f.claim), `${f.tier} claim overclaims: "${f.claim}"`).toBe(false);
       }
     }
   });
 
   it("the attestation explicitly disclaims being a proof of no-PII", () => {
+    expect(/unsigned run record/i.test(ATTESTATION)).toBe(true);
+    expect(/caller's declaration/i.test(ATTESTATION)).toBe(true);
+    expect(/cannot authenticate how/i.test(ATTESTATION)).toBe(true);
     expect(/not a cryptographic proof/i.test(ATTESTATION)).toBe(true);
     expect(/not the same (claim )?as/i.test(ATTESTATION)).toBe(true);
+    expect(/does not attest any column omitted from its fields list/i.test(ATTESTATION)).toBe(true);
+    expect(/overall file contains no personal data/i.test(ATTESTATION)).toBe(true);
+    expect(/can recompute both/i.test(ATTESTATION)).toBe(true);
+    expect(/independently protected copy/i.test(ATTESTATION)).toBe(true);
   });
 });

@@ -1,6 +1,6 @@
 # SPEC — SafeSeed
 
-*Frida's Toolkit, v1 flagship. Status: drafted, awaiting go-for-code. Companion essay: [docs/safe-test-data-by-construction.md](docs/safe-test-data-by-construction.md).*
+*Frida's Toolkit, v1 flagship. Status: built; `0.3.0` hardening candidate remains local. Companion essay: [docs/safe-test-data-by-construction.md](docs/safe-test-data-by-construction.md).*
 
 > Name: **SafeSeed** (locked). Deliberately **not** "Cleanroom" — "data clean room" is an established privacy term for privacy-preserving data collaboration, a different thing; reusing it would read as not knowing the field.
 
@@ -11,13 +11,13 @@
 **The problem.** Companies guard their production systems carefully, but copies of real customer data quietly pile up in places that get far less protection: test databases, automated build systems, developers' laptops, screenshots in bug reports. A lot of real-world data exposure happens in those overlooked copies, not at the front door. The standard advice is "don't test with real customer data, use fake stand-in data." The catch: most "fake" data is produced by software that *learned from real data*, so it can accidentally reproduce real people, and you can never fully prove it didn't.
 
 **What SafeSeed does.** Three simple things.
-1. Makes stand-in test data that is fake *by design* — it never looks at any real customer data, and it builds values out of phone/address/email ranges that official standards have set aside as "can never belong to a real person." There is no real data to leak, by construction.
-2. Checks a data file and gives an honest grade on whether everything in it is the safe kind.
-3. Scans data you *already* have in a test system and flags anything that looks like real customer data that slipped in.
+1. Makes stand-in test data without reading a production dataset. It builds values from a small catalog of protocol-reserved, authority-reserved, test-designated, and deliberately obvious fakes, and states the limits of each tier.
+2. Binds the generated file to a run record and checks that every declared value is still inside its catalog constraint.
+3. Scans data you *already* have in a test system and flags values outside the configured ranges for review. It is a detector, not proof that a clean file contains no real personal data.
 
-**Why it matters to us.** It cuts the risk of a privacy incident in exactly the overlooked places those incidents come from, and it produces a written, checkable record we can show an auditor or regulator instead of "we're pretty sure it's fine." It is free, runs entirely on your own machine (nothing is uploaded anywhere), and supports privacy-by-design and data-minimization expectations (GDPR Articles 25 and 32, SOC 2, ISO 27001).
+**Why it matters to us.** It reduces a common route by which production data reaches weakly controlled test systems, and it produces a written, checkable record of the generator, catalog version, and artifact instead of "we're pretty sure it's fine." It is free, runs entirely on your own machine (nothing is uploaded anywhere), and can support a broader privacy-by-design and data-minimization control program (GDPR Articles 25 and 32, SOC 2, ISO 27001).
 
-**What it does NOT claim (so we never oversell).** It does not make data realistic enough for performance testing or AI training — that is a different job. And it proves the data was *not built from production data*; it does not declare the data "legally not personal information." We are precise about that on purpose, because overclaiming is how you lose a careful reviewer's trust.
+**What it does NOT claim (so we never oversell).** It does not make data realistic enough for performance testing or AI training — that is a different job. Its structural claim is that SafeSeed's generator accepts no production dataset; its field claims are only the tier-specific statements in the versioned catalog. It does not declare the output "legally not personal information" or rule out every accidental coincidence.
 
 ## Goal
 
@@ -29,38 +29,41 @@ The credibility lead is the essay; the tool is proof he can also ship.
 
 - **Pure TypeScript core** (zero DOM) + three thin shells:
   - **CLI / npm package** — what CI actually calls.
-  - **`verify` GitHub Action** — the enforcement gate.
+  - **`verify` GitHub Action** — the enforcement gate. A pure Node 24 wrapper executes the
+    committed `dist/` bytes from the selected tag or SHA; it does not shell-evaluate inputs or
+    download a second CLI version from npm.
   - **Browser demo** — the front door, reusing the parchment/fox design system already built.
-- **Generator-agnostic by design.** The assurance layer (catalog + `verify` + `scan` + run record) operates on *any* data file, however it was produced — so a team can keep the generator they already use (Faker, Mockaroo, hand-written fixtures) and wrap it. SafeSeed ships its own small reserved-range generator so it works standalone; Faker is an optional adapter for *realistic non-PII* fields only, never for PII-shaped ones (those always come from the cited reserved ranges).
+- **Generator-agnostic by design.** The assurance layer (catalog + `verify` + `scan` + run record) operates on *any* data file, however it was produced — so a team can keep the generator they already use (Faker, Mockaroo, hand-written fixtures) and wrap it. SafeSeed ships its own small catalog-bounded generator so it works standalone; Faker is an optional adapter for *realistic non-PII* fields only, never for PII-shaped ones (those always come from the cited catalog constraints).
 - MIT, local/client-side, **no backend, no accounts, no telemetry**, copyleft-free dependencies.
 
 ## Repository structure
 
 **SafeSeed gets its own repository**, under the Frida's Toolkit brand / GitHub org, cross-linked — not a sub-folder of the toolkit microsite. Best-practice reasoning:
 
-- **Different artifact type.** SafeSeed publishes an npm package, a CLI, and a GitHub Action — each with its own versioning, releases, and (for the Action) a Marketplace listing. The browser tiles (NIST PRAM wizard, etc.) are a single web microsite that never touches npm. Mixing those release lifecycles in one tree is friction.
-- **Credibility and focus.** A dedicated, polished repo with a tight README and the companion essay is a stronger thing to hand Legal, Operations, a hiring manager, or a CISO than "folder 3 of a grab-bag." It also makes the core promise — *audit a few hundred cited lines once, trust every output* — easy to verify; a mixed repo dilutes that.
+- **Different artifact type.** SafeSeed publishes an npm package, a CLI, and a public GitHub Action from one immutable versioned release. The browser tiles (NIST PRAM wizard, etc.) are a single web microsite that never touches npm. Mixing those release lifecycles in one tree is friction.
+- **Credibility and focus.** A dedicated, polished repo with a tight README and the companion essay is a stronger thing to hand Legal, Operations, a hiring manager, or a CISO than "folder 3 of a grab-bag." It also makes the bounded promise — *audit the versioned catalog, then verify each artifact against it* — easy to inspect; a mixed repo dilutes that.
 - **Brand cohesion without a monorepo.** Both repos live under one GitHub org and cross-link. Frida's Toolkit is the umbrella: the brand, the browser-tile microsite, and a landing page that links out to SafeSeed.
 
 A monorepo would only win if everything were the same artifact type with heavy shared code (true for the *tiles*, not for SafeSeed). The shared UI (the fox / parchment design system) can be copied for v1 and extracted into a shared package later only if the duplication actually starts to hurt.
 
 ## Capabilities (v1)
 
-1. **Reserved-range catalog** — versioned data mapping each PII field type to a standards-reserved "never-real" range, its citation, and its honesty tier. This is the reusable IP.
+1. **Assurance catalog** — versioned data mapping each PII-shaped field type to a protocol reservation, authority policy, published test designation, or deliberately fake convention, with its citation and assurance tier. This is the reusable IP.
 2. **Generate** — schema-driven, deterministic (seeded so output is a committable fixture), with a **format-valid safe mode** (values that pass common validators while staying reserved), and **self-evidently-fake tokens** (`TEST_Lastname_000142`, `123 Example Way`) for the structurally-fake tier.
-3. **Run record (tamper-evident)** — hashes the actual emitted file + schema + catalog version + per-field tiers. Honest language: a *tamper-evident run record*, not "cryptographic proof of no PII." (Optional org-controlled-key signing is a later upgrade, not v1.)
+3. **Run record (unsigned integrity receipt)** — hashes the actual emitted file + schema + catalog version + per-field tiers. Honest language: it is a self-declared comparison record whose drift evidence depends on protecting or reviewing the record separately, not authenticated provenance or "cryptographic proof of no PII." (Optional org-controlled-key signing is a later upgrade, not v1.)
 4. **`verify`** — re-hashes the artifact, checks every field against its declared range, validates the run record, exits non-zero on any drift. Wireable as a required CI/merge gate.
 5. **`scan` (reverse mode)** — point it at an *existing* CSV / seed file; it flags values that are **not** in reserved ranges as candidate real PII. (Security said this is what they'd deploy week one — it addresses the prod dump already sitting in staging, not just virgin data.)
 6. **In-artifact threat model** — a plain "what this attests / what it does NOT" statement shipped with the tool, the CLI output, and the demo.
-7. **The honesty-tier taxonomy** baked into every output: each field labeled provably-non-real (protocol-reserved) / reserved-not-issued (authority-reserved, never assigned) / designated-test-only / structurally-fake.
+7. **The assurance-tier taxonomy** baked into every output: each field labeled protocol-reserved / authority-reserved / designated-test-only / structurally-fake.
 
 ## Acceptance (observable behavior)
 
 - A generated dataset passes a real, non-trivial app's input validators and **one CI suite end-to-end** (the "prove it before showing anyone" gate).
-- `verify` fails the build on a tampered file; passes on an untouched one.
+- `verify` fails the build when current bytes differ from the run record; passes when they match.
 - `scan` flags planted real-looking PII in a sample seed; passes a clean one.
-- Every PII field in output traces to a cited reserved range; structurally-fake fields are self-evidently fake.
-- Browser demo runs with **zero network calls** (verifiable in the network tab; CSP `connect-src 'none'` shipped in the artifact).
+- Every PII-shaped field in output traces to a cited catalog constraint; structurally-fake fields are self-evidently fake.
+- Browser demo makes **no data-service or external-origin requests**. Its CSP ships with
+  `connect-src 'none'`; a hosted copy may load only same-origin static fonts under `font-src 'self'`.
 - The "what this does NOT prove" statement is present in CLI output, the demo, and the README.
 
 ## Tests (named up front — TDD pre-commitment)
@@ -89,7 +92,7 @@ A monorepo would only win if everything were the same artifact type with heavy s
 **record**
 - `record.bindsToOutputFileHash`
 - `record.statesTierPerField`
-- `record.usesHonestLanguageNoOverclaim` (no "proof" / "cannot be real" on any tier below provably-non-real — reserved-not-issued, designated-test, structurally-fake)
+- `record.usesHonestLanguageNoOverclaim` (no absolute impossibility or lifetime-policy claim on any tier)
 
 ## Out of scope (deliberate)
 
@@ -117,7 +120,7 @@ MIT end to end. Vet every dependency's license; never bundle or link GPL/LGPL co
 
 ## Positioning guardrails (from the panel)
 
-- Sell the **boundary argument** and the **auditability asymmetry** ("audit the cited range logic once, trust every output forever"), not the crypto.
+- Sell the **boundary argument** and the **auditability asymmetry**: review a small versioned catalog, then verify every artifact against the current contract. Do not imply a one-time review makes future outputs trustworthy forever.
 - Position legally as an Article 25 / Article 32 (privacy-by-design, security-of-processing) and data-minimization control for **non-production** environments. Never "the output is not personal data" — only "not derived from production data."
 - Compare against the real incumbent (Faker + a CI policy gate + a PII scanner), not against ML synthesizers nobody used for this job.
 - Draw the scope limits loudly: assurance, not realism. Say "do not use as your general fidelity/edge-case fixture source."

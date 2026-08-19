@@ -39,6 +39,8 @@ export interface ScanResult {
   missingColumns: string[];
   /** Named columns matching more than one header — ambiguous, so they are not scanned. */
   duplicateColumns: string[];
+  /** Zero-based data-row indexes whose cell count differs from the header width. */
+  malformedRows: number[];
 }
 
 /** Header matching is case-insensitive after stripping a leading BOM and surrounding whitespace. */
@@ -62,6 +64,7 @@ export function scan(opts: ScanOptions): ScanResult {
 
   const missingColumns: string[] = [];
   const duplicateColumns: string[] = [];
+  const malformedRows: number[] = [];
   const indexByName = new Map<string, number>();
   for (const col of opts.columns) {
     const matches = indicesByHeader.get(normalizeHeader(col.name)) ?? [];
@@ -71,6 +74,7 @@ export function scan(opts: ScanOptions): ScanResult {
   }
 
   rows.forEach((row, r) => {
+    if (row.length !== dataColumns.length) malformedRows.push(r);
     for (const col of opts.columns) {
       const idx = indexByName.get(col.name);
       if (idx === undefined) continue;
@@ -91,11 +95,16 @@ export function scan(opts: ScanOptions): ScanResult {
   });
 
   return {
-    ok: findings.length === 0 && missingColumns.length === 0 && duplicateColumns.length === 0,
+    ok:
+      findings.length === 0 &&
+      missingColumns.length === 0 &&
+      duplicateColumns.length === 0 &&
+      malformedRows.length === 0,
     findings,
     perField,
     scannedRows: rows.length,
     missingColumns,
     duplicateColumns,
+    malformedRows,
   };
 }

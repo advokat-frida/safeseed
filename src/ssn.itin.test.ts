@@ -11,12 +11,13 @@
  * catalog-1.0.0 records fail verify with an explanatory warning, by design.
  */
 import { describe, it, expect } from "vitest";
-import { getEntry, isReserved, CATALOG_VERSION } from "./catalog.js";
-import { generate, type FieldSchema, type GeneratedDataset } from "./generate.js";
+import { getEntry, isReserved } from "./catalog.js";
+import { generate, type FieldSchema } from "./generate.js";
 import { scan } from "./scan.js";
 import { verify } from "./verify.js";
-import { makeRunRecord } from "./record.js";
+import { makeRunRecord, type RunRecord } from "./record.js";
 import { toCsv } from "./csv.js";
+import { sha256Hex } from "./hash.js";
 
 const SSN = getEntry("ssn");
 
@@ -157,47 +158,50 @@ describe("generate.nonSsnColumnsUnchangedAcrossSsnRangeFix", () => {
   });
 });
 
-describe("verify.oldCatalogRecordsFailWithClearMessage", () => {
-  // A hand-built dataset standing in for safeseed 0.2.0 output: 9xx-area SSNs,
-  // recorded under catalog 1.0.0. The content hash is genuine (makeRunRecord
-  // computes it from these exact bytes), so ONLY the range check + version
-  // warning are in play — exactly the old-record-meets-new-catalog situation.
+describe("verify.oldCatalogRecordsFailClosedWithRegenerationGuidance", () => {
+  // A hand-built record standing in for safeseed 0.2.0 output: 9xx-area SSNs,
+  // recorded under catalog 1.0.0. Current makeRunRecord deliberately refuses to
+  // create a new record for obsolete/out-of-range catalog data, so this legacy
+  // compatibility fixture is assembled directly with a genuine content hash.
   async function buildOldStyle() {
     const schema: FieldSchema[] = [{ name: "ssn", type: "ssn" }];
     const rows = [["900-12-3456"], ["910-85-6697"], ["666-41-9752"]];
-    const ds: GeneratedDataset = {
-      columns: ["ssn"],
-      rows,
-      schema,
-      seed: 42,
+    const csv = toCsv(["ssn"], rows);
+    const record = {
+      safeseedVersion: "0.2.0",
       catalogVersion: "1.0.0",
-    };
-    const csv = toCsv(ds.columns, ds.rows);
-    const record = await makeRunRecord(ds, csv);
-    expect(record.catalogVersion).toBe("1.0.0");
+      seed: 42,
+      rowCount: rows.length,
+      columns: ["ssn"],
+      fields: [
+        {
+          name: schema[0]!.name,
+          type: schema[0]!.type,
+          tier: "reserved-not-issued",
+          citation: "legacy catalog fixture",
+          claim: "legacy catalog fixture",
+        },
+      ],
+      contentSha256: await sha256Hex(csv),
+      attestation: "legacy record fixture",
+    } as unknown as RunRecord;
     return { csv, record };
   }
 
-  it("strict verify fails the 9xx values and explains the catalog change (no crash, no re-blessing)", async () => {
+  it("strict verify rejects the obsolete record contract and asks for regeneration", async () => {
     const { csv, record } = await buildOldStyle();
     const result = await verify(csv, record);
     expect(result.ok).toBe(false);
-    // The two ITIN-space rows fail the range check; the 666 row is still reserved.
-    const outOfRange = result.failures.filter((f) => f.kind === "out-of-range-value");
-    expect(outOfRange.map((f) => f.value).sort()).toEqual(["900-12-3456", "910-85-6697"]);
-    // The failure is explained: one warning names both catalog versions and the ITIN reason.
-    const w = result.warnings.find((x) => x.includes("catalog 1.0.0"));
-    expect(w, "expected a catalog-version warning").toBeDefined();
-    expect(w).toContain(`catalog ${CATALOG_VERSION}`);
-    expect(w).toContain("ITIN");
+    expect(result.failures.every((failure) => failure.kind === "invalid-record")).toBe(true);
+    expect(result.failures.some((failure) => /regenerate/i.test(failure.message))).toBe(true);
   });
 
-  it("column-scoped verify carries the same warning and still fails the old range", async () => {
+  it("column-scoped verify cannot downgrade into legacy range-only verification", async () => {
     const { csv, record } = await buildOldStyle();
     const result = await verify(csv, record, { allowAddedColumns: true });
     expect(result.ok).toBe(false);
-    expect(result.failures.some((f) => f.kind === "out-of-range-value")).toBe(true);
-    expect(result.warnings.some((x) => x.includes("catalog 1.0.0"))).toBe(true);
+    expect(result.failures.some((failure) => failure.kind === "invalid-record")).toBe(true);
+    expect(result.warnings).toEqual([]);
   });
 
   it("a record made under the current catalog gets no version warning", async () => {

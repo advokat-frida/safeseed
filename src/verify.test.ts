@@ -94,3 +94,72 @@ describe("verify.failsOnAppendedTrailingColumn", () => {
     expect(result.ok).toBe(false);
   });
 });
+
+describe("verify.failsClosedOnInvalidRunRecords", () => {
+  it("rejects forged current-catalog metadata instead of returning a green result", async () => {
+    const { csv, record } = await build();
+    const forged = structuredClone(record);
+    const forgedField = forged.fields[0]! as unknown as Record<string, string>;
+    forgedField.tier = "provably-non-real";
+    forgedField.citation = "attacker";
+    forgedField.claim = "guaranteed no real person";
+
+    const result = await verify(csv, forged);
+    expect(result.ok).toBe(false);
+    expect(result.failures.some((failure) => failure.kind === "invalid-record")).toBe(true);
+  });
+
+  it("rejects inconsistent row counts even when the file and hash are genuine", async () => {
+    const { csv, record } = await build();
+    record.rowCount = 999_999;
+    const result = await verify(csv, record);
+    expect(result.ok).toBe(false);
+    expect(result.failures).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "invalid-record", message: expect.stringMatching(/rowCount/i) }),
+      ]),
+    );
+  });
+
+  it("returns invalid-record failures rather than throwing on malformed runtime JSON", async () => {
+    const { csv, record } = await build();
+    const malformed = {
+      ...record,
+      seed: Number.NaN,
+      fields: [null],
+    } as unknown as typeof record;
+
+    await expect(verify(csv, malformed)).resolves.toMatchObject({
+      ok: false,
+      failures: expect.arrayContaining([expect.objectContaining({ kind: "invalid-record" })]),
+    });
+  });
+
+  it("does not let a current record silently remove its per-column hashes", async () => {
+    const { csv, record } = await build();
+    delete (record.fields[0]! as Partial<(typeof record.fields)[number]>).sha256;
+    const result = await verify(csv, record, { allowAddedColumns: true });
+    expect(result.ok).toBe(false);
+    expect(result.failures).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "invalid-record", message: expect.stringMatching(/sha256 must be/i) }),
+      ]),
+    );
+  });
+
+  it("does not let edited version fields bypass current metadata and attestation checks", async () => {
+    const { csv, record } = await build();
+    record.safeseedVersion = "0.2.1";
+    record.catalogVersion = "2.0.0";
+    record.attestation = "cryptographic proof of no PII";
+    const forgedField = record.fields[0]! as unknown as Record<string, string>;
+    forgedField.tier = "provably-non-real";
+    forgedField.citation = "attacker";
+    forgedField.claim = "guaranteed no real person";
+
+    const result = await verify(csv, record);
+    expect(result.ok).toBe(false);
+    expect(result.failures.every((failure) => failure.kind === "invalid-record")).toBe(true);
+    expect(result.failures.map((failure) => failure.message).join(" ")).toMatch(/regenerate|attestation/i);
+  });
+});

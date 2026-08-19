@@ -30,15 +30,15 @@ const SCHEMA: FieldSchema[] = [
 const ROWS = 5;
 
 const TIER_CLASS: Record<Tier, string> = {
-  "provably-non-real": "tier-provable",
-  "reserved-not-issued": "tier-reserved",
+  "protocol-reserved": "tier-provable",
+  "authority-reserved": "tier-reserved",
   "designated-test-only": "tier-designated",
   "structurally-fake": "tier-fake",
 };
 
 const TIER_LABEL: Record<Tier, string> = {
-  "provably-non-real": "Provably non-real",
-  "reserved-not-issued": "Reserved, never issued",
+  "protocol-reserved": "Protocol reserved",
+  "authority-reserved": "Authority reserved",
   "designated-test-only": "Designated for testing",
   "structurally-fake": "Structurally fake",
 };
@@ -213,7 +213,7 @@ export default function ProofPanel() {
     const emailIdx = SCHEMA.findIndex((f) => f.type === "email");
     // kind distinguishes the two checks: "outrange" = a value outside its reserved range, which
     // the RANGE check catches (the value is the problem); "edited" = an in-range edit that only
-    // the FINGERPRINT catches (the value is still synthetic, the FILE changed). Different colour.
+    // the FINGERPRINT catches (the value remains in range, but the FILE changed). Different colour.
     let changed: { row: number; col: number; before: string } | null = null;
     let note = "";
     let kind: "outrange" | "edited" | null = null;
@@ -224,14 +224,14 @@ export default function ProofPanel() {
         "8.8.8.8 is a real, routable IP. The range check catches it directly: it falls outside every reserved range.";
       kind = "outrange";
     } else if (tamper === "inrange" && rows[1]) {
-      // Edit a cell to another SAFE, in-range, and unique value (a different example.com
+      // Edit a cell to another in-range and unique value (a different example.com
       // address — no other row shares it, so nothing looks flagged-here-but-fine-there). This
       // demonstrates tamper-evidence, NOT PII detection: the value stays valid; the file changes.
       const cur = rows[1][emailIdx]!;
       changed = { row: 1, col: emailIdx, before: cur };
       rows[1][emailIdx] = cur.replace(/^([^@]+)@/, "$1.edited@");
       note =
-        "Still a valid address in a reserved (RFC 2606) domain, so it stays in range and is perfectly safe. Nothing is wrong with the value — but the file no longer matches its recorded fingerprint, so the tamper check catches that it was edited.";
+        "Still an address in an RFC 2606 reserved domain, so it remains inside the catalog constraint. But the file no longer matches its recorded fingerprint, so the tamper check catches the edit.";
       kind = "edited";
     }
     return { rows, changed, kind, csv: toCsv(ds.columns, rows), note };
@@ -268,15 +268,15 @@ export default function ProofPanel() {
       <div className="proof-head">
         <h2>See it for yourself</h2>
         <p>
-          Generate synthetic data, fingerprint it, prove the file was never altered, and audit the columns you name in
-          an existing file for any value outside its reserved range.
+          Generate test data, fingerprint it, check whether the current file still matches, and audit named columns in
+          an existing file for values outside their catalog ranges.
         </p>
         <div className="tier-legend" aria-hidden="true">
           <span className="tier-legend-item">
-            <span className="cite-dot tier-provable" /> provably non-real
+            <span className="cite-dot tier-provable" /> protocol reserved
           </span>
           <span className="tier-legend-item">
-            <span className="cite-dot tier-reserved" /> reserved, never issued
+            <span className="cite-dot tier-reserved" /> authority reserved
           </span>
           <span className="tier-legend-item">
             <span className="cite-dot tier-designated" /> designated for testing
@@ -320,7 +320,7 @@ export default function ProofPanel() {
           <div className="exhibit-bar">
             <span className="exhibit-file">customers.synthetic.csv</span>
             <span className="exhibit-meta">
-              seed {seed} · {ROWS} rows · every cell in a cited reserved range
+              seed {seed} · {ROWS} rows · every cell inside its catalog constraint
             </span>
           </div>
           <div className="table-wrap wide-data-table" tabIndex={0} role="region" aria-label="Generated SafeSeed data table. Scroll horizontally to inspect all six fields.">
@@ -369,20 +369,18 @@ export default function ProofPanel() {
         {activeCite && <CiteCard field={activeCite} onClose={() => setActiveCite(null)} />}
       </div>
 
-      {/* STEP 2 — ATTEST */}
+      {/* STEP 2 — RECORD */}
       <div className="step">
         <div className="step-head">
           <span className="step-n">2</span>
-          <h3>Attest</h3>
+          <h3>Record</h3>
           <span className="step-sub">the run record</span>
         </div>
         <p className="step-help">
-          This tamper-evident receipt contains a <code>contentSha256</code> key — the fingerprint, or unique hash, of
-          the data. It is a hash, not an encryption key: it keeps nothing secret and protects nothing, it only changes
-          completely if even one character is altered. Anyone can recompute it from the file and compare — the same
-          fingerprint means the file is untouched, a different one means it was changed. In practice you save this
-          receipt as a small JSON file beside your data and commit both; nothing is ever sent anywhere. That is how the
-          next step catches tampering.
+          This unsigned integrity receipt contains a <code>contentSha256</code> key — the fingerprint, or unique hash,
+          of the data. It is not an encryption key or authenticated provenance: anyone can recompute it. A match means
+          only that the current bytes match this record. Keep the record under reviewed version control so a later
+          mismatch is useful drift evidence. Nothing is ever sent anywhere.
         </p>
         <details className="record-disclosure">
           <summary>Inspect the run record</summary>
@@ -415,20 +413,19 @@ export default function ProofPanel() {
           <h3>Verify</h3>
         </div>
         <p className="step-help">
-          The verification step proves a file hasn't changed since you generated it — that it still matches its run
-          record exactly. It runs two independent re-checks:
+          Verification checks that the current file matches its run record exactly. It runs two independent checks:
         </p>
         <ol className="verify-checks">
           <li>
-            <strong>Fingerprint</strong> — has the file changed at all?
+            <strong>Fingerprint</strong> — do the current bytes still match the recorded file?
           </li>
           <li>
-            <strong>Range check</strong> — is every value still synthetic?
+            <strong>Range check</strong> — is every declared value still inside its catalog constraint?
           </li>
         </ol>
         <p className="step-help">
-          It passes only if both do. Try either edit — one stays valid but still fails (the fingerprint catches it), the
-          other slips in a real value (the range check catches it):
+          It passes only if both do. Try either edit — one stays in range but still fails (the fingerprint catches it),
+          while the other moves outside a catalog range (the range check catches it):
         </p>
         <div className="tamper-ctl">
           <span id="tamper-label">Edit the file:</span>
@@ -438,21 +435,21 @@ export default function ProofPanel() {
               aria-pressed={tamper === "none"}
               onClick={() => setTamper("none")}
             >
-              Leave it untouched
+              Keep recorded bytes
             </button>
             <button
               className={`seg-btn ${tamper === "inrange" ? "active" : ""}`}
               aria-pressed={tamper === "inrange"}
               onClick={() => setTamper("inrange")}
             >
-              Edit a cell, keep it valid
+              Edit a cell, stay in range
             </button>
             <button
               className={`seg-btn ${tamper === "outrange" ? "active" : ""}`}
               aria-pressed={tamper === "outrange"}
               onClick={() => setTamper("outrange")}
             >
-              Slip in a real value
+              Move outside a range
             </button>
           </div>
         </div>
@@ -460,7 +457,7 @@ export default function ProofPanel() {
           <div className="exhibit-bar">
             <span className="exhibit-file">customers.synthetic.csv</span>
             <span className="exhibit-meta">
-              {tamper === "none" ? "the file from step 1 · untouched" : "the file from step 1 · 1 cell edited"}
+              {tamper === "none" ? "matches the bytes from step 1" : "differs from step 1 · 1 cell edited"}
             </span>
           </div>
           <div className="table-wrap wide-data-table" tabIndex={0} role="region" aria-label="Verification data table. Scroll horizontally to inspect all six fields.">
@@ -530,7 +527,7 @@ export default function ProofPanel() {
             {verifyResult.ok ? (
               <ul>
                 <li>Content hash matches the recorded hash ✓</li>
-                <li>Every value is still in its cited reserved range, so still synthetic ✓</li>
+                <li>Every declared value is still inside its current catalog constraint ✓</li>
               </ul>
             ) : (
               <ul>
@@ -584,12 +581,16 @@ export function ScanStep() {
   // partial match names the columns that WERE checked and the ones that weren't.
   const missing = result?.missingColumns ?? [];
   const duplicated = result?.duplicateColumns ?? [];
+  const malformed = result?.malformedRows ?? [];
   const checkedNames = SCAN_COLUMNS.map((c) => c.name).filter(
     (n) => !missing.includes(n) && !duplicated.includes(n),
   );
   const unmatchedNote = [
     missing.length > 0 ? `${missing.join(", ")} not found in this file` : "",
     duplicated.length > 0 ? `${duplicated.join(", ")} appears more than once (ambiguous, not scanned)` : "",
+    malformed.length > 0
+      ? `${malformed.length} row${malformed.length === 1 ? " has" : "s have"} a different width than the header`
+      : "",
   ]
     .filter(Boolean)
     .join("; ");
@@ -602,8 +603,8 @@ export function ScanStep() {
       </div>
       <p className="scan-intro">
         Audit a file you already have. This demo checks three named columns — <code>email</code>, <code>phone</code>,
-        and <code>ip</code> — and flags any value <em>outside</em> its reserved range: anything that isn't provably
-        synthetic, so you can review it. Named columns it can't find in your header are called out, and it needs no
+        and <code>ip</code> — and flags any value <em>outside</em> its configured range for review. Named columns it
+        can't find in your header are called out, and it needs no
         run record. (The CLI lets you name any columns.)
       </p>
       <div className="field">

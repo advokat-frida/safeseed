@@ -1,5 +1,96 @@
 # Changelog
 
+## 0.3.0 — 2026-08-18
+
+### Named-column scans now fail closed
+
+- `scan` no longer returns a clean result when a requested column is absent. Missing named columns
+  are reported and make the command exit nonzero.
+- Header matching is case-insensitive after trimming surrounding whitespace and a leading UTF-8
+  byte-order mark, so `Email`, ` email `, and `email` resolve to the same requested field.
+- Duplicate matching headers are reported as ambiguous and are not silently resolved to whichever
+  copy happened to appear last.
+- Non-rectangular CSV rows now fail scan instead of letting unheadered trailing cells disappear.
+- Email, phone, SSN, card, domain, and IPv6 catalog checks reject malformed/composite cells instead
+  of stripping arbitrary text until a reserved-looking suffix remains. The entire `9xx` taxpayer-ID
+  space is excluded even when another SSN-shaped component is `00` or `0000`.
+- The library's `ScanResult` now includes `missingColumns` and `duplicateColumns`; the CLI prints a
+  distinct diagnostic for each, plus `malformedRows` for width failures.
+
+This is intentionally observable behavior. A pipeline whose `--fields` list contains a typo may
+start failing under 0.3.0; that previous pass was a false clean, not compatibility worth preserving.
+The reserved ranges remain byte-compatible with catalog 2.0.0 and generated CSV bytes are unchanged
+for the same schema and seed. Run-record compatibility is intentionally stricter: regenerate older
+records under the exact 0.3 contract before verification.
+
+### Assurance language now matches the actual control
+
+- Catalog `3.0.0` replaces the overbroad `provably-non-real` and `reserved-not-issued` labels with
+  `protocol-reserved` and `authority-reserved`. The underlying 2.0.0 ranges do not change.
+- Protocol, authority, and payment-card claims now state the reservation or test designation they
+  can support. They no longer infer that no infrastructure could handle a value, that an authority
+  policy is permanent, or that coincidence with real-world data is impossible.
+- New run records carry the corrected tier names and claim text. The 0.3 verifier rejects older
+  record contracts and asks for regeneration rather than trusting legacy metadata, optional
+  column hashes, or the overbroad attestations those records carried.
+- README, specification, essay, CLI record, and browser UI now share the same narrower boundary:
+  SafeSeed's generator ingests no production dataset, while every output field keeps its own
+  versioned assurance tier.
+- Run records now say plainly that provenance is an unsigned caller declaration, not an
+  authenticated history. `makeRunRecord` rejects obsolete catalogs, out-of-range declared values,
+  malformed datasets, and declared fields that do not match the supplied CSV; it still cannot
+  prove how a structurally supplied JavaScript object was created.
+- Hash comparison is now described as drift evidence only when the record is independently
+  protected or reviewed. Anyone able to replace both file and unsigned record can recompute both.
+
+### The GitHub Action is now an exact release artifact
+
+- The Action runs the committed SafeSeed CLI through GitHub's managed Node 24 Action runtime on
+  Linux, Windows, and macOS. It no longer calls `npx`, downloads `safeseed@latest`, or depends on a
+  caller-installed Node version.
+- Workflow inputs are passed as process arguments without a shell. The public Action is deliberately
+  strict-only: any added column fails, while partial column-scoped attestation remains available in
+  the CLI and library under its explicitly narrower contract.
+- Verifier output is treated as untrusted data. The wrapper disables GitHub workflow-command
+  processing with synchronously written markers and a fresh random token while the CLI runs, then
+  restores it before emitting its own escaped annotations, preventing CSV or record text from
+  injecting runner commands even when the inherited output pipe is backpressured.
+- Direct CLI diagnostics are single-line/control-escaped, and candidate values are redacted by
+  default so CI scanning does not copy suspected personal data into durable logs. The library still
+  returns values to local programmatic callers.
+- The old `version` input has been removed. A SafeSeed tag or commit SHA now identifies both the
+  wrapper and the CLI bytes it executes; there is no second package version hiding underneath it.
+- CI includes a five-case local wrapper contract plus real `uses: ./` consumer jobs for clean,
+  strict-failure, legacy-relaxation rejection, and workflow-command quarantine across all three
+  hosted operating systems.
+- Tracked CSV fixtures are pinned to LF so the Action's exact-byte record hash remains stable across
+  Git checkouts on Windows, Linux, and macOS. Consumer documentation makes the same line-ending
+  requirement explicit instead of silently normalizing integrity evidence.
+
+### Release and project hardening
+
+- Raised the runtime floor to supported Node 22+; the core CI gate now runs on Node 22 while the
+  bundled Action and protected release path use Node 24. The former Node 18 claim depended on a
+  global Web Crypto API that was still flag-gated in that release line.
+- CLI generation and scanning validate config/field schemas, including unique names, known types,
+  and control-free column names, before they write or inspect data; an invalid schema no longer
+  leaves a CSV without its requested record or injects a runner command through a streamed header.
+- Added a release-alignment check covering package, lockfile, source, generated record, compiled
+  CLI, changelog, README example, and Action metadata versions.
+- Added confidential vulnerability-reporting and public support guidance. The Action documents its
+  no-network, no-secret, no-write-permission runtime boundary.
+- Pinned the repository's own workflow dependencies to full commit SHAs and added dependency-audit,
+  committed-build freshness, package dry-run, and Action-contract gates.
+- Added CodeQL analysis for JavaScript and TypeScript on pull requests, `main`, and a weekly schedule.
+- Replaced the stored npm publish token with npm trusted publishing: an unprivileged job verifies
+  and hashes the exact tarball, an immutable workflow artifact carries it across the protected
+  `npm` environment, and a minimal job publishes it with a short-lived OIDC credential and
+  automatic provenance. The OIDC-capable job installs no dependencies and disables package
+  lifecycle scripts. Publishing begins only after a stable GitHub Release is published.
+- Repaired the root and browser-demo lockfiles for the current `nanoid` and `postcss` advisories.
+- Standardized the browser demo and generator against the Advokat Frida tool chrome, improved mobile
+  and accessibility behavior, tightened scanner honesty copy, and added self-referencing canonicals.
+
 ## 0.2.1 — 2026-07-01
 
 ### The SSN range was wrong: it collided with real ITINs. Fixed, breaking, on purpose.
@@ -8,7 +99,11 @@
 
 **What changed.**
 
-- **Generation** now emits only values containing a component that is never issued under *both* the SSA scheme and the IRS ITIN scheme: a plausible-looking area in `001-899` (never `666`, never the `9XX` ITIN space) with group forced to `00` or serial forced to `0000`. Values stay format-shaped (`NNN-NN-NNNN`), deterministic per seed, and entirely outside ITIN territory — robust even if the IRS expands its ITIN group ranges again.
+- **Generation** now emits only SSN-shaped values containing a component the SSA marks invalid:
+  a plausible-looking area in `001-899` (never `666`, never the `9XX` ITIN space) with group
+  forced to `00` or serial forced to `0000`. Values stay format-shaped (`NNN-NN-NNNN`) and
+  deterministic per seed; excluding the entire `9XX` area keeps this generator out of ITIN
+  territory even if the IRS expands its ITIN group ranges again.
 - **The reserved definition** (catalog `1.0.0` → `2.0.0`) narrows to exactly: area `000`, area `666`, group `00`, serial `0000`. Areas `900-999` are no longer reserved.
 - **Consequently, `scan` now flags `9xx`-area SSNs as candidate real PII — including SafeSeed 0.2.0's own output.** That is correct and is the point: those values can belong to real ITIN holders.
 - **Old run records fail `verify` by design.** A 0.2.0 dataset with `9xx` SSNs fails the range check under catalog 2.0.0; `verify` now also emits a warning whenever a record's `catalogVersion` differs from the current catalog, naming the ITIN correction, so the failure is explained rather than mysterious. There is deliberately **no compatibility mode** that re-blesses the old range. Regenerate your fixtures and records with 0.2.1.

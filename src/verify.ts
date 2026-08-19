@@ -12,34 +12,17 @@
  * column-scoped verify: it attests only the declared synthetic columns (matched by
  * header name, order-independent) via per-column hash + range, and REPORTS added
  * business columns as unattested rather than failing on them. The relaxed
- * guarantee is never silent — it only happens when the caller opts in. Column-scoped
+ * contract is never silent — it only happens when the caller opts in. Column-scoped
  * verify vouches for the synthetic columns; the columns a team adds are out of
  * scope here and must be checked with `scan`.
  */
-import { CATALOG_VERSION, getEntry, isReserved } from "./catalog.js";
+import { getEntry, isReserved } from "./catalog.js";
 import { sha256Hex } from "./hash.js";
 import { parseCsv, canonicalColumn } from "./csv.js";
-import type { RunRecord } from "./record.js";
-
-/**
- * When a record was made under a different catalog, the reserved ranges it was
- * generated against may not be the ranges enforced now — most notably catalog
- * 2.0.0 removed SSN areas 900-999 (the IRS ITIN space, which contains real
- * identifiers), so ssn values from catalog-1.0.0 records fail the range check BY
- * DESIGN. There is deliberately no compatibility mode that re-blesses an old
- * range; this warning exists so the failure is explained, not mysterious.
- */
-function catalogVersionWarning(record: RunRecord): string | null {
-  if (record.catalogVersion === undefined || record.catalogVersion === CATALOG_VERSION) return null;
-  return (
-    `run record was made under catalog ${record.catalogVersion}; this SafeSeed enforces catalog ${CATALOG_VERSION}. ` +
-    `Reserved ranges have changed between catalog versions (2.0.0 removed SSN areas 900-999 — the IRS ITIN space, ` +
-    `which holds real identifiers), so any out-of-range failures reported may reflect the corrected ranges rather than ` +
-    `tampering. Regenerate the dataset and record with the current version.`
-  );
-}
+import { validateRunRecord, type RunRecord } from "./record.js";
 
 export type VerifyFailureKind =
+  | "invalid-record"
   | "content-hash-mismatch"
   | "out-of-range-value"
   | "schema-mismatch"
@@ -62,9 +45,8 @@ export interface VerifyResult {
   /** Columns present in the file but not declared in the record (column-scoped mode). */
   unattestedColumns: string[];
   /**
-   * Non-fatal notes, e.g. a 0.1.0 record with no per-column hash → range-only
-   * fallback, or a record made under an older catalog whose reserved ranges have
-   * since changed (in which case range failures are expected and by design).
+   * Non-fatal notes about the checked file, such as a blank-headed added column
+   * that needs explicit scanning in column-scoped mode.
    */
   warnings: string[];
 }
@@ -73,7 +55,7 @@ export interface VerifyOptions {
   /**
    * Opt-in column-scoped mode. Attest only the declared synthetic columns (by name)
    * and report — rather than fail on — columns the team added. Off by default, so
-   * the strict whole-file guarantee is the one you get unless you ask otherwise.
+   * the strict whole-file contract is the one you get unless you ask otherwise.
    */
   allowAddedColumns?: boolean;
 }
@@ -83,15 +65,33 @@ export async function verify(
   record: RunRecord,
   opts?: VerifyOptions,
 ): Promise<VerifyResult> {
-  return opts?.allowAddedColumns ? verifyColumnScoped(csv, record) : verifyStrict(csv, record);
+  const validation = validateRunRecord(record);
+  if (!validation.ok) {
+    return {
+      ok: false,
+      failures: validation.errors.map((message) => ({ kind: "invalid-record", message })),
+      checked: { rows: 0, fields: 0 },
+      unattestedColumns: [],
+      warnings: [],
+    };
+  }
+
+  const result = opts?.allowAddedColumns
+    ? await verifyColumnScoped(csv, validation.record)
+    : await verifyStrict(csv, validation.record);
+  if (result.checked.rows !== validation.record.rowCount) {
+    result.failures.unshift({
+      kind: "invalid-record",
+      message: `record rowCount ${validation.record.rowCount} does not match file row count ${result.checked.rows}`,
+    });
+    result.ok = false;
+  }
+  return result;
 }
 
 async function verifyStrict(csv: string, record: RunRecord): Promise<VerifyResult> {
   const failures: VerifyFailure[] = [];
   const warnings: string[] = [];
-
-  const versionWarning = catalogVersionWarning(record);
-  if (versionWarning !== null) warnings.push(versionWarning);
 
   const actualHash = await sha256Hex(csv);
   if (actualHash !== record.contentSha256) {
@@ -161,9 +161,6 @@ async function verifyColumnScoped(csv: string, record: RunRecord): Promise<Verif
   const failures: VerifyFailure[] = [];
   const warnings: string[] = [];
 
-  const versionWarning = catalogVersionWarning(record);
-  if (versionWarning !== null) warnings.push(versionWarning);
-
   const { columns, rows } = parseCsv(csv);
 
   // The file must stay rectangular: every row matches the header width. This closes
@@ -209,8 +206,8 @@ async function verifyColumnScoped(csv: string, record: RunRecord): Promise<Verif
     const values = rows.map((row) => row[idx] ?? "");
     const entry = getEntry(field.type);
 
-    // Independent range check: a real value smuggled into a synthetic column fails
-    // even if an attacker recomputes the column hash to match.
+    // Independent range check: an out-of-range value in a declared column fails
+    // even if someone recomputes the column hash to match.
     values.forEach((value, r) => {
       if (!isReserved(entry, value)) {
         failures.push({
@@ -223,22 +220,15 @@ async function verifyColumnScoped(csv: string, record: RunRecord): Promise<Verif
       }
     });
 
-    // Per-column hash: catches an in-range swap (one reserved value for another)
-    // that the range check alone would wave through. Falls back to range-only with a
-    // warning for 0.1.0 records that predate per-column hashes.
-    if (field.sha256 === undefined) {
-      warnings.push(
-        `column "${field.name}": run record predates per-column hashes; verified by range only`,
-      );
-    } else {
-      const actual = await sha256Hex(canonicalColumn(values));
-      if (actual !== field.sha256) {
-        failures.push({
-          kind: "column-hash-mismatch",
-          field: field.name,
-          message: `column "${field.name}" hash ${actual} does not match recorded ${field.sha256}`,
-        });
-      }
+    // Per-column hash catches an in-range swap (one reserved value for another)
+    // that the range check alone would wave through.
+    const actual = await sha256Hex(canonicalColumn(values));
+    if (actual !== field.sha256) {
+      failures.push({
+        kind: "column-hash-mismatch",
+        field: field.name,
+        message: `column "${field.name}" hash ${actual} does not match recorded ${field.sha256}`,
+      });
     }
   }
 

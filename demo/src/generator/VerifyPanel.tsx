@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { ShieldCheck, ShieldAlert, Check, X, UploadCloud } from "lucide-react";
 import {
   verify,
+  validateRunRecord,
   sha256Hex,
   type RunRecord,
   type VerifyResult,
@@ -96,9 +97,9 @@ export function VerifyPanel() {
     setRecordName(f.name);
     setResult(null);
     try {
-      const r = JSON.parse(await f.text()) as RunRecord;
-      if (!r || typeof r.contentSha256 !== "string" || !Array.isArray(r.fields)) throw new Error("shape");
-      setRecord(r);
+      const validation = validateRunRecord(JSON.parse(await f.text()));
+      if (!validation.ok) throw new Error("shape");
+      setRecord(validation.record);
       setRecordError("");
     } catch {
       setRecord(null);
@@ -109,10 +110,18 @@ export function VerifyPanel() {
   async function run() {
     if (!csvText || !record) return;
     setBusy(true);
-    const hash = await sha256Hex(csvText);
-    setGenuine(hash === record.contentSha256);
-    setResult(await verify(csvText, record, { allowAddedColumns: true }));
-    setBusy(false);
+    try {
+      const hash = await sha256Hex(csvText);
+      setGenuine(hash === record.contentSha256);
+      setResult(await verify(csvText, record, { allowAddedColumns: true }));
+      setRecordError("");
+    } catch {
+      setGenuine(null);
+      setResult(null);
+      setRecordError("SafeSeed could not read this verification pair. Check both files and try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   const verified = genuine === true && result?.ok === true;
@@ -147,8 +156,8 @@ export function VerifyPanel() {
               <span>
                 <strong>File integrity.</strong>{" "}
                 {genuine
-                  ? "This is the exact file SafeSeed generated, unmodified."
-                  : "This file doesn't match its verification record — it has been changed, or it's the wrong file for this record."}
+                  ? "The current CSV bytes match this verification record."
+                  : "The current CSV bytes don't match this verification record — the file differs, or this is the wrong record."}
               </span>
             </li>
             <li className={result.ok ? "ok" : "bad"}>
@@ -156,7 +165,7 @@ export function VerifyPanel() {
               <span>
                 <strong>SafeSeed columns.</strong>{" "}
                 {result.ok
-                  ? `All ${result.checked.fields} checked — every value sits in a standards-reserved range.`
+                  ? `All ${result.checked.fields} checked — every value satisfies its current catalog constraint.`
                   : `${result.failures.length} issue${result.failures.length === 1 ? "" : "s"} found.`}
               </span>
             </li>

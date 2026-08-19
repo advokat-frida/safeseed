@@ -106,6 +106,11 @@ retain the value for local programmatic handling. SafeSeed 0.3 accepts only its 
 record contract; regenerate records made by older versions rather than carrying forward legacy
 claims or missing per-column hashes.
 
+Run records bind the exact CSV bytes, including line endings. If a fixture is committed and checked
+on more than one operating system, pin it in `.gitattributes` (for example,
+`*.csv text eol=lf`) and regenerate its record after normalization. The verifier deliberately does
+not normalize line endings, because doing so would weaken the whole-file byte-integrity check.
+
 For the strongest supply-chain pin, replace `v0.3.0` with the full commit SHA shown on that release.
 Release-specific tags are locked when their immutable GitHub Release is published, while a commit
 SHA remains the most explicit pin in the consuming workflow.

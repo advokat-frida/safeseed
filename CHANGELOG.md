@@ -63,6 +63,9 @@ records under the exact 0.3 contract before verification.
 - CI includes a five-case local wrapper contract plus real `uses: ./` consumer jobs for clean,
   strict-failure, legacy-relaxation rejection, and workflow-command quarantine across all three
   hosted operating systems.
+- Tracked CSV fixtures are pinned to LF so the Action's exact-byte record hash remains stable across
+  Git checkouts on Windows, Linux, and macOS. Consumer documentation makes the same line-ending
+  requirement explicit instead of silently normalizing integrity evidence.
 
 ### Release and project hardening
 

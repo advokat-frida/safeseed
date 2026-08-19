@@ -22,6 +22,7 @@ const readme = read("README.md");
 const changelog = read("CHANGELOG.md");
 const publishChecklist = read("PUBLISH-CHECKLIST.md");
 const readinessReceipt = read("docs/release-readiness-v0.3.0.md");
+const gitAttributes = read(".gitattributes");
 const ciWorkflow = read(".github/workflows/ci.yml");
 const codeqlWorkflow = read(".github/workflows/codeql.yml");
 const releaseWorkflow = read(".github/workflows/release.yml");
@@ -48,6 +49,7 @@ assert(actionWrapper.includes("randomUUID()"), "Action output quarantine does no
 assert(actionWrapper.includes("::stop-commands::"), "Action output is not protected by a stop-commands envelope");
 assert(actionWrapper.includes("finally"), "Action wrapper does not restore workflow commands in a finally block");
 assert(existsSync(resolve(root, "dist", "cli.js")), "committed dist/cli.js is missing");
+assert(/^\*\.csv\s+text\s+eol=lf\s*$/m.test(gitAttributes), "tracked CSV bytes are not pinned to LF across operating systems");
 
 for (const [name, workflow] of [
   ["CI", ciWorkflow],

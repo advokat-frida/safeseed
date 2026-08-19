@@ -83,8 +83,9 @@ jobs:
 
       # The browser demo consumes the built core (dist/) — typecheck + build it too.
       # `build` is the hosted multi-page build (typechecks both pages); `build:standalone:all`
-      # rebuilds ALL the single-file inlining paths (showcase + generator + the embed bundle)
-      # and copies them to the committed names. Then assert the committed single-files are
+      # rebuilds ALL committed single-file paths. The generator and JS embed are current; the
+      # showcase and standalone proof HTML remain legacy compatibility outputs pending retirement.
+      # Then assert the committed single-files are
       # byte-fresh: if Generator.tsx (or anything they inline) changed without re-running the
       # build, the diff fails CI rather than silently shipping a stale safeseed-demo.html /
       # safeseed-generator.html / safeseed-proof.html / safeseed-proof.js.

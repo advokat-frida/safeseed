@@ -200,10 +200,6 @@ The current browser-facing outputs owned by this repository are the committed, o
 
 Questions and reproducible bugs belong in [GitHub Issues](https://github.com/advokat-frida/safeseed/issues). Please read [SUPPORT.md](SUPPORT.md) before posting, and report suspected vulnerabilities privately through [GitHub's security form](https://github.com/advokat-frida/safeseed/security/advisories/new) instead of a public issue.
 
-SafeSeed is free and MIT-licensed. If it's useful to you or your team, you can [support its development on Ko-fi](https://ko-fi.com/Q3S6220HI9).
-
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/Q3S6220HI9)
-
 ## License
 
 [MIT](LICENSE).

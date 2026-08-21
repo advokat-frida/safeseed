@@ -2,14 +2,14 @@
 
 Date: 2026-08-21
 Base revision: `f6fefc822c1037e00e170711653c77cdd46deacf`
-Candidate state: committed review branch `codex/advo-155-safeseed-040-hardening`, before push
+Candidate state: draft PR #7 on `codex/advo-155-safeseed-040-hardening`
 
 ## Release boundary
 
 This receipt covers a committed `0.4.0` review candidate. It is not evidence of a push, hosted CI,
 GitHub Release, website synchronization, deployment, npm publication, or production change. The
-commit and Linear review record were authorized by the 2026-08-21 tuck; no public release action
-was authorized or performed.
+commit, branch push, draft PR, and Linear review record were authorized by the 2026-08-21 tuck; no
+public release action was authorized or performed.
 
 Live state re-read on 2026-08-21: npm still serves `0.2.1`; Git contains tags `v0.2.0` and
 `v0.2.1`; no GitHub Release exists. The unpublished `0.3.0` hardening work is the base for this
@@ -23,8 +23,8 @@ candidate, not a public release.
 - Four inspectable schema presets in the library, CLI, and browser generator.
 - Run-record derivation metadata and fail-closed incompatibility with older records.
 - Strict CSV grammar in generation, scan, verify, and record construction.
-- Runtime limits for schema shape, field types, row counts, and seeds; formula-triggering caller
-  headers are rejected before output.
+- Runtime limits cap schemas at 256 fields, column names at 256 characters, rows at 100,000, and
+  seeds at unsigned 32-bit values; formula-triggering caller headers are rejected before output.
 - Browser generation restricted to catalog fields, strict exact-pair browser verification,
   newest-input-wins file handling, redacted failure diagnostics, and exact-state CSV/record
   download binding.
@@ -51,18 +51,23 @@ candidate, not a public release.
 
 - Root `npm.cmd run release:check`: pass.
 - TypeScript: pass in the root release check and demo production/standalone builds.
-- Unit suite: 124 of 124 pass across 10 files.
+- Unit suite: 127 of 127 pass across 10 files.
 - CLI boundary contract: 6 of 6 pass, including formula-header rejection, preset round trip, and
   malformed-CSV fail-closed behavior.
 - Local Action contract: 5 of 5 pass, including strict added-column drift and redacted output.
 - Root and demo dependency audits: zero known vulnerabilities at the configured moderate threshold.
 - Root build, compiled Action path, generated fixture alignment, and version alignment: pass.
-- Package dry run: 59 entries, 62,474 packed bytes, 232,258 unpacked bytes, and zero files outside
+- Package dry run: 59 entries, 62,773 packed bytes, 233,432 unpacked bytes, and zero files outside
   `dist/**`, `README.md`, `LICENSE`, and `package.json`.
 - `package.json` and the root lockfile contain zero runtime dependencies. The final disposable
   consumer install also contains no runtime dependency tree.
 - Root `dist/` plus every generated hosted, standalone, embed, and committed browser output retained
   identical SHA-256 hashes across a complete second root-first build: 76 of 76 files matched.
+- The first hosted PR run passed the build, CodeQL analysis job, and Ubuntu, Windows, and macOS
+  Action contracts, but GitHub's result gate found one high-severity polynomial-regex alert in the
+  opaque-ID prefix normalizer. The repair replaces the alternation with two linear anchored passes,
+  caps schemas at 256 fields and names at 256 characters, and adds direct regression tests. A clean
+  follow-up hosted CodeQL result remains mandatory before merge.
 
 ## Browser behavior and adversarial checks
 
@@ -124,17 +129,17 @@ rebuilding root first, the identical root + hosted demo + four standalone build 
 all 76 generated files retained identical SHA-256 hashes.
 
 The reconciled tarball is `safeseed-0.4.0.tgz`, SHA-1
-`f82bc154e0bd6f71163784f5cc5a6c675b9fec55`, with 59 entries, 62,474 packed bytes, and 232,258
+`a5ea4dd544f2f6c43145fbb91a42154ec72a9bd5`, with 59 entries, 62,773 packed bytes, and 233,432
 unpacked bytes. It was packed directly into the new disposable consumer directory
-`C:\Users\Ben\AppData\Local\Temp\safeseed-consumer-tuck-20260821-062114`; no tarball was left in
+`C:\Users\Ben\AppData\Local\Temp\safeseed-consumer-codeql-20260821-063018`; no tarball was left in
 the source tree.
 
 That consumer installed exactly one package with lifecycle scripts disabled. Its lockfile contains
 only the consumer root and `node_modules/safeseed`; the installed SafeSeed manifest has zero runtime
-dependencies; `node_modules` totals 234,277 bytes including the npm lock and command shim. The
+dependencies; `node_modules` totals 235,453 bytes including the npm lock and command shim. The
 installed CLI reports `safeseed 0.4.0 (catalog 4.0.0)`. The public API generated a seven-row
 `crm-contacts` dataset, created a record, verified the exact CSV, and rejected a caller-controlled
-` =danger` header.
+` =danger` header, a 257-character column name, and a 257-field schema.
 
 ## Website drift and hosted evidence
 

@@ -43,6 +43,8 @@ const SPREADSHEET_FORMULA_PREFIX = new Set([
 ]);
 export const MAX_GENERATE_ROWS = 100_000;
 export const MAX_GENERATE_SEED = 0xffffffff;
+export const MAX_SCHEMA_FIELDS = 256;
+export const MAX_COLUMN_NAME_LENGTH = 256;
 /**
  * SafeSeed writes schema names into the first CSV row. Keep that caller-controlled
  * surface single-line and prevent common spreadsheet formula prefixes, including
@@ -50,8 +52,12 @@ export const MAX_GENERATE_SEED = 0xffffffff;
  * spreadsheet formula.
  */
 export function isSafeColumnName(name) {
-    if (typeof name !== "string" || !SINGLE_LINE.test(name) || name.trim() === "")
+    if (typeof name !== "string" ||
+        name.length > MAX_COLUMN_NAME_LENGTH ||
+        !SINGLE_LINE.test(name) ||
+        name.trim() === "") {
         return false;
+    }
     return !SPREADSHEET_FORMULA_PREFIX.has(name.trimStart()[0] ?? "");
 }
 function assertGenerateOptions(opts) {
@@ -60,6 +66,9 @@ function assertGenerateOptions(opts) {
     }
     if (!Array.isArray(opts.schema) || opts.schema.length === 0) {
         throw new TypeError("schema must contain at least one field");
+    }
+    if (opts.schema.length > MAX_SCHEMA_FIELDS) {
+        throw new RangeError(`schema must contain at most ${MAX_SCHEMA_FIELDS} fields`);
     }
     if (!Number.isSafeInteger(opts.rows) || opts.rows < 1 || opts.rows > MAX_GENERATE_ROWS) {
         throw new RangeError(`rows must be an integer from 1 to ${MAX_GENERATE_ROWS}`);
@@ -75,8 +84,11 @@ function assertGenerateOptions(opts) {
         if (typeof field !== "object" || field === null || Array.isArray(field)) {
             throw new TypeError(`schema field ${index} must be an object`);
         }
-        if (typeof field.name !== "string" || !SINGLE_LINE.test(field.name) || field.name.trim() === "") {
-            throw new TypeError(`schema field ${index} name must be a non-empty single-line string`);
+        if (typeof field.name !== "string" ||
+            field.name.length > MAX_COLUMN_NAME_LENGTH ||
+            !SINGLE_LINE.test(field.name) ||
+            field.name.trim() === "") {
+            throw new TypeError(`schema field ${index} name must be a non-empty single-line string no longer than ${MAX_COLUMN_NAME_LENGTH} characters`);
         }
         if (!isSafeColumnName(field.name)) {
             throw new TypeError(`schema field ${index} name must not begin with =, +, -, or @ after leading whitespace`);
@@ -98,7 +110,8 @@ function opaquePrefix(fieldName) {
         .trim()
         .toUpperCase()
         .replace(/[^A-Z0-9]+/g, "_")
-        .replace(/^_+|_+$/g, "")
+        .replace(/^_+/, "")
+        .replace(/_+$/, "")
         .slice(0, 40);
     return normalized || "ID";
 }

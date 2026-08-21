@@ -78,7 +78,7 @@ safeseed catalog
 safeseed presets
 ```
 
-`--seed` defaults to `0`, so a run without it is fully deterministic — identical output every time, on purpose (the output is a committable fixture). Pass an integer from `0` through `4294967295` to vary the dataset. Row counts must be integers from `1` through `100000`; SafeSeed is not a load-test generator. Schemas must contain at least one uniquely named known field, and malformed CSV syntax fails closed before any range result is reported.
+`--seed` defaults to `0`, so a run without it is fully deterministic — identical output every time, on purpose (the output is a committable fixture). Pass an integer from `0` through `4294967295` to vary the dataset. Row counts must be integers from `1` through `100000`; SafeSeed is not a load-test generator. Schemas must contain 1 through 256 uniquely named known fields, each column name is limited to 256 single-line characters, and malformed CSV syntax fails closed before any range result is reported.
 
 ### As a CI gate (GitHub Action)
 

@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { generate, type FieldSchema } from "./generate.js";
+import {
+  generate,
+  MAX_COLUMN_NAME_LENGTH,
+  MAX_SCHEMA_FIELDS,
+  type FieldSchema,
+} from "./generate.js";
 import { getEntry, isReserved, isSelfEvidentlyFake } from "./catalog.js";
 import { luhnValid } from "./luhn.js";
 
@@ -157,6 +162,10 @@ describe("generate.staysInRangeAtScale", () => {
 
 describe("generate.rejectsInvalidRuntimeOptions", () => {
   const schema: FieldSchema[] = [{ name: "email", type: "email" }];
+  const oversizedSchema: FieldSchema[] = Array.from(
+    { length: MAX_SCHEMA_FIELDS + 1 },
+    (_, index) => ({ name: `field_${index}`, type: "email" }),
+  );
 
   it.each([
     ["missing options", undefined],
@@ -165,6 +174,11 @@ describe("generate.rejectsInvalidRuntimeOptions", () => {
     ["infinite rows", { schema, rows: Infinity, seed: 1 }],
     ["fractional rows", { schema, rows: 1.5, seed: 1 }],
     ["rows above the resource cap", { schema, rows: 100_001, seed: 1 }],
+    ["schema above the field cap", { schema: oversizedSchema, rows: 1, seed: 1 }],
+    [
+      "column name above the length cap",
+      { schema: [{ name: "a".repeat(MAX_COLUMN_NAME_LENGTH + 1), type: "email" }], rows: 1, seed: 1 },
+    ],
     ["negative seed", { schema, rows: 1, seed: -1 }],
     ["fractional seed", { schema, rows: 1, seed: 1.5 }],
     ["seed above uint32", { schema, rows: 1, seed: 0x1_0000_0000 }],
@@ -180,5 +194,14 @@ describe("generate.rejectsInvalidRuntimeOptions", () => {
         /must not begin with/i,
       );
     }
+  });
+
+  it("normalizes underscore-heavy opaque field names without changing the fake-data boundary", () => {
+    const result = generate({
+      schema: [{ name: "___account___id___", type: "opaqueId" }],
+      rows: 1,
+      seed: 1,
+    });
+    expect(result.rows[0]![0]).toBe("TEST_ACCOUNT_ID_000001");
   });
 });

@@ -21,8 +21,10 @@ export {
 export {
   generate,
   isSafeColumnName,
+  MAX_COLUMN_NAME_LENGTH,
   MAX_GENERATE_ROWS,
   MAX_GENERATE_SEED,
+  MAX_SCHEMA_FIELDS,
   type FieldSchema,
   type GenerateOptions,
   type GeneratedDataset,

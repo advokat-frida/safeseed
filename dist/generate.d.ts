@@ -29,6 +29,8 @@ export interface GeneratedDataset {
 }
 export declare const MAX_GENERATE_ROWS = 100000;
 export declare const MAX_GENERATE_SEED = 4294967295;
+export declare const MAX_SCHEMA_FIELDS = 256;
+export declare const MAX_COLUMN_NAME_LENGTH = 256;
 /**
  * SafeSeed writes schema names into the first CSV row. Keep that caller-controlled
  * surface single-line and prevent common spreadsheet formula prefixes, including

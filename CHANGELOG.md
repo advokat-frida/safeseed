@@ -48,6 +48,9 @@
 - Added runtime validation for non-empty schemas, unique single-line field names, known field types,
   row counts from 1 through 100,000, and unsigned 32-bit seeds. Impossible or resource-exhausting
   values such as `Infinity` can no longer enter the generation loop.
+- Capped schemas at 256 fields and column names at 256 characters, and replaced the opaque-ID
+  prefix trimmer with two linear anchored passes after hosted CodeQL found polynomial behavior on
+  underscore-heavy caller input.
 - Reject caller-controlled CSV headers whose first non-whitespace character is `=`, `+`, `-`, or
   `@`. Generation and run-record creation now stop before producing a spreadsheet-formula trigger.
 - Made browser file reads and verification results newest-input-wins. A slow older file read or

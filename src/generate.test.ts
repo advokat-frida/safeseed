@@ -198,10 +198,14 @@ describe("generate.rejectsInvalidRuntimeOptions", () => {
 
   it("normalizes underscore-heavy opaque field names without changing the fake-data boundary", () => {
     const result = generate({
-      schema: [{ name: "___account___id___", type: "opaqueId" }],
+      schema: [
+        { name: "___account___id___", type: "opaqueId" },
+        { name: "_".repeat(MAX_COLUMN_NAME_LENGTH), type: "opaqueId" },
+      ],
       rows: 1,
       seed: 1,
     });
     expect(result.rows[0]![0]).toBe("TEST_ACCOUNT_ID_000001");
+    expect(result.rows[0]![1]).toBe("TEST_ID_000001");
   });
 });

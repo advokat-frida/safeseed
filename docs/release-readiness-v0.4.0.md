@@ -57,7 +57,7 @@ candidate, not a public release.
 - Local Action contract: 5 of 5 pass, including strict added-column drift and redacted output.
 - Root and demo dependency audits: zero known vulnerabilities at the configured moderate threshold.
 - Root build, compiled Action path, generated fixture alignment, and version alignment: pass.
-- Package dry run: 59 entries, 62,773 packed bytes, 233,432 unpacked bytes, and zero files outside
+- Package dry run: 59 entries, 62,936 packed bytes, 234,029 unpacked bytes, and zero files outside
   `dist/**`, `README.md`, `LICENSE`, and `package.json`.
 - `package.json` and the root lockfile contain zero runtime dependencies. The final disposable
   consumer install also contains no runtime dependency tree.
@@ -65,8 +65,10 @@ candidate, not a public release.
   identical SHA-256 hashes across a complete second root-first build: 76 of 76 files matched.
 - The first hosted PR run passed the build, CodeQL analysis job, and Ubuntu, Windows, and macOS
   Action contracts, but GitHub's result gate found one high-severity polynomial-regex alert in the
-  opaque-ID prefix normalizer. The repair replaces the alternation with two linear anchored passes,
-  caps schemas at 256 fields and names at 256 characters, and adds direct regression tests. A clean
+  opaque-ID prefix normalizer. A first split-regex attempt remained red because the trailing end-
+  anchored repetition could still backtrack quadratically. The final repair removes regex trimming in favor of explicit
+  start/end index loops, caps schemas at 256 fields and names at 256 characters, and adds direct
+  regression tests. A clean
   follow-up hosted CodeQL result remains mandatory before merge.
 
 ## Browser behavior and adversarial checks
@@ -129,14 +131,14 @@ rebuilding root first, the identical root + hosted demo + four standalone build 
 all 76 generated files retained identical SHA-256 hashes.
 
 The reconciled tarball is `safeseed-0.4.0.tgz`, SHA-1
-`a5ea4dd544f2f6c43145fbb91a42154ec72a9bd5`, with 59 entries, 62,773 packed bytes, and 233,432
+`e88d761f20d037ee2474d4181f0bec548da0657e`, with 59 entries, 62,936 packed bytes, and 234,029
 unpacked bytes. It was packed directly into the new disposable consumer directory
-`C:\Users\Ben\AppData\Local\Temp\safeseed-consumer-codeql-20260821-063018`; no tarball was left in
+`C:\Users\Ben\AppData\Local\Temp\safeseed-consumer-final-codeql-20260821-063553`; no tarball was left in
 the source tree.
 
 That consumer installed exactly one package with lifecycle scripts disabled. Its lockfile contains
 only the consumer root and `node_modules/safeseed`; the installed SafeSeed manifest has zero runtime
-dependencies; `node_modules` totals 235,453 bytes including the npm lock and command shim. The
+dependencies; `node_modules` totals 236,056 bytes including the npm lock and command shim. The
 installed CLI reports `safeseed 0.4.0 (catalog 4.0.0)`. The public API generated a seven-row
 `crm-contacts` dataset, created a record, verified the exact CSV, and rejected a caller-controlled
 ` =danger` header, a 257-character column name, and a 257-field schema.

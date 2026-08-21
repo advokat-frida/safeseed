@@ -151,15 +151,20 @@ function pad(n: number, width: number): string {
   return String(n).padStart(width, "0");
 }
 
+function trimEdgeUnderscores(value: string): string {
+  let start = 0;
+  while (start < value.length && value.charCodeAt(start) === 95) start += 1;
+
+  let end = value.length;
+  while (end > start && value.charCodeAt(end - 1) === 95) end -= 1;
+
+  return value.slice(start, end);
+}
+
 function opaquePrefix(fieldName: string): string {
-  const normalized = fieldName
-    .trim()
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, "_")
-    .replace(/^_+/, "")
-    .replace(/_+$/, "")
-    .slice(0, 40);
-  return normalized || "ID";
+  const normalized = fieldName.trim().toUpperCase().replace(/[^A-Z0-9]+/g, "_");
+  const trimmed = trimEdgeUnderscores(normalized).slice(0, 40);
+  return trimmed || "ID";
 }
 
 function generateValue(

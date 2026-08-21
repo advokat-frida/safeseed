@@ -1,5 +1,72 @@
 # Changelog
 
+## 0.4.0 — 2026-08-20
+
+### Practical sales and marketing fixtures
+
+- Added four editable schema presets in the core library, CLI, and browser generator:
+  `crm-contacts`, `marketing-attribution`, `hashed-audience`, and `uk-contacts`.
+- Added `opaqueId`, which produces cookie-safe, visibly fake identifiers such as
+  `TEST_COOKIE_ID_000001` and `TEST_ACCOUNT_ID_000001`. An arbitrary UUID, click ID, cookie ID,
+  or business identifier is outside the accepted catalog pattern.
+- Added `marketingUrl`, a canonical HTTPS landing URL on `campaign.example.com` with an exact set
+  of obvious `TEST_` UTM parameters. A reserved host does not bless arbitrary query strings;
+  unexpected parameters, order changes, or non-test values fail scan and verify.
+- Added `ukPhone`, using Ofcom's `07700 900000` through `07700 900999` drama block. Format-valid
+  output uses E.164; obvious mode uses the UK national shape.
+- Added `sha256Email` and `sha256Phone` for systems that validate SHA-256 marketing match keys.
+  Each type is a fixed published allowlist of 100 digests of catalog-constrained inputs. The
+  default 100-row presets stay unique; larger jobs cycle the bounded list. An arbitrary
+  64-character hash fails. The field record names the derivation and states that the digest itself
+  is neither reserved nor visibly distinguishable from a hash of customer data.
+- Added `safeseed generate --preset <id>` and `safeseed presets`. A preset defaults to 100 rows,
+  remains deterministic, and is still an ordinary editable schema.
+
+### Contract and compatibility
+
+- Catalog `4.0.0` adds structured constraints for Ofcom drama phones, SHA-256 allowlists, and
+  marketing URLs. Generated values, `scan`, strict verify, and column-scoped verify continue to
+  read from the same catalog predicate.
+- Run records now carry optional per-field derivation text. SafeSeed `0.4.0` rejects older record
+  contracts and asks for regeneration rather than silently applying new field claims to old
+  evidence.
+- The browser generator starts with the CRM preset, adds a compact practical-schema chooser and
+  a conditional hashed-identifier boundary note, and keeps CSV plus verification-file download as
+  the primary exit. No backend, data upload, account, analytics, or runtime dependency was added.
+
+### Adversarial repair pass
+
+- Removed arbitrary-value columns and the self-audit panel from the browser generator. Every browser
+  output column now comes from the SafeSeed catalog; customer values and spreadsheet formulas have
+  no input path on that screen.
+- Made browser verification strict whole-file verification, matching the public GitHub Action.
+  Added, removed, reordered, or edited columns fail instead of being reported beneath a green result.
+- Bound each downloadable verification file to the exact current CSV state. Changing a seed, row
+  count, name, type, or preset invalidates the prior record until the matching record finishes.
+- Replaced the permissive CSV parser with fail-closed syntax checks. Unclosed quotes, quotes inside
+  unquoted cells, and characters after a closing quote now fail `verify`, `scan`, and record creation.
+- Added runtime validation for non-empty schemas, unique single-line field names, known field types,
+  row counts from 1 through 100,000, and unsigned 32-bit seeds. Impossible or resource-exhausting
+  values such as `Infinity` can no longer enter the generation loop.
+- Reject caller-controlled CSV headers whose first non-whitespace character is `=`, `+`, `-`, or
+  `@`. Generation and run-record creation now stop before producing a spreadsheet-formula trigger.
+- Made browser file reads and verification results newest-input-wins. A slow older file read or
+  verification run can no longer overwrite the currently selected pair or paint a stale pass.
+- Redacted browser verification candidates, raw fingerprints, and full submitted headers from
+  human-facing failures. Repeated row-width failures are summarized instead of printing one line
+  per row.
+- Removed accidental runtime dependencies from the npm manifest and added a release assertion that
+  both package and root lockfile keep the zero-runtime-dependency contract.
+- Made the portable generator use system-font fallbacks so direct `file://` use makes no missing-font
+  requests; extended the fallback to the legacy showcase and proof outputs; added a real
+  no-JavaScript explanation, functional skip target, contextual control names, and strict 4px/999px
+  family radius grammar.
+- Tightened proof-table spacing at the article breakpoint so the exact embed fits its 760px host
+  column without hidden horizontal clipping while retaining the mobile card layout.
+- Made every public demo and standalone build compile the package core before Vite consumes
+  `dist/index.js`; the release-alignment check now rejects scripts that can rebundle stale core
+  bytes.
+
 ## 0.3.0 — 2026-08-18
 
 ### Named-column scans now fail closed

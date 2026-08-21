@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { generate, type FieldSchema } from "./generate.js";
+import { generate, type FieldSchema, type GeneratedDataset } from "./generate.js";
+import { CATALOG_VERSION } from "./catalog.js";
 import { toCsv } from "./csv.js";
 import { sha256Hex } from "./hash.js";
 import { makeRunRecord, ATTESTATION } from "./record.js";
@@ -59,6 +60,30 @@ describe("record.bindsToOutputFileHash", () => {
     const forgedCsv = toCsv(forged.columns, forged.rows);
     await expect(makeRunRecord(forged, forgedCsv)).rejects.toThrow(/outside the current email catalog/i);
   });
+
+  it("rejects an empty structural dataset instead of creating a meaningless record", async () => {
+    const empty: GeneratedDataset = {
+      columns: [],
+      rows: [],
+      schema: [],
+      seed: 1,
+      catalogVersion: CATALOG_VERSION,
+    };
+    await expect(makeRunRecord(empty, "\n")).rejects.toThrow(/at least one declared field/i);
+  });
+
+  it("rejects a structurally supplied spreadsheet-formula header", async () => {
+    const { ds } = await build();
+    const unsafeName = "=HYPERLINK(\"https://example.com\")";
+    const forged: GeneratedDataset = {
+      ...ds,
+      columns: [unsafeName, ...ds.columns.slice(1)],
+      schema: [{ ...ds.schema[0]!, name: unsafeName }, ...ds.schema.slice(1)],
+    };
+    await expect(makeRunRecord(forged, toCsv(forged.columns, forged.rows))).rejects.toThrow(
+      /spreadsheet formula marker/i,
+    );
+  });
 });
 
 describe("record.includesPerColumnHashes", () => {
@@ -109,9 +134,27 @@ describe("record.statesTierPerField", () => {
     expect(record.fields.find((f) => f.name === "card")!.tier).toBe("designated-test-only");
     expect(record.fields.find((f) => f.name === "last")!.tier).toBe("structurally-fake");
   });
+
+  it("records derivation for hashes without relabelling the digest itself as reserved", async () => {
+    const schema: FieldSchema[] = [
+      { name: "email_sha256", type: "sha256Email" },
+      { name: "phone_sha256", type: "sha256Phone" },
+      { name: "email", type: "email" },
+    ];
+    const ds = generate({ schema, rows: 4, seed: 8 });
+    const record = await makeRunRecord(ds, toCsv(ds.columns, ds.rows));
+    expect(record.fields[0]!.derivation).toMatch(/SHA-256/i);
+    expect(record.fields[1]!.derivation).toMatch(/SHA-256/i);
+    expect(record.fields[2]!.derivation).toBeUndefined();
+    expect(record.fields[0]!.claim).toMatch(/digest itself is neither reserved/i);
+  });
 });
 
 describe("record.usesHonestLanguageNoOverclaim", () => {
+  it("keeps the attestation readable around the derivation boundary", () => {
+    expect(ATTESTATION).toContain("unsigned integrity record, not authenticated provenance");
+    expect(ATTESTATION).toContain("Where a field names a derivation");
+  });
   const banned = [
     /\bproof\b/i,
     /\bproven\b/i,

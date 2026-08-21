@@ -58,6 +58,20 @@ function strictCspOnBuild(csp: string) {
   };
 }
 
+// Portable file:// builds cannot resolve the hosted /assets/fonts/ routes. Mark
+// those documents so the standalone generator and showcase use system-font
+// fallbacks and never attempt a missing font request. Hosted builds keep the
+// canonical self-hosted AF faces.
+function markStandaloneOnBuild() {
+  return {
+    name: "mark-standalone-on-build",
+    apply: "build" as const,
+    transformIndexHtml(html: string) {
+      return html.replace("<html lang=\"en\">", "<html lang=\"en\" data-standalone=\"true\">");
+    },
+  };
+}
+
 // Two pages now: the showcase (index.html) and the self-serve generator
 // (generator.html). The hosted build emits both as a normal multi-page site. Each
 // standalone single-file build targets ONE page, because vite-plugin-singlefile
@@ -108,6 +122,7 @@ export default defineConfig(({ mode }) => {
       react(),
       inlineFaviconOnBuild(),
       strictCspOnBuild(standalone ? STANDALONE_CSP : HOSTED_CSP),
+      ...(standalone ? [markStandaloneOnBuild()] : []),
       ...(standalone ? [viteSingleFile()] : []),
     ],
     resolve: {

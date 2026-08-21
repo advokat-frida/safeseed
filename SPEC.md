@@ -1,6 +1,6 @@
 # SPEC — SafeSeed
 
-*Frida's Toolkit, v1 flagship. Status: built; `0.3.0` hardening candidate remains local. Companion essay: [docs/safe-test-data-by-construction.md](docs/safe-test-data-by-construction.md).*
+*Frida's Toolkit, v1 flagship. Status: built; practical `0.4.0` field-and-preset candidate remains local. Companion essay: [docs/safe-test-data-by-construction.md](docs/safe-test-data-by-construction.md).*
 
 > Name: **SafeSeed** (locked). Deliberately **not** "Cleanroom" — "data clean room" is an established privacy term for privacy-preserving data collaboration, a different thing; reusing it would read as not knowing the field.
 
@@ -32,7 +32,8 @@ The credibility lead is the essay; the tool is proof he can also ship.
   - **`verify` GitHub Action** — the enforcement gate. A pure Node 24 wrapper executes the
     committed `dist/` bytes from the selected tag or SHA; it does not shell-evaluate inputs or
     download a second CLI version from npm.
-  - **Browser demo** — the front door, reusing the parchment/fox design system already built.
+  - **Browser generator and verifier** — the front door: catalog fields only, no pasted or imported
+    customer values, and strict exact-pair verification matching the public Action.
 - **Generator-agnostic by design.** The assurance layer (catalog + `verify` + `scan` + run record) operates on *any* data file, however it was produced — so a team can keep the generator they already use (Faker, Mockaroo, hand-written fixtures) and wrap it. SafeSeed ships its own small catalog-bounded generator so it works standalone; Faker is an optional adapter for *realistic non-PII* fields only, never for PII-shaped ones (those always come from the cited catalog constraints).
 - MIT, local/client-side, **no backend, no accounts, no telemetry**, copyleft-free dependencies.
 
@@ -48,9 +49,9 @@ A monorepo would only win if everything were the same artifact type with heavy s
 
 ## Capabilities (v1)
 
-1. **Assurance catalog** — versioned data mapping each PII-shaped field type to a protocol reservation, authority policy, published test designation, or deliberately fake convention, with its citation and assurance tier. This is the reusable IP.
-2. **Generate** — schema-driven, deterministic (seeded so output is a committable fixture), with a **format-valid safe mode** (values that pass common validators while staying reserved), and **self-evidently-fake tokens** (`TEST_Lastname_000142`, `123 Example Way`) for the structurally-fake tier.
-3. **Run record (unsigned integrity receipt)** — hashes the actual emitted file + schema + catalog version + per-field tiers. Honest language: it is a self-declared comparison record whose drift evidence depends on protecting or reviewing the record separately, not authenticated provenance or "cryptographic proof of no PII." (Optional org-controlled-key signing is a later upgrade, not v1.)
+1. **Assurance catalog** — versioned data mapping each PII-shaped field type to a protocol reservation, authority policy, published test designation, deliberately fake convention, or exact derivation from one of those constrained inputs, with its citation and assurance boundary. This is the reusable IP.
+2. **Generate** — schema-driven, deterministic (seeded so output is a committable fixture), with a **format-valid safe mode**, self-evidently-fake tokens (`TEST_Lastname_000142`, `TEST_COOKIE_ID_000142`), fixed derived-hash allowlists, and four small sales/marketing schema presets that remain ordinary editable schemas.
+3. **Run record (unsigned integrity receipt)** — hashes the actual emitted file + schema + catalog version + per-field tiers and derivations. Honest language: it is a self-declared comparison record whose drift evidence depends on protecting or reviewing the record separately, not authenticated provenance or "cryptographic proof of no PII." (Optional org-controlled-key signing is a later upgrade, not v1.)
 4. **`verify`** — re-hashes the artifact, checks every field against its declared range, validates the run record, exits non-zero on any drift. Wireable as a required CI/merge gate.
 5. **`scan` (reverse mode)** — point it at an *existing* CSV / seed file; it flags values that are **not** in reserved ranges as candidate real PII. (Security said this is what they'd deploy week one — it addresses the prod dump already sitting in staging, not just virgin data.)
 6. **In-artifact threat model** — a plain "what this attests / what it does NOT" statement shipped with the tool, the CLI output, and the demo.
@@ -61,16 +62,24 @@ A monorepo would only win if everything were the same artifact type with heavy s
 - A generated dataset passes a real, non-trivial app's input validators and **one CI suite end-to-end** (the "prove it before showing anyone" gate).
 - `verify` fails the build when current bytes differ from the run record; passes when they match.
 - `scan` flags planted real-looking PII in a sample seed; passes a clean one.
-- Every PII-shaped field in output traces to a cited catalog constraint; structurally-fake fields are self-evidently fake.
+- Malformed CSV syntax fails closed before a clean range result can be reported.
+- Every PII-shaped field in output traces to a cited catalog constraint; structurally-fake fields are self-evidently fake, and transformed fields accept only a published allowlist rather than arbitrary shape-valid values.
+- Caller-controlled CSV headers are single-line, unique, and cannot begin after whitespace with
+  `=`, `+`, `-`, or `@`; generation and record creation reject spreadsheet-triggering names before
+  writing an artifact.
+- CSV syntax errors fail closed across verify, scan, and record creation. Browser diagnostics do not
+  echo submitted candidate values, raw fingerprints, or full submitted headers.
 - Browser demo makes **no data-service or external-origin requests**. Its CSP ships with
   `connect-src 'none'`; a hosted copy may load only same-origin static fonts under `font-src 'self'`.
+- Browser verification passes the untouched generated pair and fails any added, removed, reordered,
+  or edited column. Column-scoped verification exists only behind an explicit CLI/library option.
 - The "what this does NOT prove" statement is present in CLI output, the demo, and the README.
 
 ## Tests (named up front — TDD pre-commitment)
 
 **catalog**
 - `catalog.everyFieldHasCitationAndTier`
-- `catalog.reservedRangesMatchStandards` (RFC 2606 domains, RFC 5737 / 3849 IPs, NANPA 555-0100..0199, invalid SSN ranges)
+- `catalog.reservedRangesMatchStandards` (RFC 2606 domains, RFC 5737 / 3849 IPs, NANPA and Ofcom phone blocks, invalid SSN ranges, exact derived-hash allowlists)
 
 **generate**
 - `generate.deterministicForSeed`
@@ -101,7 +110,10 @@ A monorepo would only win if everything were the same artifact type with heavy s
 - **The IBM-style membership-inference / leakage detector as a feature** — killed by the panel (unanimous). Keep only as a one-line citation in the essay, and optionally a one-time *published* comparison run against a competitor's model-synthesized output (marketing asset, never a control).
 - Real PKI/CA-backed signing in v1 (content-hash tamper-evidence + optional self-published key only; use the word "signed" only if a real key story exists).
 - Full C2PA conformance.
-- Referential integrity / relational foreign-key output — candidate **v1.1**, noted because the privacy engineer wants it for integration tests.
+- Referential integrity / relational foreign-key output. The current opaque IDs are per-column test tokens, not a relationship engine.
+- Arbitrary hashed identifiers, UUIDs, cookie IDs, click IDs, or URLs accepted merely because their shape is plausible. Those values can represent real customers; only exact SafeSeed catalog patterns pass.
+- Arbitrary pasted values or imported production files in the browser generator. Business columns
+  added elsewhere remain outside the browser's strict pair and require the explicit CLI/library contract.
 - Backend, user accounts, analytics.
 
 ## Build sequence (after go)

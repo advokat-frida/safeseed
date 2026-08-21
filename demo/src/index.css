@@ -304,6 +304,12 @@ h4 {
   --font-chrome: "Space Grotesk", system-ui, -apple-system, sans-serif;
 }
 
+html[data-standalone="true"] {
+  --font-display: Impact, system-ui, sans-serif;
+  --font-label: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-chrome: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
 .site-bar{display:flex;align-items:center;gap:.5rem 1.25rem;flex-wrap:wrap;min-height:42px;margin:0 calc(clamp(24px,3vw,56px) * -1);padding:.35rem clamp(24px,3vw,56px);background:var(--paper);border-bottom:1px solid var(--rule)}
 .bar-wordmark{flex:none;font-family:var(--font-display);font-weight:400;font-size:22px;line-height:1;letter-spacing:.02em;text-transform:uppercase;color:var(--ink);text-decoration:none}
 .bar-wordmark:hover{text-decoration:none}

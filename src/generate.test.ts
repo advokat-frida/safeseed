@@ -5,12 +5,17 @@ import { luhnValid } from "./luhn.js";
 
 const FULL_SCHEMA: FieldSchema[] = [
   { name: "email", type: "email" },
+  { name: "email_sha256", type: "sha256Email" },
   { name: "domain", type: "domain" },
   { name: "ip", type: "ipv4" },
   { name: "ip6", type: "ipv6" },
   { name: "phone", type: "phone" },
+  { name: "phone_uk", type: "ukPhone" },
+  { name: "phone_sha256", type: "sha256Phone" },
   { name: "ssn", type: "ssn" },
   { name: "card", type: "creditCard" },
+  { name: "landing_page_url", type: "marketingUrl" },
+  { name: "cookie_id", type: "opaqueId" },
   { name: "first", type: "firstName" },
   { name: "last", type: "lastName" },
   { name: "full", type: "fullName" },
@@ -79,6 +84,35 @@ describe("generate.formatValidModePassesCommonValidators", () => {
   it("phones in format-valid mode carry a full 10 digits", () => {
     for (const v of colValues("phone")) expect(v.replace(/\D/g, "").length, v).toBe(10);
   });
+
+  it("UK phones use the E.164 wire shape", () => {
+    for (const v of colValues("ukPhone")) expect(/^\+447700900\d{3}$/.test(v), v).toBe(true);
+  });
+
+  it("hashed match keys are lowercase SHA-256 hex and remain in their allowlists", () => {
+    for (const type of ["sha256Email", "sha256Phone"] as const) {
+      for (const v of colValues(type)) {
+        expect(/^[0-9a-f]{64}$/.test(v), v).toBe(true);
+        expect(isReserved(getEntry(type), v), v).toBe(true);
+      }
+    }
+  });
+
+  it("marketing URLs are ordinary HTTPS URLs on the reserved campaign host", () => {
+    for (const v of colValues("marketingUrl")) {
+      const parsed = new URL(v);
+      expect(parsed.protocol).toBe("https:");
+      expect(parsed.hostname).toBe("campaign.example.com");
+      expect(parsed.searchParams.get("utm_campaign")).toMatch(/^TEST_CAMPAIGN_\d{6,}$/);
+    }
+  });
+
+  it("opaque IDs are cookie-safe obvious TEST tokens named for their column", () => {
+    for (const v of colValues("opaqueId")) {
+      expect(v).toMatch(/^TEST_COOKIE_ID_\d{6,}$/);
+      expect(/^[\x21\x23-\x2B\x2D-\x3A\x3C-\x5B\x5D-\x7E]+$/.test(v), v).toBe(true);
+    }
+  });
 });
 
 describe("generate.structurallyFakeFieldsAreSelfEvidentlyFake", () => {
@@ -90,6 +124,8 @@ describe("generate.structurallyFakeFieldsAreSelfEvidentlyFake", () => {
         { name: "full", type: "fullName" },
         { name: "addr", type: "streetAddress" },
         { name: "note", type: "freeText" },
+        { name: "cookie_id", type: "opaqueId" },
+        { name: "landing_page_url", type: "marketingUrl" },
       ],
       rows: 25,
       seed: 3,
@@ -115,6 +151,34 @@ describe("generate.staysInRangeAtScale", () => {
       const row = ds.rows[r]!;
       expect(isReserved(ip6, row[0]!), `ipv6 row ${r} = ${row[0]}`).toBe(true);
       expect(isReserved(last, row[1]!), `lastName row ${r} = ${row[1]}`).toBe(true);
+    }
+  });
+});
+
+describe("generate.rejectsInvalidRuntimeOptions", () => {
+  const schema: FieldSchema[] = [{ name: "email", type: "email" }];
+
+  it.each([
+    ["missing options", undefined],
+    ["empty schema", { schema: [], rows: 1, seed: 1 }],
+    ["zero rows", { schema, rows: 0, seed: 1 }],
+    ["infinite rows", { schema, rows: Infinity, seed: 1 }],
+    ["fractional rows", { schema, rows: 1.5, seed: 1 }],
+    ["rows above the resource cap", { schema, rows: 100_001, seed: 1 }],
+    ["negative seed", { schema, rows: 1, seed: -1 }],
+    ["fractional seed", { schema, rows: 1, seed: 1.5 }],
+    ["seed above uint32", { schema, rows: 1, seed: 0x1_0000_0000 }],
+    ["duplicate names", { schema: [...schema, ...schema], rows: 1, seed: 1 }],
+    ["unknown field type", { schema: [{ name: "email", type: "unknown" }], rows: 1, seed: 1 }],
+  ])("rejects %s", (_label, options) => {
+    expect(() => generate(options as never)).toThrow();
+  });
+
+  it("rejects spreadsheet-formula prefixes in caller-controlled CSV headers", () => {
+    for (const name of ["=HYPERLINK(\"https://example.com\")", " +SUM(1,1)", "-1+2", "@SUM(1,1)"]) {
+      expect(() => generate({ schema: [{ name, type: "email" }], rows: 1, seed: 1 })).toThrow(
+        /must not begin with/i,
+      );
     }
   });
 });

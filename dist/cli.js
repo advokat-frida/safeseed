@@ -16,7 +16,7 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import process from "node:process";
-import { generate, toCsv, makeRunRecord, verify, scan, exitCode, CATALOG, CATALOG_VERSION, SAFESEED_VERSION, } from "./index.js";
+import { generate, toCsv, makeRunRecord, verify, scan, exitCode, CATALOG, CATALOG_VERSION, SAFESEED_VERSION, MAX_GENERATE_ROWS, MAX_GENERATE_SEED, SCHEMA_PRESETS, schemaFromPreset, } from "./index.js";
 function parseArgs(argv) {
     const positional = [];
     const flags = {};
@@ -63,6 +63,8 @@ function verifyFailureDiagnostic(failure) {
     switch (failure.kind) {
         case "invalid-record":
             return `invalid verification record: ${safeDiagnostic(failure.message)}`;
+        case "malformed-csv":
+            return `malformed CSV: ${safeDiagnostic(failure.message)}`;
         case "content-hash-mismatch":
             return "current file hash does not match the verification record";
         case "out-of-range-value":
@@ -126,6 +128,10 @@ function cmdGenerate(p) {
     // random one — determinism is the product. Documented in --help and the README.
     let seed = 0;
     let formatValid = true;
+    if (typeof p.flags.preset === "string") {
+        schema = schemaFromPreset(p.flags.preset);
+        rows = 100;
+    }
     if (typeof p.flags.config === "string") {
         const cfg = JSON.parse(readFileSync(p.flags.config, "utf8"));
         if (cfg.schema !== undefined)
@@ -147,10 +153,12 @@ function cmdGenerate(p) {
         formatValid = p.flags["format-valid"] !== "false";
     if (schema.length === 0)
         fail("no schema (use --config <file> or --fields name:type,...)");
-    if (!Number.isInteger(rows) || rows <= 0)
-        fail("--rows must be a positive integer");
-    if (!Number.isFinite(seed))
-        fail("--seed must be a number");
+    if (!Number.isSafeInteger(rows) || rows < 1 || rows > MAX_GENERATE_ROWS) {
+        fail(`--rows must be an integer from 1 to ${MAX_GENERATE_ROWS}`);
+    }
+    if (!Number.isSafeInteger(seed) || seed < 0 || seed > MAX_GENERATE_SEED) {
+        fail(`--seed must be an integer from 0 to ${MAX_GENERATE_SEED}`);
+    }
     const ds = generate({ schema, rows, seed, formatValid });
     const csv = toCsv(ds.columns, ds.rows);
     const recordWork = typeof p.flags.record === "string"
@@ -220,7 +228,15 @@ function cmdScan(p) {
             'Clean means "nothing outside the configured ranges found," not "no real PII."\n');
     }
     else {
-        process.stdout.write(`safeseed scan: ${result.findings.length} candidate(s) across ${result.scannedRows} rows\n`);
+        if (result.parseErrors.length > 0) {
+            process.stdout.write("safeseed scan: FAIL — malformed CSV\n");
+        }
+        else {
+            process.stdout.write(`safeseed scan: ${result.findings.length} candidate(s) across ${result.scannedRows} rows\n`);
+        }
+        for (const error of result.parseErrors) {
+            process.stdout.write(`  [malformed-csv] ${safeDiagnostic(error)}\n`);
+        }
         for (const f of result.findings.slice(0, 50)) {
             process.stdout.write(`  row ${f.row} ${safeDiagnostic(f.field)}: candidate value redacted; outside configured ${f.type} range\n`);
         }
@@ -244,6 +260,9 @@ function cmdScan(p) {
 function cmdCatalog() {
     process.stdout.write(JSON.stringify({ version: CATALOG_VERSION, entries: CATALOG }, null, 2) + "\n");
 }
+function cmdPresets() {
+    process.stdout.write(JSON.stringify({ presets: SCHEMA_PRESETS }, null, 2) + "\n");
+}
 function printUsage() {
     process.stdout.write([
         `safeseed ${SAFESEED_VERSION} — auditable, catalog-constrained test data`,
@@ -251,12 +270,15 @@ function printUsage() {
         "Usage:",
         "  safeseed generate --fields <name:type,...> --rows N --seed S [--out f.csv] [--record r.json] [--format-valid true|false]",
         "  safeseed generate --config gen.json [--out f.csv] [--record r.json]",
+        "  safeseed generate --preset <id> [--rows N] [--seed S] [--out f.csv] [--record r.json]",
         "  safeseed verify   --in f.csv --record r.json [--allow-added-columns]",
         "  safeseed scan     --in f.csv --fields <name:type,...>",
         "  safeseed catalog",
+        "  safeseed presets",
         "  safeseed version",
         "",
         "Field types: " + [...VALID_TYPES].join(", "),
+        "Schema presets: " + SCHEMA_PRESETS.map((preset) => preset.id).join(", "),
         "",
         "Notes:",
         "  --seed defaults to 0, so runs without it are fully deterministic (identical",
@@ -282,6 +304,9 @@ async function main() {
             break;
         case "catalog":
             cmdCatalog();
+            break;
+        case "presets":
+            cmdPresets();
             break;
         case "version":
         case undefined:

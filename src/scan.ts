@@ -35,6 +35,8 @@ export interface ScanResult {
   findings: ScanFinding[];
   perField: Record<string, number>;
   scannedRows: number;
+  /** CSV syntax errors that prevented any trustworthy row or field scan. */
+  parseErrors: string[];
   /** Named columns not found in the file's header (case-insensitive, BOM/whitespace-trimmed match). */
   missingColumns: string[];
   /** Named columns matching more than one header — ambiguous, so they are not scanned. */
@@ -47,10 +49,26 @@ export interface ScanResult {
 const normalizeHeader = (name: string): string => name.replace(/^\uFEFF/, "").trim().toLowerCase();
 
 export function scan(opts: ScanOptions): ScanResult {
-  const { columns: dataColumns, rows } = parseCsv(opts.csv);
   const findings: ScanFinding[] = [];
   const perField: Record<string, number> = {};
   for (const col of opts.columns) perField[col.name] = 0;
+
+  let parsed: ReturnType<typeof parseCsv>;
+  try {
+    parsed = parseCsv(opts.csv);
+  } catch (error) {
+    return {
+      ok: false,
+      findings,
+      perField,
+      scannedRows: 0,
+      parseErrors: [error instanceof Error ? error.message : "malformed CSV"],
+      missingColumns: [],
+      duplicateColumns: [],
+      malformedRows: [],
+    };
+  }
+  const { columns: dataColumns, rows } = parsed;
 
   // A named column that silently doesn't get scanned is a false clean, so unmatched
   // names are reported: zero header matches -> missing, two or more -> ambiguous.
@@ -103,6 +121,7 @@ export function scan(opts: ScanOptions): ScanResult {
     findings,
     perField,
     scannedRows: rows.length,
+    parseErrors: [],
     missingColumns,
     duplicateColumns,
     malformedRows,

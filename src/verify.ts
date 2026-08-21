@@ -23,6 +23,7 @@ import { validateRunRecord, type RunRecord } from "./record.js";
 
 export type VerifyFailureKind =
   | "invalid-record"
+  | "malformed-csv"
   | "content-hash-mismatch"
   | "out-of-range-value"
   | "schema-mismatch"
@@ -79,7 +80,10 @@ export async function verify(
   const result = opts?.allowAddedColumns
     ? await verifyColumnScoped(csv, validation.record)
     : await verifyStrict(csv, validation.record);
-  if (result.checked.rows !== validation.record.rowCount) {
+  if (
+    !result.failures.some((failure) => failure.kind === "malformed-csv") &&
+    result.checked.rows !== validation.record.rowCount
+  ) {
     result.failures.unshift({
       kind: "invalid-record",
       message: `record rowCount ${validation.record.rowCount} does not match file row count ${result.checked.rows}`,
@@ -101,7 +105,23 @@ async function verifyStrict(csv: string, record: RunRecord): Promise<VerifyResul
     });
   }
 
-  const { columns, rows } = parseCsv(csv);
+  let parsed: ReturnType<typeof parseCsv>;
+  try {
+    parsed = parseCsv(csv);
+  } catch (error) {
+    failures.push({
+      kind: "malformed-csv",
+      message: error instanceof Error ? error.message : "the CSV is malformed",
+    });
+    return {
+      ok: false,
+      failures,
+      checked: { rows: 0, fields: 0 },
+      unattestedColumns: [],
+      warnings,
+    };
+  }
+  const { columns, rows } = parsed;
 
   const columnsMatch =
     columns.length === record.columns.length &&
@@ -161,7 +181,22 @@ async function verifyColumnScoped(csv: string, record: RunRecord): Promise<Verif
   const failures: VerifyFailure[] = [];
   const warnings: string[] = [];
 
-  const { columns, rows } = parseCsv(csv);
+  let parsed: ReturnType<typeof parseCsv>;
+  try {
+    parsed = parseCsv(csv);
+  } catch (error) {
+    return {
+      ok: false,
+      failures: [{
+        kind: "malformed-csv",
+        message: error instanceof Error ? error.message : "the CSV is malformed",
+      }],
+      checked: { rows: 0, fields: 0 },
+      unattestedColumns: [],
+      warnings,
+    };
+  }
+  const { columns, rows } = parsed;
 
   // The file must stay rectangular: every row matches the header width. This closes
   // the same hole strict mode closes — a trailing unheadered cell can't smuggle in

@@ -36,6 +36,41 @@ describe("scan.passesOnAllReservedData", () => {
     expect(result.findings).toEqual([]);
     expect(result.scannedRows).toBe(30);
   });
+
+  it("accepts generated practical marketing fields and flags shape-valid substitutes", () => {
+    const columns: ScanColumn[] = [
+      { name: "email_sha256", type: "sha256Email" },
+      { name: "phone_sha256", type: "sha256Phone" },
+      { name: "phone_uk", type: "ukPhone" },
+      { name: "landing_page_url", type: "marketingUrl" },
+      { name: "cookie_id", type: "opaqueId" },
+    ];
+    const ds = generate({ schema: columns as FieldSchema[], rows: 3, seed: 12 });
+    expect(scan({ csv: toCsv(ds.columns, ds.rows), columns }).ok).toBe(true);
+
+    const changed = ds.rows.map((row) => [...row]);
+    changed[0]![0] = "a".repeat(64);
+    changed[0]![1] = "0".repeat(64);
+    changed[0]![2] = "+447700901000";
+    changed[0]![3] = "https://campaign.example.com/landing?utm_source=google&utm_medium=cpc&utm_campaign=real";
+    changed[0]![4] = "actual-cookie-id-123";
+    const result = scan({ csv: toCsv(ds.columns, changed), columns });
+    expect(result.ok).toBe(false);
+    expect(result.findings.map((finding) => finding.field).sort()).toEqual(
+      columns.map((column) => column.name).sort(),
+    );
+  });
+});
+
+describe("scan.rejectsMalformedCsv", () => {
+  it("fails closed instead of treating an unclosed quoted value as a clean reserved email", () => {
+    const result = scan({ csv: 'email\n"user1@example.net', columns: [{ name: "email", type: "email" }] });
+    expect(result.ok).toBe(false);
+    expect(result.scannedRows).toBe(0);
+    expect(result.findings).toEqual([]);
+    expect(result.parseErrors).toHaveLength(1);
+    expect(result.parseErrors[0]).toMatch(/malformed CSV/i);
+  });
 });
 
 describe("scan.rejectsCompositeCellsInsteadOfNormalizingToASafeSuffix", () => {

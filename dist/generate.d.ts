@@ -27,5 +27,14 @@ export interface GeneratedDataset {
     seed: number;
     catalogVersion: string;
 }
+export declare const MAX_GENERATE_ROWS = 100000;
+export declare const MAX_GENERATE_SEED = 4294967295;
+/**
+ * SafeSeed writes schema names into the first CSV row. Keep that caller-controlled
+ * surface single-line and prevent common spreadsheet formula prefixes, including
+ * when hidden behind leading whitespace. CSV quoting alone does not neutralize a
+ * spreadsheet formula.
+ */
+export declare function isSafeColumnName(name: unknown): name is string;
 export declare function generate(opts: GenerateOptions): GeneratedDataset;
 //# sourceMappingURL=generate.d.ts.map

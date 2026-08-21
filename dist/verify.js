@@ -34,7 +34,8 @@ export async function verify(csv, record, opts) {
     const result = opts?.allowAddedColumns
         ? await verifyColumnScoped(csv, validation.record)
         : await verifyStrict(csv, validation.record);
-    if (result.checked.rows !== validation.record.rowCount) {
+    if (!result.failures.some((failure) => failure.kind === "malformed-csv") &&
+        result.checked.rows !== validation.record.rowCount) {
         result.failures.unshift({
             kind: "invalid-record",
             message: `record rowCount ${validation.record.rowCount} does not match file row count ${result.checked.rows}`,
@@ -53,7 +54,24 @@ async function verifyStrict(csv, record) {
             message: `content hash ${actualHash} does not match recorded ${record.contentSha256}`,
         });
     }
-    const { columns, rows } = parseCsv(csv);
+    let parsed;
+    try {
+        parsed = parseCsv(csv);
+    }
+    catch (error) {
+        failures.push({
+            kind: "malformed-csv",
+            message: error instanceof Error ? error.message : "the CSV is malformed",
+        });
+        return {
+            ok: false,
+            failures,
+            checked: { rows: 0, fields: 0 },
+            unattestedColumns: [],
+            warnings,
+        };
+    }
+    const { columns, rows } = parsed;
     const columnsMatch = columns.length === record.columns.length &&
         columns.every((c, i) => c === record.columns[i]);
     if (!columnsMatch) {
@@ -107,7 +125,23 @@ async function verifyStrict(csv, record) {
 async function verifyColumnScoped(csv, record) {
     const failures = [];
     const warnings = [];
-    const { columns, rows } = parseCsv(csv);
+    let parsed;
+    try {
+        parsed = parseCsv(csv);
+    }
+    catch (error) {
+        return {
+            ok: false,
+            failures: [{
+                    kind: "malformed-csv",
+                    message: error instanceof Error ? error.message : "the CSV is malformed",
+                }],
+            checked: { rows: 0, fields: 0 },
+            unattestedColumns: [],
+            warnings,
+        };
+    }
+    const { columns, rows } = parsed;
     // The file must stay rectangular: every row matches the header width. This closes
     // the same hole strict mode closes — a trailing unheadered cell can't smuggle in
     // real PII, because it would make a row wider than the header and fail here.

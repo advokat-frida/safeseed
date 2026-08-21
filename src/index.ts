@@ -20,10 +20,21 @@ export {
 
 export {
   generate,
+  isSafeColumnName,
+  MAX_GENERATE_ROWS,
+  MAX_GENERATE_SEED,
   type FieldSchema,
   type GenerateOptions,
   type GeneratedDataset,
 } from "./generate.js";
+
+export {
+  SCHEMA_PRESETS,
+  getSchemaPreset,
+  schemaFromPreset,
+  type SchemaPreset,
+  type SchemaPresetId,
+} from "./presets.js";
 
 export {
   makeRunRecord,

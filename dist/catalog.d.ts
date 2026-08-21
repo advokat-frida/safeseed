@@ -18,7 +18,7 @@
  * citation link is the NANPA homepage rather than a deep rule page.
  */
 import type { FieldType, Tier } from "./types.js";
-export declare const CATALOG_VERSION = "3.0.0";
+export declare const CATALOG_VERSION = "4.0.0";
 /** Inspectable, structured definition of a reserved space. Drives generation,
  * verification, and scanning, and lets tests assert the ranges match standards. */
 export type ReservedSpec = {
@@ -50,6 +50,25 @@ export type ReservedSpec = {
     kind: "cardTestNumbers";
     numbers: readonly string[];
 } | {
+    kind: "ukDramaPhoneBlock";
+    nationalPrefix: string;
+    subscriberStart: number;
+    subscriberEnd: number;
+} | {
+    kind: "sha256Allowlist";
+    inputType: "email" | "phone";
+    values: readonly {
+        source: string;
+        digest: string;
+    }[];
+} | {
+    kind: "marketingUrl";
+    baseUrl: string;
+    params: readonly {
+        name: string;
+        tokenPrefix: string;
+    }[];
+} | {
     kind: "fakeToken";
     pattern: string;
 };
@@ -62,6 +81,12 @@ export interface CatalogEntry {
     description: string;
     /** Tier-appropriate, non-overclaiming statement about values of this field. */
     claim: string;
+    /**
+     * Exact transformation applied after the cited source constraint. When present,
+     * the tier describes the input's assurance basis; the transformed value is not
+     * itself claimed to occupy that reserved namespace.
+     */
+    derivation?: string;
     reserved: ReservedSpec;
 }
 export declare const CATALOG: readonly CatalogEntry[];

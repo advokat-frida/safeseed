@@ -28,16 +28,23 @@ export function parseCsv(text) {
     let field = "";
     let record = [];
     let inQuotes = false;
-    let started = false; // have we seen any content for the current record/field?
+    let afterQuote = false;
+    let fieldStarted = false;
+    let recordStarted = false;
+    const syntaxError = (message, offset) => {
+        throw new Error(`malformed CSV at character ${offset + 1}: ${message}`);
+    };
     const pushField = () => {
         record.push(field);
         field = "";
+        fieldStarted = false;
+        afterQuote = false;
     };
     const pushRecord = () => {
         pushField();
         records.push(record);
         record = [];
-        started = false;
+        recordStarted = false;
     };
     for (let i = 0; i < text.length; i++) {
         const c = text[i];
@@ -49,6 +56,7 @@ export function parseCsv(text) {
                 }
                 else {
                     inQuotes = false;
+                    afterQuote = true;
                 }
             }
             else {
@@ -56,27 +64,55 @@ export function parseCsv(text) {
             }
             continue;
         }
+        if (afterQuote) {
+            if (c === ",") {
+                pushField();
+                recordStarted = true;
+            }
+            else if (c === "\n") {
+                pushRecord();
+            }
+            else if (c === "\r") {
+                if (text[i + 1] === "\n")
+                    i++;
+                pushRecord();
+            }
+            else {
+                syntaxError("only a delimiter or record break may follow a closing quote", i);
+            }
+            continue;
+        }
         if (c === '"') {
+            if (fieldStarted || field.length > 0) {
+                syntaxError("a quoted field must begin at the start of a cell", i);
+            }
             inQuotes = true;
-            started = true;
+            fieldStarted = true;
+            recordStarted = true;
         }
         else if (c === ",") {
             pushField();
-            started = true;
+            recordStarted = true;
         }
         else if (c === "\n") {
             pushRecord();
         }
         else if (c === "\r") {
-            // swallow; newline handled on \n
+            if (text[i + 1] === "\n")
+                i++;
+            pushRecord();
         }
         else {
             field += c;
-            started = true;
+            fieldStarted = true;
+            recordStarted = true;
         }
     }
+    if (inQuotes) {
+        syntaxError("quoted field is not closed", Math.max(0, text.length - 1));
+    }
     // Flush a final record only if the file did not end on a clean record break.
-    if (started || field.length > 0 || record.length > 0) {
+    if (recordStarted || fieldStarted || field.length > 0 || record.length > 0) {
         pushRecord();
     }
     const columns = records.shift() ?? [];

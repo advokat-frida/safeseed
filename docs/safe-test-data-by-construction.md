@@ -33,7 +33,10 @@ SafeSeed still verifies every exported artifact. Its run record binds the file, 
 - **Email and domains** — RFC 2606 reserves `example.com`, `example.net`, `example.org`, and the `.invalid` / `.example` names for documentation and testing. They are not customer-controlled production domains; `.invalid` is specifically intended to be invalid.
 - **IP addresses** — RFC 5737 reserves three IPv4 ranges for documentation; RFC 3849 reserves `2001:db8::/32` for IPv6. They are not globally assigned addresses for production hosts.
 - **Phone numbers** — the North American numbering plan reserves `555-0100` through `555-0199` for fictitious, non-working use. This is an administrative reservation, so SafeSeed treats the cited policy as a release-time dependency rather than an eternal fact.
+- **UK phone numbers** — Ofcom publishes `07700 900000` through `07700 900999` for TV and radio drama and says the block will not be allocated to providers in the foreseeable future. SafeSeed treats that as another current authority-policy dependency, not a permanent mathematical fact.
 - **Social Security numbers** — SafeSeed uses components the SSA identifies as invalid for SSNs: area `000` or `666`, group `00`, or serial `0000`. It deliberately does not use the `900–999` area range because that overlaps the IRS ITIN space, which contains issued identifiers. This is an authority-policy claim and must be checked against the current cited sources when the catalog changes.
+- **Marketing URLs and opaque IDs** — no authority reserves UTM strings, cookie IDs, click IDs, lead IDs, or account IDs. SafeSeed therefore uses a reserved example host plus exact `TEST_` parameters, or cookie-safe `TEST_` identifiers named for the column. An arbitrary URL or opaque string does not pass.
+- **Hashed marketing identifiers** — SHA-256 supplies a wire shape, not a fake-data namespace. SafeSeed publishes 100 source-to-digest pairs for each hash type; the known email or phone inputs already sit inside a catalog constraint. That keeps the default 100-row fixture unique without opening acceptance to arbitrary hashes. Larger jobs cycle the bounded list. The run record names the derivation. The digest itself is not reserved, visibly fake, or anonymous, and an arbitrary 64-hex value fails.
 
 But honesty *is* the credibility here, so the claim has tiers, and the serious version says so plainly:
 
@@ -43,6 +46,10 @@ But honesty *is* the credibility here, so the claim has tiers, and the serious v
 - **Structurally fake** — names, street addresses, free text. No standards body reserves "fake names." The honest move is to make these *self-evidently* fake (`TEST_Lastname_000142`, `123 Example Way`) rather than plausible-but-random people — because a randomly generated "John Smith at 42 Main St" can coincidentally match a living person, and the law does not care that you generated it.
 
 Stating which tier each field sits in is not a weakness to bury. It is the thing that separates a practitioner from a datasheet.
+
+Derived hashes do not create a fifth tier. The tier records the known input's assurance basis, and
+the separate derivation records SHA-256. That distinction prevents "64 hex characters" from
+quietly becoming a pass condition for a hash that may have come from real customer data.
 
 ## Where the proof stops
 

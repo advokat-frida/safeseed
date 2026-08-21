@@ -28,6 +28,11 @@ describe("catalog.isReservedHandlesMalformedInput", () => {
       ["ipv6", "2001:db8:::1"],
       ["phone", ""],
       ["phone", "abc"],
+      ["ukPhone", "abc"],
+      ["sha256Email", "abc"],
+      ["sha256Phone", "abc"],
+      ["marketingUrl", "not a URL"],
+      ["opaqueId", ""],
       ["ssn", "12"],
       ["ssn", "abcdefghi"],
       ["creditCard", ""],
@@ -63,5 +68,14 @@ describe("catalog.rangeBoundaries", () => {
     expect(isReserved(e, "212-555-0199")).toBe(true);
     expect(isReserved(e, "212-555-0099")).toBe(false);
     expect(isReserved(e, "212-555-0200")).toBe(false);
+  });
+
+  it("UK drama mobile accepts the whole 000..999 subscriber block and rejects neighbors", () => {
+    const e = getEntry("ukPhone");
+    expect(isReserved(e, "+447700900000")).toBe(true);
+    expect(isReserved(e, "+447700900999")).toBe(true);
+    expect(isReserved(e, "447700900999")).toBe(false);
+    expect(isReserved(e, "+447700899999")).toBe(false);
+    expect(isReserved(e, "+447700901000")).toBe(false);
   });
 });

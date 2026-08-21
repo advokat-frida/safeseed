@@ -46,6 +46,11 @@
   --fs-micro: 11px;
 }
 
+html[data-standalone="true"] {
+  --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --serif: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
 body { background: var(--parchment); color: var(--ink); }
 
 /* Hero highlight: forest, upright (was italic teal serif). */

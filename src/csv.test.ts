@@ -69,4 +69,16 @@ describe("csv.parse edge cases", () => {
     const back = parseCsv('a,b\n"",x\n');
     expect(back.rows).toEqual([["", "x"]]);
   });
+
+  it("rejects an unclosed quoted field", () => {
+    expect(() => parseCsv('email\n"user1@example.net')).toThrow(/malformed CSV.*not closed/i);
+  });
+
+  it("rejects a quote that begins after unquoted cell content", () => {
+    expect(() => parseCsv('email\nuser"1@example.net\n')).toThrow(/malformed CSV.*start of a cell/i);
+  });
+
+  it("rejects characters after a closing quote", () => {
+    expect(() => parseCsv('email\n"user1@example.net"oops\n')).toThrow(/malformed CSV.*closing quote/i);
+  });
 });

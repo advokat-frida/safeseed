@@ -5,7 +5,10 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const read = (path) => readFileSync(resolve(root, path), "utf8");
+// Git may materialize workflow files with CRLF on Windows. Normalize only the
+// in-memory inspection text so release-policy checks behave the same on every CI
+// and maintainer platform; package and fixture byte checks remain untouched.
+const read = (path) => readFileSync(resolve(root, path), "utf8").replaceAll("\r\n", "\n");
 const json = (path) => JSON.parse(read(path));
 const failures = [];
 const outOfScopeListingTerm = ["market", "place"].join("");
@@ -15,13 +18,14 @@ const assert = (condition, message) => {
 
 const pkg = json("package.json");
 const lock = json("package-lock.json");
+const demoPkg = json("demo/package.json");
 const record = json("examples/customers.record.json");
 const action = read("action.yml");
 const actionWrapper = read("action/index.mjs");
 const readme = read("README.md");
 const changelog = read("CHANGELOG.md");
 const publishChecklist = read("PUBLISH-CHECKLIST.md");
-const readinessReceipt = read("docs/release-readiness-v0.3.0.md");
+const readinessReceipt = read("docs/release-readiness-v0.4.0.md");
 const gitAttributes = read(".gitattributes");
 const ciWorkflow = read(".github/workflows/ci.yml");
 const codeqlWorkflow = read(".github/workflows/codeql.yml");
@@ -31,6 +35,32 @@ const sourceVersion = read("src/record.ts").match(/SAFESEED_VERSION\s*=\s*"([^"]
 const firstChangelogVersion = changelog.match(/^##\s+([^\s]+)\s+/m)?.[1];
 
 assert(pkg.version === lock.version, "package.json and package-lock.json versions differ");
+assert(
+  demoPkg.scripts?.["build:core"] === "npm run build --prefix ..",
+  "demo build no longer compiles the package core before bundling",
+);
+for (const scriptName of [
+  "build",
+  "build:standalone",
+  "build:standalone:generator",
+  "build:standalone:proof",
+  "build:standalone:embed",
+  "build:standalone:all",
+]) {
+  assert(
+    demoPkg.scripts?.[scriptName]?.startsWith("npm run build:core && "),
+    `demo ${scriptName} can bundle a stale package dist/`,
+  );
+}
+assert(
+  pkg.dependencies === undefined || Object.keys(pkg.dependencies).length === 0,
+  "package manifest declares runtime dependencies despite the zero-runtime-dependency contract",
+);
+assert(
+  lock.packages?.[""]?.dependencies === undefined ||
+    Object.keys(lock.packages[""].dependencies).length === 0,
+  "root lockfile declares runtime dependencies despite the zero-runtime-dependency contract",
+);
 assert(pkg.engines?.node === ">=22", "package engine floor is not the supported Node >=22 contract");
 assert(pkg.version === lock.packages?.[""]?.version, "root lockfile package version differs");
 assert(pkg.version === sourceVersion, "package.json and SAFESEED_VERSION differ");

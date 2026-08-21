@@ -19,6 +19,8 @@ export interface ScanResult {
     findings: ScanFinding[];
     perField: Record<string, number>;
     scannedRows: number;
+    /** CSV syntax errors that prevented any trustworthy row or field scan. */
+    parseErrors: string[];
     /** Named columns not found in the file's header (case-insensitive, BOM/whitespace-trimmed match). */
     missingColumns: string[];
     /** Named columns matching more than one header — ambiguous, so they are not scanned. */

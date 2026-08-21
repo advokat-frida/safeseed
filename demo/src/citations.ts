@@ -23,6 +23,13 @@ export const CITATIONS: Record<FieldType, CitationDetail> = {
       "example.com / .net / .org and the .test / .example / .invalid / .localhost names are reserved for documentation and testing. The reservation prevents ordinary customer registration; it is not a claim that infrastructure can never handle a value under them.",
     url: "https://datatracker.ietf.org/doc/html/rfc2606",
   },
+  sha256Email: {
+    short: "SHA-256 · RFC input",
+    standard: "Google Ads SHA-256 format over an RFC 2606-reserved email input",
+    reserves:
+      "SafeSeed publishes a fixed allowlist of lowercase SHA-256 digests whose known inputs use example.com. The input domain is reserved; the digest itself is not reserved or visibly distinguishable from a hash of customer data.",
+    url: "https://support.google.com/google-ads/answer/13262500",
+  },
   domain: {
     short: "RFC 2606",
     standard: "RFC 2606 — Reserved Top Level DNS Names",
@@ -48,6 +55,20 @@ export const CITATIONS: Record<FieldType, CitationDetail> = {
     reserves: "555-0100 through 555-0199 — the block designated for fictitious use.",
     url: "https://www.nanpa.com/",
   },
+  ukPhone: {
+    short: "Ofcom drama",
+    standard: "Ofcom telephone numbers for TV and radio drama",
+    reserves:
+      "The UK mobile block 07700 900000 through 07700 900999 is recommended for drama and is not allocated to providers in the foreseeable future.",
+    url: "https://www.ofcom.org.uk/phones-and-broadband/phone-numbers/numbers-for-drama",
+  },
+  sha256Phone: {
+    short: "SHA-256 · NANPA input",
+    standard: "Google Ads SHA-256 format over a NANPA fictitious phone input",
+    reserves:
+      "SafeSeed publishes a fixed allowlist of lowercase SHA-256 digests whose known E.164 inputs sit in the 555-0100 through 555-0199 fictitious block. The input policy is the assurance source; the digest itself is not reserved.",
+    url: "https://support.google.com/google-ads/answer/13262500",
+  },
   ssn: {
     short: "SSA",
     standard: "SSA SSN randomization (since 2011-06-25)",
@@ -61,6 +82,20 @@ export const CITATIONS: Record<FieldType, CitationDetail> = {
     reserves:
       "Numbers processors publish for testing (e.g. 4242 4242 4242 4242). They pass the Luhn checksum and are intended for test mode — assurance by designation, not impossibility.",
     url: "https://docs.stripe.com/testing",
+  },
+  marketingUrl: {
+    short: "RFC 2606 + TEST_",
+    standard: "Reserved example host with SafeSeed-constrained UTM parameters",
+    reserves:
+      "The host is campaign.example.com and every accepted URL carries the exact landing path and three obvious TEST_ attribution parameters. A reserved host alone does not make arbitrary query data safe.",
+    url: "https://datatracker.ietf.org/doc/html/rfc2606",
+  },
+  opaqueId: {
+    short: "Structurally fake",
+    standard: "No standard reserves business or cookie identifiers",
+    reserves:
+      "SafeSeed uses cookie-safe TEST_ tokens that include the normalized column name. Arbitrary UUIDs, click IDs, cookie IDs, and other opaque strings are not accepted merely because their format looks plausible.",
+    url: "",
   },
   firstName: SELF_EVIDENT(),
   lastName: SELF_EVIDENT(),

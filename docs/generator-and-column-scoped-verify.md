@@ -1,6 +1,6 @@
 # Spec: Self-serve generator + column-scoped verify
 
-Status: **built** (2026-06-24), security boundary amended 2026-08-18. Owner: Ben. Scope: SafeSeed v2 feature.
+Status: **built** (2026-06-24), security boundary amended 2026-08-18 and 2026-08-20. Owner: Ben. Scope: SafeSeed v2 feature.
 
 As built, matching this spec: per-column `sha256` in the run record (SafeSeed 0.2.0,
 additive — 0.1.0 records still verify strictly); opt-in CLI/library column-scoped verify
@@ -11,14 +11,17 @@ public GitHub Action is intentionally strict-only, so a green Action result alwa
 the entire file. Self-serve generator page
 (`demo/generator.html` + `demo/src/generator/`) with a field picker, row count, seed,
 live tier-colored preview, and CSV + run-record download; builds hosted (multi-page)
-and as a standalone single file (`demo/safeseed-generator.html`). CI dogfoods both CLI
+and as a standalone single file (`demo/safeseed-generator.html`). The browser accepts only
+SafeSeed-generated fields and performs strict whole-file verification. It does not expose custom
+values, skipped audits, or column-scoped verification. CI dogfoods both CLI
 modes and separately proves that the Action cannot be relaxed.
 
 ## Goal
 
 Turn SafeSeed from a showcase into a tool a **non-technical team (marketing, education)** can
-use themselves: generate auditable, catalog-constrained test data, and extend it with their own
-business columns (job title, industry, role) **without breaking attestation**.
+use themselves: generate auditable, catalog-constrained test data without first opening or
+uploading a customer export. Teams that later add business columns use the explicit CLI/library
+column-scoped contract; that narrower operation is intentionally absent from the browser.
 
 Two parts:
 
@@ -39,8 +42,11 @@ Two parts:
   reported as **unattested**, never a pass-blocker.
 - **Strict by default.** Plain `verify` is unchanged (whole-file content hash + range). Column-scoped
   is explicit opt-in (`verify --allow-added-columns`), so the narrower scoped contract is never silent.
+- **Strict in the browser and Action.** Both public pass/fail surfaces require the exact CSV and
+  verification-file pair. Added columns fail. Only the CLI/library expose the narrower opt-in.
 - **Honest framing.** Column-scoped verify attests the synthetic columns only; it does *not* vouch
-  for columns the team added — those must be scanned. Stated in the UI and docs.
+  for columns the team added — those must be scanned. This boundary is stated in the CLI and docs,
+  not disguised as a green browser result.
 
 ## Touched surfaces
 
@@ -59,7 +65,10 @@ Two parts:
   deliberately unavailable on this public pass/fail surface.
 - **Generator page** — new entry in the demo app (`generator.html` + `src/generator/`), reuses the
   core + shared styles. Field picker (add/remove, type, name), row count, seed, live tier-colored
-  preview, **Download CSV** + **Download run record**. Builds hosted + standalone single-file.
+  preview, **Download CSV** + **Download run record**, and strict exact-pair verification. Builds
+  hosted + standalone single-file. No arbitrary-value or production-file input exists. Header
+  names that could trigger spreadsheet formulas are rejected, file reads and verification are
+  newest-input-wins, and failure diagnostics redact candidate values and raw fingerprints.
 - **Docs** — README + this spec; the demo may link to the generator.
 
 ## Tests (named up front — TDD)
@@ -78,6 +87,8 @@ Core:
 Round-trip:
 - generator output (CSV + record) passes plain `verify`; after adding a column, passes
   `--allow-added-columns` and fails plain `verify`.
+- the browser passes the untouched pair and fails the added-column pair; it never invokes
+  `allowAddedColumns`.
 
 CLI/CI:
 - dogfood `verify --allow-added-columns` on a committed fixture-with-extra-column (must pass) and a
@@ -89,9 +100,12 @@ CLI/CI:
 
 - A user generates data, adds a non-PII column, runs `verify --allow-added-columns` → PASS with the
   added column flagged unattested; plain `verify` → FAIL (drift).
-- Generator page: pick fields + rows + seed, preview, download CSV + record; the pair round-trips
-  through verify; network counter stays 0.
-- UI/docs make the synthetic-only scope of column-scoped verify explicit.
+- Generator page: pick generated fields + rows + seed, preview, download CSV + record; the pair
+  round-trips through strict verify; an added column and malformed CSV fail; a slow stale file read
+  cannot replace the current pair; browser failures do not echo submitted values; network counter
+  stays 0.
+- CLI/docs make the synthetic-only scope of column-scoped verify explicit. The browser does not
+  offer the partial mode or accept arbitrary values.
 
 ## Out of scope (v1)
 

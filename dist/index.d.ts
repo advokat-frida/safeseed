@@ -8,7 +8,8 @@
  */
 export type { Tier, LegacyTier, FieldType } from "./types.js";
 export { CATALOG, CATALOG_VERSION, getEntry, isReserved, isSelfEvidentlyFake, type CatalogEntry, type ReservedSpec, } from "./catalog.js";
-export { generate, type FieldSchema, type GenerateOptions, type GeneratedDataset, } from "./generate.js";
+export { generate, isSafeColumnName, MAX_GENERATE_ROWS, MAX_GENERATE_SEED, type FieldSchema, type GenerateOptions, type GeneratedDataset, } from "./generate.js";
+export { SCHEMA_PRESETS, getSchemaPreset, schemaFromPreset, type SchemaPreset, type SchemaPresetId, } from "./presets.js";
 export { makeRunRecord, validateRunRecord, ATTESTATION, SAFESEED_VERSION, type RunRecord, type RunRecordValidation, type FieldRecord, } from "./record.js";
 export { verify, exitCode, type VerifyResult, type VerifyFailure, type VerifyFailureKind, type VerifyOptions, } from "./verify.js";
 export { scan, type ScanColumn, type ScanOptions, type ScanResult, type ScanFinding, } from "./scan.js";

@@ -1,6 +1,6 @@
 {
   "name": "safeseed",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Generate, record, verify, and scan low-fidelity test data from a versioned catalog of reserved, test-designated, and deliberately fake values. No production dataset required, zero runtime dependencies, MIT.",
   "license": "MIT",
   "repository": {

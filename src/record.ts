@@ -11,14 +11,14 @@
 import { CATALOG, CATALOG_VERSION, getEntry, isReserved } from "./catalog.js";
 import { sha256Hex } from "./hash.js";
 import { canonicalColumn, parseCsv } from "./csv.js";
-import type { GeneratedDataset } from "./generate.js";
+import { isSafeColumnName, type GeneratedDataset } from "./generate.js";
 import type { FieldType, Tier } from "./types.js";
 
 // 0.3.0 treats the run-record metadata itself as an enforcement boundary. Older
 // records carried overbroad claims and weaker shapes (including optional column
 // hashes), so current verification fails them closed and asks for regeneration
 // instead of silently trusting metadata it cannot authenticate.
-export const SAFESEED_VERSION = "0.3.0";
+export const SAFESEED_VERSION = "0.4.0";
 
 export interface FieldRecord {
   name: string;
@@ -26,6 +26,8 @@ export interface FieldRecord {
   tier: Tier;
   citation: string;
   claim: string;
+  /** Present when the output is transformed from a catalog-constrained input. */
+  derivation?: string;
   /**
    * SHA-256 over a canonical serialization of this column's values (see
    * `canonicalColumn`). Lets column-scoped verify re-check one declared column
@@ -60,7 +62,11 @@ export const ATTESTATION = [
   "supplied CSV and current catalog constraints; it cannot authenticate how a",
   "structurally supplied dataset object was created. It does not attest any",
   "column omitted from its fields list. It is an unsigned integrity record, not",
-  "authenticated provenance. It is not a cryptographic proof that the overall file",
+  "authenticated provenance.",
+  "Where a field names a derivation, its tier describes the source input's",
+  "assurance basis; the transformed output is accepted only through the catalog",
+  "constraint and is not itself claimed to occupy that reserved namespace.",
+  "It is not a cryptographic proof that the overall file",
   "contains no personal data. It binds to the file's content hash so current bytes can be",
   "compared with an independently protected copy of the record; anyone who can edit",
   "the file and record can recompute both.",
@@ -78,6 +84,7 @@ const TIERS = new Set<string>([
 ]);
 const SHA256 = /^[0-9a-f]{64}$/i;
 const SINGLE_LINE = /^[^\r\n\u0000-\u001f\u007f]+$/;
+const MAX_SEED = 0xffffffff;
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -109,11 +116,20 @@ export function validateRunRecord(value: unknown): RunRecordValidation {
   if (catalogVersion !== null && catalogVersion !== CATALOG_VERSION) {
     errors.push(`unsupported catalogVersion; regenerate the record with catalog ${CATALOG_VERSION}`);
   }
-  if (typeof value.seed !== "number" || !Number.isFinite(value.seed)) {
-    errors.push("seed must be a finite number");
+  if (
+    typeof value.seed !== "number" ||
+    !Number.isSafeInteger(value.seed) ||
+    value.seed < 0 ||
+    value.seed > MAX_SEED
+  ) {
+    errors.push(`seed must be an integer from 0 to ${MAX_SEED}`);
   }
-  if (!Number.isInteger(value.rowCount) || (value.rowCount as number) < 0) {
-    errors.push("rowCount must be a non-negative integer");
+  if (
+    typeof value.rowCount !== "number" ||
+    !Number.isSafeInteger(value.rowCount) ||
+    value.rowCount < 1
+  ) {
+    errors.push("rowCount must be a positive safe integer");
   }
   if (typeof value.contentSha256 !== "string" || !SHA256.test(value.contentSha256)) {
     errors.push("contentSha256 must be a 64-character hexadecimal SHA-256");
@@ -132,8 +148,18 @@ export function validateRunRecord(value: unknown): RunRecordValidation {
   if (!Array.isArray(columns) || columns.some((column) => typeof column !== "string")) {
     errors.push("columns must be an array of strings");
   } else {
+    if (columns.length === 0) {
+      errors.push("columns must contain at least one declared field");
+    }
     if (columns.some((column) => !SINGLE_LINE.test(column))) {
       errors.push("declared column names must be non-empty single-line strings");
+    }
+    if (
+      columns.some(
+        (column) => typeof column === "string" && SINGLE_LINE.test(column) && !isSafeColumnName(column),
+      )
+    ) {
+      errors.push("declared column names must not begin with a spreadsheet formula marker");
     }
     if (new Set(columns).size !== columns.length) {
       errors.push("declared column names must be unique");
@@ -144,6 +170,9 @@ export function validateRunRecord(value: unknown): RunRecordValidation {
   if (!Array.isArray(fields)) {
     errors.push("fields must be an array");
   } else {
+    if (fields.length === 0) {
+      errors.push("fields must contain at least one declared field");
+    }
     fields.forEach((field, index) => {
       if (!isObject(field)) {
         errors.push(`field ${index} must be an object`);
@@ -151,6 +180,8 @@ export function validateRunRecord(value: unknown): RunRecordValidation {
       }
       if (typeof field.name !== "string" || !SINGLE_LINE.test(field.name)) {
         errors.push(`field ${index} name must be a non-empty single-line string`);
+      } else if (!isSafeColumnName(field.name)) {
+        errors.push(`field ${index} name must not begin with a spreadsheet formula marker`);
       }
       if (typeof field.type !== "string" || !FIELD_TYPES.has(field.type)) {
         errors.push(`field ${index} has an unknown type`);
@@ -165,6 +196,12 @@ export function validateRunRecord(value: unknown): RunRecordValidation {
       if (typeof field.claim !== "string" || field.claim.trim() === "") {
         errors.push(`field ${index} claim must be a non-empty string`);
       }
+      if (
+        field.derivation !== undefined &&
+        (typeof field.derivation !== "string" || !SINGLE_LINE.test(field.derivation))
+      ) {
+        errors.push(`field ${index} derivation must be a non-empty single-line string when present`);
+      }
       if (typeof field.sha256 !== "string" || !SHA256.test(field.sha256)) {
         errors.push(`field ${index} sha256 must be a 64-character hexadecimal SHA-256`);
       }
@@ -174,6 +211,9 @@ export function validateRunRecord(value: unknown): RunRecordValidation {
         if (field.tier !== current.tier) errors.push(`field ${index} tier does not match the current catalog`);
         if (field.citation !== current.citation) errors.push(`field ${index} citation does not match the current catalog`);
         if (field.claim !== current.claim) errors.push(`field ${index} claim does not match the current catalog`);
+        if (field.derivation !== current.derivation) {
+          errors.push(`field ${index} derivation does not match the current catalog`);
+        }
       }
     });
   }
@@ -197,13 +237,22 @@ export function validateRunRecord(value: unknown): RunRecordValidation {
 }
 
 function assertRecordableDataset(dataset: GeneratedDataset, csv: string): void {
+  if (typeof dataset !== "object" || dataset === null || Array.isArray(dataset)) {
+    throw new Error("cannot create a run record without a generated dataset object");
+  }
+  if (!Array.isArray(dataset.schema) || dataset.schema.length === 0) {
+    throw new Error("cannot create a run record without at least one declared field");
+  }
+  if (!Array.isArray(dataset.columns) || !Array.isArray(dataset.rows) || dataset.rows.length === 0) {
+    throw new Error("cannot create a run record without at least one generated row");
+  }
   if (dataset.catalogVersion !== CATALOG_VERSION) {
     throw new Error(
       `cannot create a current run record from catalog ${dataset.catalogVersion}; expected ${CATALOG_VERSION}`,
     );
   }
-  if (!Number.isFinite(dataset.seed)) {
-    throw new Error("cannot create a run record with a non-finite seed");
+  if (!Number.isSafeInteger(dataset.seed) || dataset.seed < 0 || dataset.seed > MAX_SEED) {
+    throw new Error(`cannot create a run record unless seed is an integer from 0 to ${MAX_SEED}`);
   }
   if (
     dataset.columns.length !== dataset.schema.length ||
@@ -213,6 +262,9 @@ function assertRecordableDataset(dataset: GeneratedDataset, csv: string): void {
   }
   if (new Set(dataset.columns).size !== dataset.columns.length) {
     throw new Error("dataset contains duplicate declared column names");
+  }
+  if (dataset.columns.some((column) => !isSafeColumnName(column))) {
+    throw new Error("dataset column names must not begin with a spreadsheet formula marker");
   }
 
   const parsed = parseCsv(csv);
@@ -269,6 +321,7 @@ export async function makeRunRecord(
         tier: entry.tier,
         citation: entry.citation,
         claim: entry.claim,
+        ...(entry.derivation !== undefined ? { derivation: entry.derivation } : {}),
         sha256: await sha256Hex(canonicalColumn(column)),
       };
     }),

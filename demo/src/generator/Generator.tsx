@@ -3,34 +3,22 @@ import {
   generate,
   toCsv,
   makeRunRecord,
-  scan,
   CATALOG,
+  SCHEMA_PRESETS,
+  getSchemaPreset,
   getEntry,
+  isSafeColumnName,
   type FieldType,
   type Tier,
   type RunRecord,
-  type ScanColumn,
-  type ScanResult,
+  type SchemaPresetId,
 } from "safeseed";
 import { VerifyPanel } from "./VerifyPanel";
-import { Plus, Trash2, Download, ShieldCheck, Check, ShieldAlert } from "lucide-react";
+import { Plus, Trash2, Download, ShieldCheck } from "lucide-react";
 
 const MAX_ROWS = 10000;
+const MAX_SEED = 0xffffffff;
 const PREVIEW_ROWS = 12;
-
-// Sentinel "type" for a user-supplied column (their own values, not SafeSeed-generated).
-const CUSTOM = "__custom__" as const;
-type RowType = FieldType | typeof CUSTOM;
-
-// A "your column" is user-supplied: the user's own values, which SafeSeed cannot vouch for,
-// so it gets the unattested "your column" treatment (no assurance tier, excluded from the
-// attested record). "Your values…" is the only such type.
-const isYours = (t: RowType): boolean => t === CUSTOM;
-
-// Catalog field types the generator does not offer as a generated column. The library's
-// freeText only emits structurally-fake TEST_ tokens; in the generator a user who wants a
-// text column supplies their own values via "Your values…", so it is hidden here.
-const HIDDEN_GENERATED: readonly FieldType[] = ["freeText"];
 
 const TIER_CLASS: Record<Tier, string> = {
   "protocol-reserved": "tier-provable",
@@ -38,6 +26,7 @@ const TIER_CLASS: Record<Tier, string> = {
   "designated-test-only": "tier-designated",
   "structurally-fake": "tier-fake",
 };
+
 const TIER_LABEL: Record<Tier, string> = {
   "protocol-reserved": "Protocol reserved",
   "authority-reserved": "Authority reserved",
@@ -45,175 +34,181 @@ const TIER_LABEL: Record<Tier, string> = {
   "structurally-fake": "Structurally fake",
 };
 
+const DERIVED_TIER_LABEL: Record<Tier, string> = {
+  "protocol-reserved": "Derived from protocol input",
+  "authority-reserved": "Derived from authority input",
+  "designated-test-only": "Derived from test input",
+  "structurally-fake": "Derived from fake input",
+};
+
 const FIELD_LABEL: Partial<Record<FieldType, string>> = {
   email: "Email",
+  sha256Email: "Hashed email (SHA-256)",
   domain: "Domain",
   ipv4: "IPv4 address",
   ipv6: "IPv6 address",
-  phone: "Phone",
+  phone: "US phone",
+  ukPhone: "UK phone (Ofcom drama)",
+  sha256Phone: "Hashed phone (SHA-256)",
   ssn: "US SSN",
   creditCard: "Credit card (test PAN)",
+  marketingUrl: "Marketing URL (UTM)",
+  opaqueId: "Opaque business ID",
   firstName: "First name",
   lastName: "Last name",
   fullName: "Full name",
   streetAddress: "Street address",
+  freeText: "Obvious test text",
 };
 
-const TYPE_OPTIONS = CATALOG.filter((e) => !HIDDEN_GENERATED.includes(e.field as FieldType)).map((e) => ({
-  value: e.field as FieldType,
-  label: FIELD_LABEL[e.field] ?? e.field,
-  tier: e.tier,
+const TYPE_OPTIONS = CATALOG.map((entry) => ({
+  value: entry.field as FieldType,
+  label: FIELD_LABEL[entry.field] ?? entry.field,
 }));
-// the PII types a user can audit a custom column against
-const AUDIT_TYPES: FieldType[] = ["email", "phone", "ssn", "creditCard", "ipv4", "ipv6", "domain"];
 
 interface FieldRow {
   id: number;
   name: string;
-  type: RowType;
-  values: string; // custom only: comma-separated; cycled across rows
-  auditAs: FieldType | ""; // custom only: scan this column as this type ("" = skip)
+  type: FieldType;
 }
 
-function parseValues(s: string): string[] {
-  return s
-    .split(",")
-    .map((v) => v.trim())
-    .filter((v) => v !== "");
+interface CurrentRecord {
+  csv: string;
+  record: RunRecord;
 }
+
+function assuranceLabel(type: FieldType): string {
+  const entry = getEntry(type);
+  return entry.derivation === undefined ? TIER_LABEL[entry.tier] : DERIVED_TIER_LABEL[entry.tier];
+}
+
+function rowsFromPreset(id: SchemaPresetId, startId = 1): FieldRow[] {
+  return getSchemaPreset(id).schema.map((field, index) => ({
+    id: startId + index,
+    name: field.name,
+    type: field.type,
+  }));
+}
+
+const DEFAULT_FIELDS = rowsFromPreset("crm-contacts");
 
 function download(filename: string, text: string, mime: string): void {
   const blob = new Blob([text], { type: mime });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
   URL.revokeObjectURL(url);
 }
 
 export default function Generator() {
-  const idRef = useRef(5);
-  const [fields, setFields] = useState<FieldRow[]>([
-    { id: 1, name: "email", type: "email", values: "", auditAs: "" },
-    { id: 2, name: "full_name", type: "fullName", values: "", auditAs: "" },
-    { id: 3, name: "phone", type: "phone", values: "", auditAs: "" },
-    { id: 4, name: "plan", type: CUSTOM, values: "Free, Pro, Enterprise", auditAs: "" },
-  ]);
+  const idRef = useRef(DEFAULT_FIELDS.length + 1);
+  const columnsHeadingRef = useRef<HTMLHeadingElement>(null);
+  const [fields, setFields] = useState<FieldRow[]>(() => DEFAULT_FIELDS.map((field) => ({ ...field })));
   const [rowCount, setRowCount] = useState(100);
   const [seed, setSeed] = useState(1);
   const [mode, setMode] = useState<"generate" | "verify">("generate");
-  const [audit, setAudit] = useState<ScanResult | null>(null);
+  const [presetStatus, setPresetStatus] = useState("CRM contacts loaded. Six editable columns.");
+  const [activePreset, setActivePreset] = useState<SchemaPresetId | null>("crm-contacts");
+  const [recordState, setRecordState] = useState<CurrentRecord | null>(null);
+  const [recordError, setRecordError] = useState("");
 
-  const safeseedFields = fields.filter((f) => !isYours(f.type));
-  const customFields = fields.filter((f) => isYours(f.type));
-
-  // Validation — names become CSV headers, so they must be present and unique. And the whole
-  // point is generated data, so at least one SafeSeed (non-custom) column is required.
-  const trimmed = fields.map((f) => f.name.trim());
-  const emptyName = trimmed.some((n) => n === "");
-  const dupNames = trimmed.filter((n, i) => n !== "" && trimmed.indexOf(n) !== i);
-  const rowsValid = Number.isInteger(rowCount) && rowCount >= 1 && rowCount <= MAX_ROWS;
-  const seedValid = Number.isInteger(seed);
-  const noSafeseed = safeseedFields.length === 0;
+  const trimmedNames = fields.map((field) => field.name.trim());
+  const emptyName = trimmedNames.some((name) => name === "");
+  const duplicateNames = trimmedNames.filter(
+    (name, index) => name !== "" && trimmedNames.indexOf(name) !== index,
+  );
+  const unsafeNames = trimmedNames.filter((name) => name !== "" && !isSafeColumnName(name));
+  const rowsValid = Number.isSafeInteger(rowCount) && rowCount >= 1 && rowCount <= MAX_ROWS;
+  const seedValid = Number.isSafeInteger(seed) && seed >= 0 && seed <= MAX_SEED;
   const configValid =
-    fields.length > 0 && !emptyName && dupNames.length === 0 && rowsValid && seedValid && !noSafeseed;
+    fields.length > 0 && !emptyName && duplicateNames.length === 0 && unsafeNames.length === 0 && rowsValid && seedValid;
 
-  // SafeSeed dataset — the columns SafeSeed attests. Custom columns are joined on afterward.
-  const safeseedSchema = useMemo(
-    () => safeseedFields.map((f) => ({ name: f.name.trim(), type: f.type as FieldType })),
+  const schemaKey = JSON.stringify(fields.map((field) => [field.name.trim(), field.type]));
+  const schema = useMemo(
+    () => fields.map((field) => ({ name: field.name.trim(), type: field.type })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(safeseedFields.map((f) => [f.name.trim(), f.type]))],
+    [schemaKey],
   );
-  const ssDataset = useMemo(
-    () => (configValid ? generate({ schema: safeseedSchema, rows: rowCount, seed }) : null),
+  const dataset = useMemo(
+    () => (configValid ? generate({ schema, rows: rowCount, seed }) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [JSON.stringify(safeseedSchema), rowCount, seed, configValid],
+    [schemaKey, rowCount, seed, configValid],
   );
-
-  // The full table = every column in the user's order. SafeSeed columns pull from the dataset;
-  // custom columns cycle through the user's values.
-  const fullColumns = fields.map((f) => f.name.trim());
-  const fieldsKey = JSON.stringify(fields.map((f) => [f.name.trim(), f.type, f.values]));
-  const fullRows = useMemo(() => {
-    if (!ssDataset) return [] as string[][];
-    const ssIndex = new Map<number, number>();
-    safeseedFields.forEach((f, i) => ssIndex.set(f.id, i));
-    const customVals = new Map<number, string[]>();
-    customFields.forEach((f) => customVals.set(f.id, parseValues(f.values)));
-    const out: string[][] = [];
-    for (let r = 0; r < ssDataset.rows.length; r++) {
-      const row: string[] = [];
-      for (const f of fields) {
-        if (isYours(f.type)) {
-          const vals = customVals.get(f.id) ?? [];
-          row.push(vals.length ? vals[r % vals.length] : "");
-        } else {
-          row.push(ssDataset.rows[r][ssIndex.get(f.id)!] ?? "");
-        }
-      }
-      out.push(row);
-    }
-    return out;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ssDataset, fieldsKey]);
-
   const csv = useMemo(
-    () => (fullRows.length ? toCsv(fullColumns, fullRows) : ""),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fullRows, JSON.stringify(fullColumns)],
+    () => (dataset ? toCsv(dataset.columns, dataset.rows) : ""),
+    [dataset],
   );
 
-  // Run record attests the SafeSeed columns and pins the whole file's content hash. Custom
-  // columns ride along in the file as unattested (audit them below / column-scoped verify).
-  const [record, setRecord] = useState<RunRecord | null>(null);
   useEffect(() => {
     let cancelled = false;
-    if (!ssDataset || !csv) {
-      setRecord(null);
+    setRecordError("");
+    if (!dataset || csv === "") {
+      setRecordState(null);
       return;
     }
-    void makeRunRecord(ssDataset, csv).then((r) => {
-      if (!cancelled) setRecord(r);
-    });
+    void makeRunRecord(dataset, csv)
+      .then((record) => {
+        if (!cancelled) setRecordState({ csv, record });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setRecordState(null);
+          setRecordError("SafeSeed could not create a matching verification file. Change the settings and try again.");
+        }
+      });
     return () => {
       cancelled = true;
     };
-  }, [ssDataset, csv]);
-
-  // Any data change invalidates a prior audit — and so does re-pointing a custom column's
-  // "audit as" type, which changes what the verdict means without changing the data.
-  const auditKey = JSON.stringify(fields.map((f) => [f.id, f.auditAs]));
-  useEffect(() => setAudit(null), [fieldsKey, auditKey, rowCount, seed]);
+  }, [dataset, csv]);
 
   const newId = () => idRef.current++;
-  const updateField = (id: number, patch: Partial<FieldRow>) =>
-    setFields((fs) => fs.map((f) => (f.id === id ? { ...f, ...patch } : f)));
-  // One add button; the type select's optgroups (generated vs yours) are the real chooser.
+  const updateField = (id: number, patch: Partial<FieldRow>) => {
+    setActivePreset(null);
+    setFields((current) => current.map((field) => (field.id === id ? { ...field, ...patch } : field)));
+  };
   const addField = () => {
     const id = newId();
-    setFields((fs) => [...fs, { id, name: `field_${fs.length + 1}`, type: "email", values: "", auditAs: "" }]);
+    setActivePreset(null);
+    setFields((current) => [
+      ...current,
+      { id, name: `field_${current.length + 1}`, type: "freeText" },
+    ]);
   };
-  const removeField = (id: number) => setFields((fs) => fs.filter((f) => f.id !== id));
+  const removeField = (id: number) => {
+    setActivePreset(null);
+    setFields((current) => current.filter((field) => field.id !== id));
+  };
+  const applyPreset = (id: SchemaPresetId) => {
+    const preset = getSchemaPreset(id);
+    const next = rowsFromPreset(id, idRef.current);
+    idRef.current += next.length;
+    setFields(next);
+    setActivePreset(id);
+    setPresetStatus(`${preset.label} loaded. ${next.length} editable columns.`);
+    requestAnimationFrame(() => columnsHeadingRef.current?.focus());
+  };
 
-  function runAudit() {
-    if (!csv) return;
-    const columns: ScanColumn[] = [
-      ...safeseedFields.map((f) => ({ name: f.name.trim(), type: f.type as FieldType })),
-      ...customFields.filter((f) => f.auditAs).map((f) => ({ name: f.name.trim(), type: f.auditAs as FieldType })),
-    ];
-    setAudit(scan({ csv, columns }));
-  }
-
-  const previewRows = fullRows.slice(0, PREVIEW_ROWS);
-  const usedTiers = Array.from(new Set(safeseedFields.map((f) => getEntry(f.type as FieldType).tier)));
-  const canDownload = configValid && fullRows.length > 0 && record !== null;
-  const auditedCustomCount = customFields.filter((f) => f.auditAs).length;
+  const previewRows = dataset?.rows.slice(0, PREVIEW_ROWS) ?? [];
+  const usedAssurances = Array.from(
+    new Map(
+      fields.map((field) => {
+        const entry = getEntry(field.type);
+        const key = `${entry.tier}:${entry.derivation === undefined ? "direct" : "derived"}`;
+        return [key, { tier: entry.tier, label: assuranceLabel(field.type) }] as const;
+      }),
+    ).values(),
+  );
+  const hasDerivedFields = fields.some((field) => getEntry(field.type).derivation !== undefined);
+  const currentRecord = recordState?.csv === csv ? recordState.record : null;
+  const canDownload = configValid && dataset !== null && csv !== "" && currentRecord !== null;
 
   return (
     <div className="site">
+      <a className="skiplink" href="#main-content">Skip to SafeSeed tool</a>
       <header className="site-bar">
         <a className="bar-wordmark" href="https://advokatfrida.com/">Advokat Frida</a>
         <nav className="bar-nav" aria-label="Sections">
@@ -227,356 +222,287 @@ export default function Generator() {
         </nav>
       </header>
 
-      <main className="site-main gen-main">
+      <main id="main-content" className="site-main gen-main" tabIndex={-1}>
         <div className="gen-intro">
           <p className="eyebrow">{mode === "generate" ? "Generate" : "Verify"}</p>
           <h1>SafeSeed: In-Browser App</h1>
           <div className="gen-modes" role="group" aria-label="Mode">
-            <button type="button" aria-pressed={mode === "generate"} className={`gen-mode${mode === "generate" ? " is-active" : ""}`} onClick={() => setMode("generate")}>Generate</button>
-            <button type="button" aria-pressed={mode === "verify"} className={`gen-mode${mode === "verify" ? " is-active" : ""}`} onClick={() => setMode("verify")}>Verify a file</button>
+            <button type="button" aria-pressed={mode === "generate"} className="gen-mode" onClick={() => setMode("generate")}>Generate</button>
+            <button type="button" aria-pressed={mode === "verify"} className="gen-mode" onClick={() => setMode("verify")}>Verify a file</button>
           </div>
           {mode === "generate" ? (
-            <p className="gen-lede">
-              Generate low-fidelity test data, add your own columns alongside it, audit the result, and download it.
-              Every generated value comes from a versioned protocol reservation, authority policy, test designation,
-              or structurally fake convention. It runs entirely in your browser — nothing leaves your device.
-            </p>
+            <>
+              <p className="gen-lede">
+                Build a test or demo CSV entirely from SafeSeed&rsquo;s catalog. Every column is generated here;
+                download the exact CSV and its matching verification file.
+              </p>
+              <p className="gen-boundary">
+                No production file is accepted on this screen. No accounts, analytics, or network requests.
+                Downloads are the only exit.
+              </p>
+            </>
           ) : (
-            <p className="gen-lede">
-              Got a CSV and the verification file SafeSeed handed you with it? Drop them both in and confirm the
-              current file matches its record and every generated value still sits inside its catalog constraint —
-              no install, all in your browser.
-            </p>
+            <>
+              <p className="gen-lede">
+                Check a SafeSeed CSV against its matching verification file. The browser requires an exact
+                whole-file match: bytes, headers, row shape, and catalog ranges.
+              </p>
+              <p className="gen-boundary">Added or edited columns fail. Both files stay in this browser.</p>
+            </>
           )}
-          <ul className="tier-key" aria-label="What the assurance tiers mean">
-            <li>
-              <span className="tier-dot tier-provable" aria-hidden="true" />
-              <span>
-                <strong>Protocol reserved</strong> — a published standard reserves the namespace for documentation or testing.
-              </span>
-            </li>
-            <li>
-              <span className="tier-dot tier-reserved" aria-hidden="true" />
-              <span>
-                <strong>Authority reserved</strong> — the cited authority currently marks the range fictitious or invalid.
-              </span>
-            </li>
-            <li>
-              <span className="tier-dot tier-designated" aria-hidden="true" />
-              <span>
-                <strong>Designated for testing</strong> — valid-looking and published for processor or sandbox test mode.
-              </span>
-            </li>
-            <li>
-              <span className="tier-dot tier-fake" aria-hidden="true" />
-              <span>
-                <strong>Structurally fake</strong> — no standard reserves it, so it is built to be obviously fake.
-              </span>
-            </li>
-          </ul>
         </div>
 
         {mode === "generate" && (<>
-        <section className="gen-panel">
-          <div className="gen-panel-head">
-            <h2>Columns</h2>
-            <span className="gen-hint">Names become the CSV header.</span>
-          </div>
+          <section className="gen-panel" aria-labelledby="columns-heading">
+            <div className="gen-panel-head">
+              <h2 id="columns-heading" ref={columnsHeadingRef} tabIndex={-1}>Columns</h2>
+              <span className="gen-hint">Names become the CSV header.</span>
+            </div>
 
-          <div className="field-list">
-            {fields.map((f) => {
-              const isCustom = isYours(f.type);
-              const tier = isCustom ? null : getEntry(f.type as FieldType).tier;
-              const isDup = f.name.trim() !== "" && dupNames.includes(f.name.trim());
-              const isEmpty = f.name.trim() === "";
-              return (
-                <div className={`field-wrap${isCustom ? " is-custom" : ""}`} key={f.id}>
-                  <div className="field-row">
+            <div className="gen-presets">
+              <div className="gen-presets-head">
+                <p>Start with a practical schema</p>
+                <span>Every preset remains editable.</span>
+              </div>
+              <div className="preset-grid" role="group" aria-label="Practical schema presets">
+                {SCHEMA_PRESETS.map((preset) => (
+                  <button
+                    type="button"
+                    className="preset-btn"
+                    key={preset.id}
+                    aria-pressed={activePreset === preset.id}
+                    onClick={() => applyPreset(preset.id)}
+                  >
+                    <strong>{preset.label}</strong>
+                    <span>{preset.description}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="preset-status" aria-live="polite">{presetStatus}</p>
+            </div>
+
+            {hasDerivedFields && (
+              <p className="derived-note">
+                <strong>Hashed does not mean anonymous.</strong> These SHA-256 values come from SafeSeed&rsquo;s
+                published allowlist of catalog-constrained inputs. The tier describes the input; the digest
+                itself is not reserved or visibly distinguishable from a hash of customer data. An arbitrary
+                hash fails.
+              </p>
+            )}
+
+            <div className="field-list">
+              {fields.map((field, index) => {
+                const tier = getEntry(field.type).tier;
+                const duplicate = field.name.trim() !== "" && duplicateNames.includes(field.name.trim());
+                const empty = field.name.trim() === "";
+                const unsafe = field.name.trim() !== "" && !isSafeColumnName(field.name.trim());
+                const invalid = duplicate || empty || unsafe;
+                return (
+                  <div className="field-row" key={field.id}>
                     <input
-                      className={`field-name${isDup || isEmpty ? " invalid" : ""}`}
-                      value={f.name}
+                      className="field-name"
+                      value={field.name}
                       spellCheck={false}
-                      aria-label="Column name"
-                      onChange={(e) => updateField(f.id, { name: e.target.value })}
+                      aria-label={`Column ${index + 1} name`}
+                      aria-invalid={invalid}
+                      aria-describedby={invalid ? "generator-errors" : undefined}
+                      onChange={(event) => updateField(field.id, { name: event.target.value })}
                     />
                     <select
                       className="field-type"
-                      value={f.type}
-                      aria-label="Column type"
-                      onChange={(e) => updateField(f.id, { type: e.target.value as RowType })}
+                      value={field.type}
+                      aria-label={`Column ${index + 1} type for ${field.name || "unnamed column"}`}
+                      onChange={(event) => updateField(field.id, { type: event.target.value as FieldType })}
                     >
-                      <optgroup label="SafeSeed (generated)">
-                        {TYPE_OPTIONS.map((o) => (
-                          <option key={o.value} value={o.value}>
-                            {o.label}
-                          </option>
-                        ))}
-                      </optgroup>
-                      <optgroup label="Yours">
-                        <option value={CUSTOM}>Your values…</option>
-                      </optgroup>
+                      {TYPE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
                     </select>
-                    {isCustom ? (
-                      <span className="field-yours-tag">Your column</span>
-                    ) : (
-                      <span className={`tier-chip ${TIER_CLASS[tier!]}`}>
-                        <span className="tier-dot" aria-hidden="true" />
-                        {TIER_LABEL[tier!]}
-                      </span>
-                    )}
+                    <span className={`tier-chip ${TIER_CLASS[tier]}`}>
+                      <span className="tier-dot" aria-hidden="true" />
+                      {assuranceLabel(field.type)}
+                    </span>
                     <button
+                      type="button"
                       className="field-del"
-                      aria-label={`Remove ${f.name || "column"}`}
+                      aria-label={`Remove ${field.name || `column ${index + 1}`}`}
                       disabled={fields.length === 1}
-                      onClick={() => removeField(f.id)}
+                      onClick={() => removeField(field.id)}
                     >
-                      <Trash2 size={15} aria-hidden="true" />
+                      <Trash2 size={16} aria-hidden="true" />
                     </button>
                   </div>
-                  {isCustom && (
-                    <div className="field-custom">
-                      <input
-                        className="field-values"
-                        value={f.values}
-                        spellCheck={false}
-                        aria-label={`Values for ${f.name || "your column"}`}
-                        placeholder="Your values, comma-separated (e.g. Free, Pro, Enterprise) — cycled across rows"
-                        onChange={(e) => updateField(f.id, { values: e.target.value })}
-                      />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="gen-add-row">
-            <button className="btn btn-ghost gen-add" onClick={addField}>
-              <Plus size={15} aria-hidden="true" /> Add column
-            </button>
-          </div>
-
-          <div className="gen-nums">
-            <label className="num-ctl">
-              Rows
-              <input
-                type="number"
-                min={1}
-                max={MAX_ROWS}
-                value={Number.isNaN(rowCount) ? "" : rowCount}
-                onChange={(e) => setRowCount(Math.floor(Number(e.target.value)))}
-              />
-            </label>
-            <label className="num-ctl">
-              Seed
-              <input
-                type="number"
-                value={Number.isNaN(seed) ? "" : seed}
-                onChange={(e) => setSeed(Math.floor(Number(e.target.value)))}
-              />
-            </label>
-            <span className="gen-hint seed-note">Same seed + columns → identical data, every time.</span>
-          </div>
-
-          {!configValid && (
-            <p className="gen-error">
-              {emptyName && "Every column needs a name. "}
-              {dupNames.length > 0 && `Duplicate column name: ${dupNames[0]}. `}
-              {noSafeseed && "Add at least one SafeSeed (generated) column. "}
-              {!rowsValid && `Rows must be a whole number from 1 to ${MAX_ROWS}. `}
-              {!seedValid && "Seed must be a whole number."}
-            </p>
-          )}
-        </section>
-
-        <section className="gen-panel">
-          <div className="gen-panel-head">
-            <h2>Preview</h2>
-            {fullRows.length > 0 && (
-              <span className="gen-hint">
-                first {Math.min(PREVIEW_ROWS, fullRows.length)} of {fullRows.length} rows
-              </span>
-            )}
-          </div>
-
-          {fullRows.length > 0 ? (
-            <div className="gen-table-wrap">
-              <table className="gen-table">
-                <thead>
-                  <tr>
-                    {fields.map((f) => {
-                      const isCustom = isYours(f.type);
-                      const tier = isCustom ? null : getEntry(f.type as FieldType).tier;
-                      return (
-                        <th key={f.id} className={isCustom ? "col-yours" : ""}>
-                          <span
-                            className={`tier-dot ${isCustom ? "tier-yours" : TIER_CLASS[tier!]}`}
-                            aria-hidden="true"
-                          />
-                          {f.name.trim()}
-                        </th>
-                      );
-                    })}
-                  </tr>
-                </thead>
-                <tbody>
-                  {previewRows.map((row, r) => (
-                    <tr key={r}>
-                      {row.map((cell, c) => (
-                        <td key={c} className={fields[c] && isYours(fields[c].type) ? "col-yours" : ""}>
-                          {cell}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                );
+              })}
             </div>
-          ) : (
-            <p className="gen-hint">Fix the column config above to see a preview.</p>
-          )}
 
-          <div className="tier-legend">
-            {usedTiers.map((t) => (
-              <span key={t} className={`tier-chip ${TIER_CLASS[t]}`}>
-                <span className="tier-dot" aria-hidden="true" />
-                {TIER_LABEL[t]}
-              </span>
-            ))}
-            {customFields.length > 0 && (
-              <span className="tier-chip tier-chip-yours">
-                <span className="tier-dot tier-yours" aria-hidden="true" />
-                Your columns (unverified)
-              </span>
-            )}
-          </div>
-        </section>
-
-        <section className="gen-panel">
-          <div className="gen-panel-head">
-            <h2>Audit</h2>
-            <span className="gen-hint">Flag values outside a configured catalog range for review.</span>
-          </div>
-          <p className="audit-lede">
-            SafeSeed-generated columns are checked against their declared constraints. Point any of
-            <strong> your columns</strong> at the kind of data it should hold, and the audit flags out-of-range values
-            as candidate real PII. In-range coincidences are not detected.
-          </p>
-
-          <div className="audit-cols">
-            {fields.map((f) => {
-              const isCustom = isYours(f.type);
-              return (
-                <div className={`audit-col${isCustom ? " is-custom" : ""}`} key={f.id}>
-                  <span className="audit-col-name">{f.name.trim() || "—"}</span>
-                  {isCustom ? (
-                    <label className="audit-as">
-                      audit as
-                      <select
-                        value={f.auditAs}
-                        aria-label={`Audit ${f.name || "column"} as`}
-                        onChange={(e) => updateField(f.id, { auditAs: e.target.value as FieldType | "" })}
-                      >
-                        <option value="">skip (not PII)</option>
-                        {AUDIT_TYPES.map((t) => (
-                          <option key={t} value={t}>
-                            {FIELD_LABEL[t] ?? t}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  ) : (
-                    <span className="audit-auto">
-                      <Check size={13} aria-hidden="true" /> as {FIELD_LABEL[f.type as FieldType] ?? f.type}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="audit-actions">
-            <button className="btn btn-primary" disabled={!csv} onClick={runAudit}>
-              <ShieldCheck size={15} aria-hidden="true" /> Run audit
-            </button>
-            <span className="gen-hint">
-              {safeseedFields.length} generated + {auditedCustomCount} of {customFields.length} of your columns
-            </span>
-          </div>
-
-          {audit && (
-            <div className={`audit-result ${audit.ok ? "clean" : "dirty"}`} role="status" aria-live="polite">
-              <div className="audit-verdict">
-                {audit.ok ? <Check size={16} aria-hidden="true" /> : <ShieldAlert size={16} aria-hidden="true" />}
-                {audit.ok
-                  ? `Range check passed — every audited value is inside its configured range (${audit.scannedRows} rows). In-range coincidences are not detected.`
-                  : `${audit.findings.length} value${audit.findings.length === 1 ? "" : "s"} outside range across ${audit.scannedRows} rows.${audit.malformedRows.length > 0 ? ` ${audit.malformedRows.length} malformed row${audit.malformedRows.length === 1 ? "" : "s"}.` : ""}`}
-              </div>
-              {!audit.ok && (
-                <ul className="audit-findings">
-                  {audit.findings.slice(0, 12).map((fd, i) => (
-                    <li key={i}>
-                      <code>{fd.field}</code> row {fd.row + 1}: <code>{fd.value}</code> — outside the configured {fd.type} range
-                    </li>
-                  ))}
-                  {audit.findings.length > 12 && <li>…and {audit.findings.length - 12} more.</li>}
-                  {audit.malformedRows.slice(0, 12).map((row) => (
-                    <li key={`malformed-${row}`}>Row {row + 1} has a different number of cells than the header.</li>
-                  ))}
-                </ul>
-              )}
+            <div className="gen-add-row">
+              <button type="button" className="btn btn-ghost gen-add" onClick={addField}>
+                <Plus size={16} aria-hidden="true" /> Add generated column
+              </button>
             </div>
-          )}
-        </section>
 
-        <section className="gen-panel gen-download">
-          <div className="gen-panel-head">
-            <h2>Download</h2>
-          </div>
-          <div className="download-row">
-            <button
-              className="btn btn-primary"
-              disabled={!canDownload}
-              onClick={() => download("safeseed-data.csv", csv, "text/csv")}
-            >
-              <Download size={15} aria-hidden="true" /> Download CSV
-            </button>
-            <button
-              className="btn"
-              disabled={!canDownload}
-              onClick={() =>
-                record &&
-                download("safeseed-data.record.json", JSON.stringify(record, null, 2) + "\n", "application/json")
-              }
-            >
-              <ShieldCheck size={15} aria-hidden="true" /> Download verification file
-            </button>
-          </div>
+            <div className="gen-nums">
+              <label className="num-ctl">
+                Rows
+                <input
+                  type="number"
+                  min={1}
+                  max={MAX_ROWS}
+                  step={1}
+                  value={Number.isNaN(rowCount) ? "" : rowCount}
+                  aria-invalid={!rowsValid}
+                  aria-describedby={!rowsValid ? "generator-errors" : undefined}
+                  onChange={(event) => setRowCount(Number(event.target.value))}
+                />
+              </label>
+              <label className="num-ctl">
+                Seed
+                <input
+                  type="number"
+                  min={0}
+                  max={MAX_SEED}
+                  step={1}
+                  value={Number.isNaN(seed) ? "" : seed}
+                  aria-invalid={!seedValid}
+                  aria-describedby={!seedValid ? "generator-errors" : undefined}
+                  onChange={(event) => setSeed(Number(event.target.value))}
+                />
+              </label>
+              <span className="gen-hint seed-note">Same seed + columns = identical data, every time.</span>
+            </div>
 
-          <div className="gen-note">
-            <p>
-              Save both files together. The verification file is an unsigned fingerprint of the data (a SHA-256 hash
-              of the whole file and each generated column). Keep that record under reviewed version control and you
-              can later compare the current bytes and detect drift. Anyone who can replace both files can recompute
-              both, so this is an integrity check, not authenticated provenance. The CSV stands on its own.
-            </p>
-            {customFields.length > 0 && (
-              <p>
-                Your {customFields.length} column{customFields.length === 1 ? "" : "s"}
-                {" "}{customFields.length === 1 ? "rides" : "ride"} along in the file but{" "}
-                {customFields.length === 1 ? "is" : "are"} <strong>not</strong> attested by SafeSeed — that is what the
-                audit above is for. Column-scoped verify (<code>safeseed verify --allow-added-columns</code>)
-                attests the generated columns and reports yours as added.
+            {!configValid && (
+              <p id="generator-errors" className="gen-error" role="alert">
+                {emptyName && "Every column needs a name. "}
+                {duplicateNames.length > 0 && `Duplicate column name: ${duplicateNames[0]}. `}
+                {unsafeNames.length > 0 && "Column names cannot begin with =, +, -, or @. "}
+                {!rowsValid && `Rows must be a whole number from 1 to ${MAX_ROWS}. `}
+                {!seedValid && `Seed must be a whole number from 0 to ${MAX_SEED}.`}
               </p>
             )}
-          </div>
-        </section>
+          </section>
+
+          <section className="gen-panel" aria-labelledby="preview-heading">
+            <div className="gen-panel-head">
+              <h2 id="preview-heading">Preview</h2>
+              {dataset && (
+                <span className="gen-hint">
+                  first {Math.min(PREVIEW_ROWS, dataset.rows.length)} of {dataset.rows.length} rows
+                </span>
+              )}
+            </div>
+
+            {dataset ? (
+              <div className="gen-table-wrap" role="region" aria-label="Generated CSV preview" tabIndex={0}>
+                <table className="gen-table">
+                  <thead>
+                    <tr>
+                      {fields.map((field) => (
+                        <th key={field.id}>
+                          <span className={`tier-dot ${TIER_CLASS[getEntry(field.type).tier]}`} aria-hidden="true" />
+                          {field.name.trim()}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {previewRows.map((row, rowIndex) => (
+                      <tr key={rowIndex}>
+                        {row.map((cell, columnIndex) => <td key={columnIndex}>{cell}</td>)}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="gen-hint">Fix the column settings above to see a preview.</p>
+            )}
+
+            <div className="tier-legend" aria-label="Assurance labels used in this CSV">
+              {usedAssurances.map(({ tier, label }) => (
+                <span key={`${tier}:${label}`} className={`tier-chip ${TIER_CLASS[tier]}`}>
+                  <span className="tier-dot" aria-hidden="true" />
+                  {label}
+                </span>
+              ))}
+            </div>
+          </section>
+
+          <section className="gen-panel gen-download" aria-labelledby="download-heading">
+            <div className="gen-panel-head"><h2 id="download-heading">Download the pair</h2></div>
+            <div className="download-row">
+              <button
+                type="button"
+                className="btn btn-primary"
+                data-testid="download-csv"
+                disabled={!canDownload}
+                onClick={() => download("safeseed-data.csv", csv, "text/csv")}
+              >
+                <Download size={16} aria-hidden="true" /> Download CSV
+              </button>
+              <button
+                type="button"
+                className="btn"
+                data-testid="download-record"
+                disabled={!canDownload}
+                onClick={() => currentRecord && download(
+                  "safeseed-data.record.json",
+                  `${JSON.stringify(currentRecord, null, 2)}\n`,
+                  "application/json",
+                )}
+              >
+                <ShieldCheck size={16} aria-hidden="true" /> Download verification file
+              </button>
+            </div>
+            <p className="download-boundary">Downloading writes the selected files to your device.</p>
+            {recordError && <p className="gen-error" role="alert">{recordError}</p>}
+
+            <div className="gen-note">
+              <p>
+                Save both files together. The verification file records a SHA-256 fingerprint of the exact CSV
+                and every generated column. Browser verification fails if bytes, headers, row shape, or catalog
+                values change.
+              </p>
+              <p>
+                Keep the verification file under reviewed version control. Anyone who can replace both files can
+                recompute both, so this is an integrity check, not authenticated provenance or proof that the file
+                contains no personal data.
+              </p>
+            </div>
+          </section>
         </>)}
+
         {mode === "verify" && <VerifyPanel />}
 
+        <section className="gen-reference" aria-label="SafeSeed reference">
+          <details className="gen-changelog">
+            <summary>Changelog (last updated: August 20, 2026)</summary>
+            <div className="gen-changelog-body">
+              <time dateTime="2026-08-20">August 20, 2026</time>
+              <strong>Practical sales and marketing schemas</strong>
+              <ul>
+                <li>Added editable CRM, attribution, hashed-audience, and UK contact presets.</li>
+                <li>Added Ofcom drama phones, constrained UTM URLs, obvious business IDs, and catalog-derived SHA-256 match keys.</li>
+                <li>The browser now exports and verifies strict whole-file pairs only; arbitrary values never enter the generator.</li>
+              </ul>
+            </div>
+          </details>
+          <details className="tier-disclosure">
+            <summary>How SafeSeed labels generated fields</summary>
+            <ul className="tier-key" aria-label="What the assurance tiers mean">
+              <li><span className="tier-dot tier-provable" aria-hidden="true" /><span><strong>Protocol reserved</strong> — a published standard reserves the namespace for documentation or testing.</span></li>
+              <li><span className="tier-dot tier-reserved" aria-hidden="true" /><span><strong>Authority reserved</strong> — the cited authority currently marks the range fictitious or invalid.</span></li>
+              <li><span className="tier-dot tier-designated" aria-hidden="true" /><span><strong>Designated for testing</strong> — valid-looking and published for processor or sandbox test mode.</span></li>
+              <li><span className="tier-dot tier-fake" aria-hidden="true" /><span><strong>Structurally fake</strong> — no standard reserves it, so it is built to be obviously fake.</span></li>
+            </ul>
+          </details>
+        </section>
+
         <p className="finelegal">
-          <strong>Not legal advice.</strong> SafeSeed is a technical control, not proof that a file contains no personal
-          data. It does not make any use compliant, and a human stays accountable for anything that leaves the building.
+          <strong>Not legal advice.</strong> SafeSeed is a technical control, not proof that a file contains no
+          personal data. It does not make any use compliant, and a human stays accountable for anything that
+          leaves the building.
         </p>
       </main>
 
@@ -584,7 +510,7 @@ export default function Generator() {
         <div className="site-colophon-inner">
           <div className="site-colophon-brand">
             <p className="site-colophon-name">Advokat Frida</p>
-            <p className="site-colophon-desc">Privacy and AI governance, by design and in practice.<br />Runs entirely in your browser, cookieless and local &mdash; nothing you type leaves the page.</p>
+            <p className="site-colophon-desc">Privacy and AI governance, by design and in practice.<br />No accounts, analytics, or network requests. Your work stays in this browser unless you choose Download.</p>
           </div>
           <nav aria-label="Footer">
             <ul className="site-colophon-nav">

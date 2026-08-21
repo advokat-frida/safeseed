@@ -73,7 +73,7 @@ table.data th .cite-chip { white-space: normal; text-align: left; }
 @media (max-width: 1120px) {
   table.data { font-size: 12px; }
   table.data td,
-  table.data th { padding: 5px 6px; }
+  table.data th { padding: 5px; }
 }
 /* The article already introduces the panel with its own "Live demo" h2 + intro prose, so
    drop the panel's own "See it for yourself" heading and blurb (keep the colour-key legend). */

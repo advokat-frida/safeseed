@@ -37,12 +37,17 @@ export type LegacyTier = "provably-non-real" | "reserved-not-issued";
 /** The PII-shaped field types SafeSeed knows how to generate, verify, and scan. */
 export type FieldType =
   | "email"
+  | "sha256Email"
   | "domain"
   | "ipv4"
   | "ipv6"
   | "phone"
+  | "ukPhone"
+  | "sha256Phone"
   | "ssn"
   | "creditCard"
+  | "marketingUrl"
+  | "opaqueId"
   | "firstName"
   | "lastName"
   | "fullName"

@@ -1,5 +1,5 @@
 import { type RunRecord } from "./record.js";
-export type VerifyFailureKind = "invalid-record" | "content-hash-mismatch" | "out-of-range-value" | "schema-mismatch" | "row-arity-mismatch" | "missing-column" | "column-hash-mismatch";
+export type VerifyFailureKind = "invalid-record" | "malformed-csv" | "content-hash-mismatch" | "out-of-range-value" | "schema-mismatch" | "row-arity-mismatch" | "missing-column" | "column-hash-mismatch";
 export interface VerifyFailure {
     kind: VerifyFailureKind;
     message: string;

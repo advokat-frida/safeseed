@@ -13,11 +13,27 @@ import { parseCsv } from "./csv.js";
 /** Header matching is case-insensitive after stripping a leading BOM and surrounding whitespace. */
 const normalizeHeader = (name) => name.replace(/^\uFEFF/, "").trim().toLowerCase();
 export function scan(opts) {
-    const { columns: dataColumns, rows } = parseCsv(opts.csv);
     const findings = [];
     const perField = {};
     for (const col of opts.columns)
         perField[col.name] = 0;
+    let parsed;
+    try {
+        parsed = parseCsv(opts.csv);
+    }
+    catch (error) {
+        return {
+            ok: false,
+            findings,
+            perField,
+            scannedRows: 0,
+            parseErrors: [error instanceof Error ? error.message : "malformed CSV"],
+            missingColumns: [],
+            duplicateColumns: [],
+            malformedRows: [],
+        };
+    }
+    const { columns: dataColumns, rows } = parsed;
     // A named column that silently doesn't get scanned is a false clean, so unmatched
     // names are reported: zero header matches -> missing, two or more -> ambiguous.
     const indicesByHeader = new Map();
@@ -73,6 +89,7 @@ export function scan(opts) {
         findings,
         perField,
         scannedRows: rows.length,
+        parseErrors: [],
         missingColumns,
         duplicateColumns,
         malformedRows,

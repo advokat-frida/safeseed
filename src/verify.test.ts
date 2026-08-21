@@ -41,6 +41,21 @@ describe("verify.failsOnContentHashMismatch", () => {
   });
 });
 
+describe("verify.rejectsMalformedCsv", () => {
+  it("fails closed even when the malformed bytes match the record fingerprint", async () => {
+    const { record } = await build();
+    const malformed = 'email\n"user1@example.net';
+    record.contentSha256 = await sha256Hex(malformed);
+
+    const result = await verify(malformed, record);
+    expect(result.ok).toBe(false);
+    expect(result.failures).toEqual(
+      expect.arrayContaining([expect.objectContaining({ kind: "malformed-csv" })]),
+    );
+    expect(result.checked.rows).toBe(0);
+  });
+});
+
 describe("verify.failsOnOutOfRangeValue", () => {
   it("flags a real-looking value even when the hash is recomputed to match", async () => {
     const { csv, record } = await build();

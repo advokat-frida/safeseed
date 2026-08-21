@@ -28,5 +28,5 @@ export type Tier = "protocol-reserved" | "authority-reserved" | "designated-test
 /** Tier strings emitted before catalog 3.0.0. Old run records remain readable. */
 export type LegacyTier = "provably-non-real" | "reserved-not-issued";
 /** The PII-shaped field types SafeSeed knows how to generate, verify, and scan. */
-export type FieldType = "email" | "domain" | "ipv4" | "ipv6" | "phone" | "ssn" | "creditCard" | "firstName" | "lastName" | "fullName" | "streetAddress" | "freeText";
+export type FieldType = "email" | "sha256Email" | "domain" | "ipv4" | "ipv6" | "phone" | "ukPhone" | "sha256Phone" | "ssn" | "creditCard" | "marketingUrl" | "opaqueId" | "firstName" | "lastName" | "fullName" | "streetAddress" | "freeText";
 //# sourceMappingURL=types.d.ts.map

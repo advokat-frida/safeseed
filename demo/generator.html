@@ -10,16 +10,27 @@
     <title>SafeSeed: In-Browser App | Advokat Frida</title>
     <meta
       name="description"
-      content="Pick fields, rows, and a seed, then preview and download catalog-constrained test data plus its run record. Processing stays in your browser; nothing you enter is uploaded."
+      content="Generate a catalog-constrained test CSV and matching verification file, or strictly verify an existing SafeSeed pair in your browser."
     />
   </head>
   <body>
     <div id="root">
-      <main class="site-main gen-main">
-        <div class="gen-intro">
-          <h1>SafeSeed: In-Browser App</h1>
-        </div>
-      </main>
+      <div class="site">
+        <a class="skiplink" href="#main-content">Skip to SafeSeed tool</a>
+        <main id="main-content" class="site-main gen-main" tabindex="-1">
+          <div class="gen-intro">
+            <p class="eyebrow">Generate and verify</p>
+            <h1>SafeSeed: In-Browser App</h1>
+            <p class="gen-lede">Build a test or demo CSV entirely from SafeSeed&rsquo;s catalog, then download the exact CSV and its matching verification file.</p>
+            <p class="gen-boundary">No production file is accepted by the generator. No accounts, analytics, or network requests.</p>
+          </div>
+          <section class="gen-panel">
+            <div class="gen-panel-head"><h2>JavaScript is required to generate or verify</h2></div>
+            <p>Enable JavaScript for this local tool, or use the SafeSeed command-line package. The page remains readable without scripts so the purpose and boundary are never hidden behind the app.</p>
+          </section>
+          <p class="finelegal"><strong>Not legal advice.</strong> SafeSeed is a technical control, not proof that a file contains no personal data.</p>
+        </main>
+      </div>
     </div>
     <script type="module" src="/src/generator/main.tsx"></script>
   </body>

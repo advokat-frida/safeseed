@@ -1,12 +1,14 @@
-import type { GeneratedDataset } from "./generate.js";
+import { type GeneratedDataset } from "./generate.js";
 import type { FieldType, Tier } from "./types.js";
-export declare const SAFESEED_VERSION = "0.3.0";
+export declare const SAFESEED_VERSION = "0.4.0";
 export interface FieldRecord {
     name: string;
     type: FieldType;
     tier: Tier;
     citation: string;
     claim: string;
+    /** Present when the output is transformed from a catalog-constrained input. */
+    derivation?: string;
     /**
      * SHA-256 over a canonical serialization of this column's values (see
      * `canonicalColumn`). Lets column-scoped verify re-check one declared column

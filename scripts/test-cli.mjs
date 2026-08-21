@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import process from "node:process";
@@ -92,8 +92,77 @@ try {
   expect(hostileScanConfig.status === 2, "control-bearing scan column must be rejected", hostileScanConfig);
   expect(!hostileScanConfigOutput.includes("::add-mask::secret"), "hostile scan column reached CLI output", hostileScanConfig);
   process.stdout.write("PASS: CLI rejects control-bearing generate and scan schemas\n");
+
+  const formulaHeaderConfig = join(temp, "formula-header.json");
+  const formulaDataOut = join(temp, "formula.csv");
+  const formulaRecordOut = join(temp, "formula.record.json");
+  writeFileSync(
+    formulaHeaderConfig,
+    JSON.stringify({
+      schema: [{ name: '=HYPERLINK("https://example.com")', type: "email" }],
+      rows: 1,
+      seed: 1,
+    }),
+  );
+  const formulaGenerate = run([
+    "generate",
+    "--config",
+    formulaHeaderConfig,
+    "--out",
+    formulaDataOut,
+    "--record",
+    formulaRecordOut,
+  ]);
+  expect(formulaGenerate.status === 2, "spreadsheet-formula header must be rejected", formulaGenerate);
+  expect(
+    !existsSync(formulaDataOut) && !existsSync(formulaRecordOut),
+    "formula-header rejection left a partial output",
+    formulaGenerate,
+  );
+  process.stdout.write("PASS: CLI rejects spreadsheet-formula headers before writing output\n");
+
+  const presetData = join(temp, "marketing.csv");
+  const presetRecord = join(temp, "marketing.record.json");
+  const presetGenerate = run([
+    "generate",
+    "--preset",
+    "marketing-attribution",
+    "--rows",
+    "3",
+    "--seed",
+    "9",
+    "--out",
+    presetData,
+    "--record",
+    presetRecord,
+  ]);
+  expect(presetGenerate.status === 0, "marketing preset generation must succeed", presetGenerate);
+  const presetCsv = readFileSync(presetData, "utf8");
+  expect(
+    presetCsv.startsWith("event_id,cookie_id,campaign_id,landing_page_url,email_sha256,phone_sha256\n"),
+    "marketing preset emitted the wrong schema",
+    presetGenerate,
+  );
+  const presetVerify = run(["verify", "--in", presetData, "--record", presetRecord]);
+  expect(presetVerify.status === 0, "generated marketing preset must pass strict verify", presetVerify);
+  const presets = run(["presets"]);
+  expect(presets.status === 0 && presets.stdout.includes("uk-contacts"), "presets command must list schemas", presets);
+  process.stdout.write("PASS: CLI preset generates and strictly verifies a practical schema\n");
+
+  const malformedCsv = join(temp, "malformed.csv");
+  writeFileSync(malformedCsv, 'email\n"user1@example.net');
+  const malformedScan = run(["scan", "--in", malformedCsv, "--fields", "email:email"]);
+  expect(malformedScan.status === 1, "malformed CSV scan must fail", malformedScan);
+  expect(malformedScan.stdout.includes("[malformed-csv]"), "scan did not identify malformed CSV", malformedScan);
+  expect(!malformedScan.stdout.includes("user1@example.net"), "malformed scan leaked cell content", malformedScan);
+
+  const malformedVerify = run(["verify", "--in", malformedCsv, "--record", presetRecord]);
+  expect(malformedVerify.status === 1, "malformed CSV verify must fail", malformedVerify);
+  expect(malformedVerify.stdout.includes("[malformed-csv]"), "verify did not identify malformed CSV", malformedVerify);
+  expect(!malformedVerify.stdout.includes("user1@example.net"), "malformed verify leaked cell content", malformedVerify);
+  process.stdout.write("PASS: CLI scan and verify fail closed on malformed CSV syntax\n");
 } finally {
   rmSync(temp, { recursive: true, force: true });
 }
 
-process.stdout.write("SafeSeed CLI boundary contract: 3/3 passed.\n");
+process.stdout.write("SafeSeed CLI boundary contract: 6/6 passed.\n");

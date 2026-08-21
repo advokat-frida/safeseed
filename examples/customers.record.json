@@ -1,6 +1,6 @@
 {
-  "safeseedVersion": "0.3.0",
-  "catalogVersion": "3.0.0",
+  "safeseedVersion": "0.4.0",
+  "catalogVersion": "4.0.0",
   "seed": 1337,
   "rowCount": 50,
   "columns": [
@@ -71,5 +71,5 @@
     }
   ],
   "contentSha256": "3a1d5c44318b84e251b776d2dc64436738337e83e389bf6490eb295382a69a78",
-  "attestation": "This unsigned run record records the caller's declaration that the declared SafeSeed fields came from the versioned catalog path, which accepts no production dataset as generator input. makeRunRecord checks that those fields match the supplied CSV and current catalog constraints; it cannot authenticate how a structurally supplied dataset object was created. It does not attest any column omitted from its fields list. It is an unsigned integrity record, not authenticated provenance. It is not a cryptographic proof that the overall file contains no personal data. It binds to the file's content hash so current bytes can be compared with an independently protected copy of the record; anyone who can edit the file and record can recompute both. \"Not derived from production data\" is not the same claim as \"not personal data.\" Re-verify against the actual artifact in your pipeline (GDPR Art. 25/32 control for non-production environments; not a scope-out from privacy law)."
+  "attestation": "This unsigned run record records the caller's declaration that the declared SafeSeed fields came from the versioned catalog path, which accepts no production dataset as generator input. makeRunRecord checks that those fields match the supplied CSV and current catalog constraints; it cannot authenticate how a structurally supplied dataset object was created. It does not attest any column omitted from its fields list. It is an unsigned integrity record, not authenticated provenance. Where a field names a derivation, its tier describes the source input's assurance basis; the transformed output is accepted only through the catalog constraint and is not itself claimed to occupy that reserved namespace. It is not a cryptographic proof that the overall file contains no personal data. It binds to the file's content hash so current bytes can be compared with an independently protected copy of the record; anyone who can edit the file and record can recompute both. \"Not derived from production data\" is not the same claim as \"not personal data.\" Re-verify against the actual artifact in your pipeline (GDPR Art. 25/32 control for non-production environments; not a scope-out from privacy law)."
 }

@@ -1024,6 +1024,16 @@ h2:focus-visible {
   text-decoration: none;
 }
 
+@media (min-width: 761px) {
+  .field-row {
+    grid-template-columns: minmax(150px, 1fr) 224px 216px 44px;
+  }
+
+  .field-row .tier-chip {
+    white-space: nowrap;
+  }
+}
+
 @media (max-width: 760px) {
   .field-row {
     grid-template-columns: minmax(0, 1fr) 44px;
